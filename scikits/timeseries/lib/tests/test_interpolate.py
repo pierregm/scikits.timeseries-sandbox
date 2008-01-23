@@ -16,7 +16,7 @@ from scipy.testing import *
 from numpy.ma.testutils import *
 from numpy.ma import MaskedArray, masked
 
-from timeseries.lib.interpolate import \
+from scikits.timeseries.lib.interpolate import \
      backward_fill, forward_fill, interp_masked1d
 
 class TestFuncs(TestCase):

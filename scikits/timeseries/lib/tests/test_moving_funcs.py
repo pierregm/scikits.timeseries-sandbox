@@ -21,10 +21,10 @@ import numpy.ma as MA
 from numpy.ma import MaskedArray, masked
 from numpy.ma import mstats
 
-import timeseries as TS
-from timeseries import time_series, thisday
+import scikits.timeseries as TS
+from scikits.timeseries import time_series, thisday
 
-from timeseries.lib import moving_funcs as MF
+from scikits.timeseries.lib import moving_funcs as MF
 
 class TestCMovAverage(TestCase):
 

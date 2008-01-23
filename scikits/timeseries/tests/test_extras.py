@@ -17,8 +17,8 @@ from scipy.testing import *
 from numpy.ma import masked
 from numpy.ma.testutils import assert_equal, assert_almost_equal
 
-from timeseries import time_series, Date, extras
-from timeseries.extras import *
+from scikits.timeseries import time_series, Date, extras
+from scikits.timeseries.extras import *
 
 #..............................................................................
 class TestMisc(TestCase):

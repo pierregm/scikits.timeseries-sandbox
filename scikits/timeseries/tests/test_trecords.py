@@ -24,7 +24,7 @@ from numpy.ma.mrecords import addfield
 
 from numpy.ma import getmaskarray, nomask, masked_array
 
-from timeseries.trecords import \
+from scikits.timeseries.trecords import \
      TimeSeriesRecords, TimeSeries,\
     fromarrays, fromtextfile, fromrecords, \
     date_array, time_series

@@ -22,11 +22,11 @@ from numpy.ma import masked_array
 
 from numpy.ma.testutils import assert_equal, assert_array_equal
 
-import timeseries as ts
-from timeseries import const as C, Date, DateArray,\
+import scikits.timeseries as ts
+from scikits.timeseries import const as C, Date, DateArray,\
     now, date_array, date_array_fromlist
-from timeseries.parser import DateFromString, DateTimeFromString
-from timeseries.cseries import freq_dict
+from scikits.timeseries.parser import DateFromString, DateTimeFromString
+from scikits.timeseries.cseries import freq_dict
 
 class TestCreation(TestCase):
     "Base test class for MaskedArrays."

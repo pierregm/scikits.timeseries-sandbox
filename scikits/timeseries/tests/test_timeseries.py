@@ -21,7 +21,7 @@ import numpy.ma as MA
 from numpy.ma import masked_array, masked, nomask
 from numpy.ma.testutils import assert_equal, assert_array_equal
 
-from timeseries import tseries, Date, date_array_fromlist, \
+from scikits.timeseries import tseries, Date, date_array_fromlist, \
      date_array_fromrange, date_array, thisday, time_series, TimeSeries, \
      adjust_endpoints, mask_period, align_series, align_with, \
      fill_missing_dates, tsmasked, concatenate, stack, split
