@@ -1,17 +1,12 @@
-The timeseries module contains code borrowed from the EGENIX mx.DateTime
-package.
+The timeseries scikit is provided under the BSD license
+http://www.opensource.org/licenses/bsd-license.php
 
-Functions in c_tdates.c marked in the section labelled
-//DERIVED FROM mx.DateTime
-are slightly modified versions of functions found in mxDateTime.c in the
-mx.DateTime source code. They are based on version 2.0.6 of the mx.DateTime 
-package and hence the code is subect to the terms of the EGENIX PUBLIC LICENSE
-AGREEMENT VERSION 1.0.0 (included below)
+Also, please note the following:
 
-The code in parser.py is based on code from version 3.0.0 of the mx.DateTime
-package, and hence it is subject to the terms of the EGENIX PUBLIC LICENSE
-AGREEMENT VERSION 1.1.0 (included below after the 1.0.0 version of the license)
-
+The timeseries scikit contains code borrowed from the EGENIX mx.DateTime
+package. It uses code from versions 2.0.6 and 3.0.0 of the mx.DateTime package
+and as such, is subject to versions 1.0.0 and 1.1.0 of the EGENIX.COM PUBLIC
+LICENSE AGREEMENT which are included below.
 
 =================================================================
 
