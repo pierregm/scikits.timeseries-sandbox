@@ -1,5 +1,6 @@
-import os
-import sys
+# install setuptools on user's pc if not installed already
+import ez_setup
+ez_setup.use_setuptools()
 
 import setuptools
 
