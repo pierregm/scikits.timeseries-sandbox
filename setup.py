@@ -1,6 +1,18 @@
+import sys
+
+def install_setuptools():
+    import ez_setup
+
+    try:
+        import setuptools
+    except ImportError:
+        egg = ez_setup.download_setuptools()
+        sys.path.insert(0,egg)
+        from setuptools.command.easy_install import main as _main
+        _main([egg])
+
 # install setuptools on user's pc if not installed already
-import ez_setup
-ez_setup.use_setuptools()
+install_setuptools()
 
 import setuptools
 
