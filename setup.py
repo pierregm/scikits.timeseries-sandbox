@@ -1,7 +1,7 @@
-# retrieve setuptools if not already installed
-from ez_setup import use_setuptools
-use_setuptools()
-
+"""
+setuptools must be installed first. If you do not have setuptools installed
+please download and install it from http://pypi.python.org/pypi/setuptools
+"""
 import setuptools
 
 subpackage = 'timeseries'

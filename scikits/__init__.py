@@ -1,1 +1,3 @@
-# generic scikts __init__ script. MUST be left blank.
+# Activate namespace packages.
+__import__('pkg_resources').declare_namespace(__name__)
+
