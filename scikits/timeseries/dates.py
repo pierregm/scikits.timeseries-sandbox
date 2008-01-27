@@ -476,8 +476,6 @@ For non-quarterly dates, this simply returns the year of the date."""
     def get_steps(self):
         """Returns the time steps between consecutive dates.
     The timesteps have the same unit as the frequency of the series."""
-        if self.freq == _c.FR_UND:
-            warnings.warn("Undefined frequency: assuming integers!")
         if self._cachedinfo['steps'] is None:
             _cached = self._cachedinfo
             val = numeric.asarray(self).ravel()
@@ -525,77 +523,7 @@ For non-quarterly dates, this simply returns the year of the date."""
 #####---------------------------------------------------------------------------
 def isDateArray(a):
     "Tests whether an array is a DateArray object."
-    return isinstance(a,DateArray)
-
-def guess_freq(dates):
-    """Tries to estimate the frequency of a list of dates, by checking the steps
-    between consecutive dates The steps should be in days.
-    Returns a frequency code (alpha character)."""
-    ddif = numeric.asarray(numpy.diff(dates))
-    ddif.sort()
-    if ddif.size == 0:
-        fcode = _c.FR_UND
-    elif ddif[0] == ddif[-1] == 1.:
-        fcode = _c.FR_DAY
-    elif (ddif[0] == 1.) and (ddif[-1] == 3.):
-        fcode = _c.FR_BUS
-    elif (ddif[0] > 3.) and  (ddif[-1] == 7.):
-        fcode = _c.FR_WK
-    elif (ddif[0] >= 28.) and (ddif[-1] <= 31.):
-        fcode = _c.FR_MTH
-    elif (ddif[0] >= 90.) and (ddif[-1] <= 92.):
-        fcode = _c.FR_QTR
-    elif (ddif[0] >= 365.) and (ddif[-1] <= 366.):
-        fcode = _c.FR_ANN
-    elif numpy.abs(24.*ddif[0] - 1) <= 1e-5 and \
-         numpy.abs(24.*ddif[-1] - 1) <= 1e-5:
-        fcode = _c.FR_HR
-    elif numpy.abs(1440.*ddif[0] - 1) <= 1e-5 and \
-         numpy.abs(1440.*ddif[-1] - 1) <= 1e-5:
-        fcode = _c.FR_MIN
-    elif numpy.abs(86400.*ddif[0] - 1) <= 1e-5 and \
-         numpy.abs(86400.*ddif[-1] - 1) <= 1e-5:
-        fcode = _c.FR_SEC
-    else:
-        warnings.warn("Unable to estimate the frequency! %.3f<>%.3f" %\
-                      (ddif[0], ddif[-1]))
-        fcode = _c.FR_UND
-    return fcode
-
-def guess_freq_date(dates):
-    """Tries to estimate the frequency of a sequence of datetime objects."""
-    if not type(dates[0]) is dt.datetime:
-        raise AttributeError, "dates not a sequence of datetime objects."
-
-    sorted_dates = numpy.sort(dates)
-    ddif = numpy.diff(sorted_dates)
-    dset = set(ddif)
-    try:
-        dset.remove(dt.timedelta(0))
-    except:
-        pass
-    res = min(dset)
-    if getattr(res, 'seconds', 0) >= 1:
-        fcode = _c.FR_SEC
-    elif getattr(res, 'seconds', 0) >= 60:
-        fcode = _c.FR_MIN
-    elif getattr(res, 'seconds', 0) >= 60*60:
-        fcode = _c.FR_HR
-    elif getattr(res, 'day', 0) >= 1:
-        fcode = _c.FR_DAY           
-    elif getattr(res, 'day', 0) >= 7:
-        fcode = _c.FR_WK
-    elif getattr(res, 'month', 0) >= 1:
-        fcode = _c.FR_MTH
-    elif getattr(res, 'month', 0) >= 3:
-        fcode = _c.FR_QTR
-    elif getattr(res, 'year', 0) >= 1:
-        fcode = _c.FR_ANN
-    else:
-        warnings.warn("Unable to estimate the frequency! %s" % res.__str__())
-        fcode = _c.FR_UND
-    return fcode
-    
+    return isinstance(a,DateArray)    
 
 def _listparser(dlist, freq=None):
     "Constructs a DateArray from a list."
@@ -606,16 +534,6 @@ def _listparser(dlist, freq=None):
         dlist.shape = (1,)
     # Case #1: dates as strings .................
     if dlist.dtype.kind in 'SU':
-        #...construct a list of ordinals
-        ords = numpy.fromiter((DateTimeFromString(s).toordinal() for s in dlist),
-                               float_)
-        ords += 1
-        #...try to guess the frequency
-        if freq is None or freq == _c.FR_UND:
-            freq = guess_freq(ords)
-        if freq == _c.FR_UND:
-            dtobj = [DateTimeFromString(s) for s in dlist]
-            freq = guess_freq_date(dtobj)
         #...construct a list of dates
         for s in dlist:
             x = Date(freq, string=s)
@@ -623,8 +541,6 @@ def _listparser(dlist, freq=None):
     # Case #2: dates as numbers .................
     elif dlist.dtype.kind in 'if':
         #...hopefully, they are values
-        if freq is None or freq == _c.FR_UND:
-            freq = guess_freq(dlist)
         dates = dlist
     # Case #3: dates as objects .................
     elif dlist.dtype.kind == 'O':
@@ -634,17 +550,9 @@ def _listparser(dlist, freq=None):
             dates = numpy.fromiter((d.value for d in dlist), int_)
         #...as mx.DateTime objects
         elif hasattr(template,'absdays'):
-            # no freq given: try to guess it from absdays
-            if freq == _c.FR_UND:
-                ords = numpy.fromiter((s.absdays for s in dlist), float_)
-                ords += 1
-                freq = guess_freq(ords)
             dates = [Date(freq, datetime=m) for m in dlist]
         #...as datetime objects
         elif hasattr(template, 'toordinal'):
-            if freq == _c.FR_UND:
-                ords = numpy.fromiter((d.toordinal() for d in dlist), float_)
-                freq = guess_freq(ords)
             dates = [Date(freq, datetime=d) for d in dlist]
     #
     result = DateArray(dates, freq)

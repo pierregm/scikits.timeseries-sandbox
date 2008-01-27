@@ -66,11 +66,12 @@ class TestCreation(TestCase):
         "Tests creation from list of strings w/ missing dates"
         print "starting test_fromstrings_wmissing..."
         dlist = ['2007-01-%02i' % i for i in (1,2,4,5,7,8,10,11,13)]
+
         dates = date_array_fromlist(dlist)
         assert_equal(dates.freqstr,'U')
         assert(not dates.isfull())
         assert(not dates.has_duplicated_dates())
-        assert_equal(dates.tovalue(),732676+numpy.array([1,2,4,5,7,8,10,11,13]))
+        assert_equal(dates.tovalue(), 732676 + numpy.array([1,2,4,5,7,8,10,11,13]))
         #
         ddates = date_array_fromlist(dlist, 'D')
         assert_equal(ddates.freqstr,'D')
@@ -79,7 +80,7 @@ class TestCreation(TestCase):
         #
         mdates = date_array_fromlist(dlist, 'M')
         assert_equal(mdates.freqstr,'M')
-        assert(not dates.isfull())
+        assert(not mdates.isfull())
         assert(mdates.has_duplicated_dates())
         print "finished test_fromstrings_wmissing"
         #
@@ -824,42 +825,39 @@ class TestMethods(TestCase):
     def test_getitem(self):
         "Tests getitem"
         dlist = ['2007-%02i' % i for i in range(1,5)+range(7,13)]
-        mdates = date_array_fromlist(dlist, 'M')
+        mdates = date_array_fromlist(dlist, 'Monthly')
         # Using an integer
         assert_equal(mdates[0].value, 24073)
         assert_equal(mdates[-1].value, 24084)
         # Using a date
         lag = mdates.find_dates(mdates[0])
         assert_equal(mdates[lag], mdates[0])
-        lag = mdates.find_dates(Date('M',value=24080))
+        lag = mdates.find_dates(Date('Monthly', value=24080))
         assert_equal(mdates[lag], mdates[5])
         # Using several dates
-        lag = mdates.find_dates(Date('M',value=24073), Date('M',value=24084))
+        lag = mdates.find_dates(Date('Monthly', value=24073), Date('Monthly', value=24084))
         assert_equal(mdates[lag],
-                     DateArray([mdates[0], mdates[-1]], freq='M'))
+                     DateArray([mdates[0], mdates[-1]], freq='Monthly'))
         assert_equal(mdates[[mdates[0],mdates[-1]]], mdates[lag])
         #
         assert_equal(mdates>=mdates[-4], [0,0,0,0,0,0,1,1,1,1])
-        dlist = ['2006-%02i' % i for i in range(1,5)+range(7,13)]
-        mdates = date_array_fromlist(dlist).asfreq('M')
-        #CHECK : Oops, what were we supposed to do here ?
 
 
     def test_getsteps(self):
         "Tests the getsteps method"
         dlist = ['2007-01-%02i' %i for i in (1,2,3,4,8,9,10,11,12,15)]
-        ddates = date_array_fromlist(dlist)
+        ddates = date_array_fromlist(dlist, 'Daily')
         assert_equal(ddates.get_steps(), [1,1,1,4,1,1,1,1,3])
 
 
     def test_empty_datearray(self):
-        empty_darray = DateArray([], freq='b')
+        empty_darray = DateArray([], freq='Business')
         assert_equal(empty_darray.isfull(), True)
         assert_equal(empty_darray.isvalid(), True)
         assert_equal(empty_darray.get_steps(), None)
 
     def test_cachedinfo(self):
-        D = date_array(start_date=now('D'), length=5)
+        D = date_array(start_date=now('Daily'), length=5)
         Dstr = D.tostring()
         assert_equal(D.tostring(), Dstr)
         DL = D[[0,-1]]

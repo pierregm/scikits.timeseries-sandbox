@@ -31,14 +31,14 @@ class TestCreation(TestCase):
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
         dlist = ['2007-01-%02i' % i for i in range(1,16)]
-        dates = date_array_fromlist(dlist)
+        dates = date_array_fromlist(dlist, 'Daily')
         data = masked_array(numeric.arange(15), mask=[1,0,0,0,0]*3)
         self.d = (dlist, dates, data)
 
     def test_fromlist (self):
         "Base data definition."
         (dlist, dates, data) = self.d
-        series = time_series(data, dlist)
+        series = time_series(data, dlist, freq='Daily')
         assert(isinstance(series, TimeSeries))
         assert_equal(series._mask, [1,0,0,0,0]*3)
         assert_equal(series._series, data)
@@ -58,7 +58,7 @@ class TestCreation(TestCase):
     def test_fromseries (self):
         "Base data definition."
         (dlist, dates, data) = self.d
-        series = time_series(data, dlist)
+        series = time_series(data, dlist, freq='Daily')
         dates = dates+15
         series = time_series(series, dates)
         assert(isinstance(series, TimeSeries))
@@ -97,18 +97,18 @@ class TestCreation(TestCase):
         "Tests that the data are properly sorted along the dates."
         dlist = ['2007-01-%02i' % i for i in (3,2,1)]
         data = [10,20,30]
-        series = time_series(data,dlist)
+        series = time_series(data,dlist, freq='Daily')
         assert_equal(series._data,[30,20,10])
         #
         dates = date_array_fromlist(dlist, freq='D')
         series = TimeSeries(data, dates)
         assert_equal(series._data,[30,20,10])
         #
-        series = time_series(data, dlist, mask=[1,0,0])
+        series = time_series(data, dlist, freq='Daily', mask=[1,0,0])
         assert_equal(series._mask,[0,0,1])
         #
         data = masked_array([10,20,30],mask=[1,0,0])
-        series = time_series(data, dlist)
+        series = time_series(data, dlist, freq='Daily')
         assert_equal(series._mask,[0,0,1])
 #...............................................................................
 
@@ -117,9 +117,9 @@ class TestArithmetics(TestCase):
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
         dlist = ['2007-01-%02i' % i for i in range(1,16)]
-        dates = date_array_fromlist(dlist)
+        dates = date_array_fromlist(dlist, freq='Daily')
         data = masked_array(numeric.arange(15), mask=[1,0,0,0,0]*3)
-        self.d = (time_series(data, dlist), data)
+        self.d = (time_series(data, dlist, freq='Daily'), data)
 
     def test_intfloat(self):
         "Test arithmetic timeseries/integers"
@@ -215,9 +215,9 @@ class TestGetitem(TestCase):
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
         dlist = ['2007-01-%02i' % i for i in range(1,16)]
-        dates = date_array_fromlist(dlist)
+        dates = date_array_fromlist(dlist, 'Daily')
         data = masked_array(numeric.arange(15), mask=[1,0,0,0,0]*3, dtype=float_)
-        self.d = (time_series(data, dlist), data, dates)
+        self.d = (time_series(data, dates), data, dates)
 
     def test_wdate(self):
         "Tests  getitem with date as index"
@@ -320,9 +320,9 @@ class TestFunctions(TestCase):
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
         dlist = ['2007-01-%02i' % i for i in range(1,16)]
-        dates = date_array_fromlist(dlist)
+        dates = date_array_fromlist(dlist, freq='Daily')
         data = masked_array(numeric.arange(15), mask=[1,0,0,0,0]*3)
-        self.d = (time_series(data, dlist), data, dates)
+        self.d = (time_series(data, dates), data, dates)
     #
     def test_adjustendpoints(self):
         "Tests adjust_endpoints"
@@ -600,7 +600,7 @@ test_dates test suite.
     def test_concatenate(self):
         "Tests concatenate"
         dlist = ['2007-%02i' % i for i in range(1,6)]
-        _dates = date_array_fromlist(dlist)
+        _dates = date_array_fromlist(dlist, 'Monthly')
         data = masked_array(numpy.arange(5), mask=[1,0,0,0,0], dtype=float_)
         #
         ser_1 = time_series(data, _dates)

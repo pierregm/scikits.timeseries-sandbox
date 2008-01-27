@@ -17,7 +17,7 @@ from numpy.ma import masked
 import const as _c
 from tseries import TimeSeries
 
-__all__ = ['isleapyear', 'count_missing', 'accept_atmost_missing']
+__all__ = ['isleapyear', 'count_missing', 'accept_atmost_missing', 'guess_freq']
 
 #..............................................................................
 def isleapyear(year):
@@ -116,3 +116,73 @@ def accept_atmost_missing(series, max_missing, strict=False):
     else:
         series[missing >= max_missing] = masked
     return series
+
+
+def guess_freq(dates):
+    """Tries to estimate the frequency of a list of dates or datetime objects
+by checking the steps between consecutive dates. The steps should be in days.
+Returns a frequency code.
+"""
+    # To do: consolidate currently separate logic for dates being datetime
+    # objects vs timeseries dates or ints
+
+    if type(dates[0]) is dt.datetime:
+        sorted_dates = numpy.sort(dates)
+        ddif = numpy.diff(sorted_dates)
+        dset = set(ddif)
+        try:
+            dset.remove(dt.timedelta(0))
+        except:
+            pass
+        res = min(dset)
+        if getattr(res, 'seconds', 0) >= 1:
+            fcode = _c.FR_SEC
+        elif getattr(res, 'seconds', 0) >= 60:
+            fcode = _c.FR_MIN
+        elif getattr(res, 'seconds', 0) >= 60*60:
+            fcode = _c.FR_HR
+        elif getattr(res, 'day', 0) >= 1:
+            fcode = _c.FR_DAY           
+        elif getattr(res, 'day', 0) >= 7:
+            fcode = _c.FR_WK
+        elif getattr(res, 'month', 0) >= 1:
+            fcode = _c.FR_MTH
+        elif getattr(res, 'month', 0) >= 3:
+            fcode = _c.FR_QTR
+        elif getattr(res, 'year', 0) >= 1:
+            fcode = _c.FR_ANN
+        else:
+            warnings.warn("Unable to estimate the frequency! %s" % res.__str__())
+            fcode = _c.FR_UND
+    else:
+        ddif = numeric.asarray(numpy.diff(dates))
+        ddif.sort()
+        if ddif.size == 0:
+            fcode = _c.FR_UND
+        elif ddif[0] == ddif[-1] == 1.:
+            fcode = _c.FR_DAY
+        elif (ddif[0] == 1.) and (ddif[-1] == 3.):
+            fcode = _c.FR_BUS
+        elif (ddif[0] > 3.) and  (ddif[-1] == 7.):
+            fcode = _c.FR_WK
+        elif (ddif[0] >= 28.) and (ddif[-1] <= 31.):
+            fcode = _c.FR_MTH
+        elif (ddif[0] >= 90.) and (ddif[-1] <= 92.):
+            fcode = _c.FR_QTR
+        elif (ddif[0] >= 365.) and (ddif[-1] <= 366.):
+            fcode = _c.FR_ANN
+        elif numpy.abs(24.*ddif[0] - 1) <= 1e-5 and \
+             numpy.abs(24.*ddif[-1] - 1) <= 1e-5:
+            fcode = _c.FR_HR
+        elif numpy.abs(1440.*ddif[0] - 1) <= 1e-5 and \
+             numpy.abs(1440.*ddif[-1] - 1) <= 1e-5:
+            fcode = _c.FR_MIN
+        elif numpy.abs(86400.*ddif[0] - 1) <= 1e-5 and \
+             numpy.abs(86400.*ddif[-1] - 1) <= 1e-5:
+            fcode = _c.FR_SEC
+        else:
+            warnings.warn("Unable to estimate the frequency! %.3f<>%.3f" %\
+                          (ddif[0], ddif[-1]))
+            fcode = _c.FR_UND
+
+    return fcode
