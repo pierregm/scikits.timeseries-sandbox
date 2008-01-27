@@ -37,35 +37,25 @@ class TestCreation(TestCase):
     def test_fromstrings(self):
         "Tests creation from list of strings"
         print "starting test_fromstrings..."
-        dlist = ['2007-01-%02i' % i for i in range(1,15)]
+
         # A simple case: daily data
+        dlist = ['2007-01-%02i' % i for i in range(1,15)]
         dates = date_array_fromlist(dlist, 'D')
         assert_equal(dates.freqstr,'D')
         assert(dates.isfull())
         assert(not dates.has_duplicated_dates())
         assert_equal(dates, 732677+numpy.arange(len(dlist)))
-        # as simple, but we need to guess the frequency this time
-        dates = date_array_fromlist(dlist, 'D')
-        assert_equal(dates.freqstr,'D')
-        assert(dates.isfull())
-        assert(not dates.has_duplicated_dates())
-        assert_equal(dates, 732677+numpy.arange(len(dlist)))
+
         # Still daily data, that we force to month
         dates = date_array_fromlist(dlist, 'M')
         assert_equal(dates.freqstr,'M')
         assert(not dates.isfull())
         assert(dates.has_duplicated_dates())
         assert_equal(dates, [24073]*len(dlist))
+
         # Now, for monthly data
         dlist = ['2007-%02i' % i for i in range(1,13)]
         dates = date_array_fromlist(dlist, 'M')
-        assert_equal(dates.freqstr,'M')
-        assert(dates.isfull())
-        assert(not dates.has_duplicated_dates())
-        assert_equal(dates, 24073 + numpy.arange(12))
-        # Monthly data  w/ guessing
-        dlist = ['2007-%02i' % i for i in range(1,13)]
-        dates = date_array_fromlist(dlist, )
         assert_equal(dates.freqstr,'M')
         assert(dates.isfull())
         assert(not dates.has_duplicated_dates())
