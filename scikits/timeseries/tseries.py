@@ -1054,7 +1054,7 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
         idx = _dates._unsorted
         data = data[idx]
         _dates._unsorted = None
-    return TimeSeries(data=data, dates=_dates, mask=data._mask,
+    return TimeSeries(data=data, dates=_dates, 
                       copy=copy, dtype=dtype,
                       fill_value=fill_value, keep_mask=keep_mask,
                       hard_mask=hard_mask,)

@@ -15,16 +15,16 @@ __date__     = '$Date: 2008-01-12 05:06:39 -0500 (Sat, 12 Jan 2008) $'
 import sys
 
 import numpy
-from numpy import bool_, complex_, float_, int_, str_, object_
+from numpy import ndarray, bool_, complex_, float_, int_, str_, object_, \
+    array as narray
 import numpy.core.fromnumeric as fromnumeric
 import numpy.core.numeric as numeric
-from numpy.core.numeric import ndarray
 import numpy.core.numerictypes as ntypes
 import numpy.core.umath as umath
 from numpy.core.defchararray import chararray
 from numpy.core.records import find_duplicate
-from numpy.core.records import format_parser, recarray, record
-from numpy.core.records import fromarrays as recfromarrays
+from numpy.core.records import format_parser, recarray, record, \
+    fromarrays as recfromarrays
 
 import numpy.ma as MA
 
@@ -33,10 +33,11 @@ from numpy.ma import MaskedArray, MAError, \
      getmask, getmaskarray, make_mask,\
     make_mask_none, mask_or, masked_array, filled
 
-import numpy.ma.mrecords as MR
+import numpy.ma.mrecords
+reload(numpy.ma.mrecords)
 from numpy.ma.mrecords import _checknames, \
-     _guessvartypes, openfile, MaskedRecords, \
-     fromrecords as mrecfromrecords
+     _guessvartypes, openfile, MaskedRecords, mrecarray, addfield, \
+     fromrecords as mrecfromrecords, fromarrays as mrecfromarrays
 
 from tseries import TimeSeries, time_series, _getdatalength
 from dates import Date, DateArray, date_array
@@ -45,7 +46,7 @@ from dates import Date, DateArray, date_array
 _byteorderconv = numpy.core.records._byteorderconv
 _typestr = ntypes._typestr
 
-reserved_fields = MR.reserved_fields + ['_dates']
+reserved_fields = numpy.ma.mrecords.reserved_fields + ['_dates']
 
 import warnings
 
@@ -72,6 +73,21 @@ def _getformats(data):
     return formats[:-1]
 
 
+def _getdates(dates=None, newdates=None, length=None, freq=None,
+              start_date=None):
+    """Determines new dates (private function not meant to be used)."""
+    if dates is None:
+        if newdates is not None:
+            if not hasattr(newdates, 'freq'):
+                newdates = date_array(dlist=newdates, freq=freq)
+        else:
+            newdates = date_array(start_date=start_date, length=length,
+                                  freq=freq)
+    elif not hasattr(dates, 'freq'):
+        newdates = date_array(dlist=dates, freq=freq)
+    else:
+        newdates = dates
+    return newdates
 
 
 class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
@@ -86,32 +102,22 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
     """
     _defaultfieldmask = nomask
     _defaulthardmask = False
-    def __new__(cls, data, dates=None, mask=nomask, dtype=None,
-                freq=None, observed=None, start_date=None,
-                hard_mask=False, fill_value=None,
-#                offset=0, strides=None,
+    def __new__(cls, shape, dtype=None, buf=None, offset=0, strides=None,
                 formats=None, names=None, titles=None,
-                byteorder=None, aligned=False):
-        tsoptions = dict(fill_value=fill_value, hard_mask=hard_mask,)
-        mroptions = dict(fill_value=fill_value, hard_mask=hard_mask,
-                         formats=formats, names=names, titles=titles,
-                         byteorder=byteorder, aligned=aligned)
+                byteorder=None, aligned=False,
+                mask=nomask, hard_mask=False, fill_value=None, keep_mask=True,
+                copy=False, 
+                dates=None, freq='U', start_date=None, observed=None,
+                **options):
+        self = mrecarray.__new__(cls, shape, dtype=dtype, buf=buf, offset=offset,
+                                 strides=strides, formats=formats,
+                                 byteorder=byteorder, aligned=aligned,
+                                 mask=mask, hard_mask=hard_mask, copy=copy,
+                                 keep_mask=keep_mask, fill_value=fill_value,
+                                 )
         #
-        if isinstance(data, TimeSeriesRecords):
-#            if copy:
-#                data = data.copy()
-            data._hardmask = data._hardmask | hard_mask
-            return data
-        # .......................................
-        _data = MaskedRecords(data, mask=mask, dtype=dtype, **mroptions).view(cls)
-        if dates is None:
-            length = _getdatalength(data)
-            newdates = date_array(start_date=start_date, length=length,
-                                  freq=freq)
-        elif not hasattr(dates, 'freq'):
-            newdates = date_array(dlist=dates, freq=freq)
-        else:
-            newdates = dates
+        newdates = _getdates(dates, length=len(self), 
+                             start_date=start_date,freq=freq)
         _data._dates = newdates
         _data._observed = observed
         cls._defaultfieldmask = _data._fieldmask
@@ -119,29 +125,13 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
         return _data
 
     def __array_finalize__(self,obj):
-        if isinstance(obj, (MaskedRecords)):
-            self.__dict__.update(_fieldmask=obj._fieldmask,
-                                 _hardmask=obj._hardmask,
-                                 _fill_value=obj._fill_value,
-                                 _names = obj.dtype.names
-                                 )
-            if isinstance(obj, TimeSeriesRecords):
-                self.__dict__.update(observed=obj.observed,
-                                     _dates=obj._dates)
-            else:
-                self.__dict__.update(observed=None,
-                                     _dates=[])
-        else:
-            self.__dict__.update(_dates = [],
-                                 observed=None,
-                                 _fieldmask = nomask,
-                                 _hardmask = False,
-                                 fill_value = None,
-                                 _names = self.dtype.names
-                                )
+        _dates = getattr(obj,'_dates',DateArray([]))
+        self.__dict__.update(_dates=_dates,
+                             _observed=getattr(obj,'_observed',None),
+                             _names = self.dtype.names)
+        MaskedRecords.__array_finalize__(self, obj)
         return
-
-
+    #......................................................
     def _getdata(self):
         "Returns the data as a recarray."
         return self.view(recarray)
@@ -149,9 +139,8 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
 
     def _getseries(self):
         "Returns the data as a MaskedRecord array."
-        return self.view(MaskedRecords)
+        return self.view(mrecarray)
     _series = property(fget=_getseries)
-
     #......................................................
     def __getattribute__(self, attr):
         getattribute = MaskedRecords.__getattribute__
@@ -161,53 +150,8 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
             obj._dates = _dict['_dates']
             return obj
         return getattribute(self,attr)
-
-
-    def __setattr__(self, attr, val):
-        newattr = attr not in self.__dict__
-        try:
-            # Is attr a generic attribute ?
-            ret = object.__setattr__(self, attr, val)
-        except:
-            # Not a generic attribute: exit if it's not a valid field
-            fielddict = self.dtype.names or {}
-            if attr not in fielddict:
-                exctype, value = sys.exc_info()[:2]
-                raise exctype, value
-        else:
-            if attr not in list(self.dtype.names) + ['_dates','_mask']:
-                return ret
-            if newattr:         # We just added this one
-                try:            #  or this setattr worked on an internal
-                                #  attribute.
-                    object.__delattr__(self, attr)
-                except:
-                    return ret
-        # Case #1.: Basic field ............
-        base_fmask = self._fieldmask
-        _names = self.dtype.names
-        if attr in _names:
-            fval = filled(val)
-            mval = getmaskarray(val)
-            if self._hardmask:
-                mval = mask_or(mval, base_fmask.__getattr__(attr))
-            self._data.__setattr__(attr, fval)
-            base_fmask.__setattr__(attr, mval)
-            return
-        elif attr == '_mask':
-            if self._hardmask:
-                val = make_mask(val)
-                if val is not nomask:
-#                    mval = getmaskarray(val)
-                    for k in _names:
-                        m = mask_or(val, base_fmask.__getattr__(k))
-                        base_fmask.__setattr__(k, m)
-            else:
-                mval = getmaskarray(val)
-                for k in _names:
-                    base_fmask.__setattr__(k, mval)
-            return
-    #............................................
+    
+    #......................................................
     def __getitem__(self, indx):
         """Returns all the fields sharing the same fieldname base.
     The fieldname base is either `_data` or `_mask`."""
@@ -222,11 +166,10 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
         (sindx, dindx) = self._TimeSeries__checkindex(indx)
 #        obj = numeric.array(self._data[sindx],
 #                            copy=False, subok=True).view(type(self))
-        obj = numeric.array(self._data[sindx], copy=False, subok=True)
-        obj = obj.view(type(self))
+        obj = narray(self._data[sindx], copy=False, subok=True).view(type(self))
         obj.__dict__.update(_dates=_localdict['_dates'][dindx],
-                            _fieldmask=_localdict['_fieldmask'][sindx],
                             _fill_value=_localdict['_fill_value'])
+        obj._fieldmask = narray(_localdict['_fieldmask'][sindx]).view(recarray)
         return obj
 
     def __getslice__(self, i, j):
@@ -241,7 +184,7 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
 
     def __setslice__(self, i, j, value):
         """Sets the slice described by [i,j] to `value`."""
-        self.view(MaskedRecords).__setslice__(i,j,value)
+        self.view(mrecarray).__setslice__(i,j,value)
         return
 
     #......................................................
@@ -280,98 +223,71 @@ Otherwise fill with fill value.
     #.............................................
     def copy(self):
         "Returns a copy of the argument."
-        _localdict = self.__dict__
-        return TimeSeriesRecords(_localdict['_data'].copy(),
-                       dates=_localdict['_dates'].copy(),
-                        mask=_localdict['_fieldmask'].copy(),
-                       dtype=self.dtype)
+        copied = MaskedRecords.copy(self)
+        copied._dates = self._dates.copy()
+        return copied
+trecarray = TimeSeriesRecords
 
 
 #####---------------------------------------------------------------------------
 #---- --- Constructors ---
 #####---------------------------------------------------------------------------
 
-def fromarrays(arraylist, dates=None,
+def time_records(mrecord, dates=None):
+    trecords = narray(mrecord, subok=True).view(trecarray)
+    trecords._dates = dates
+    return trecords
+
+
+
+def fromarrays(arraylist, dates=None, start_date=None, freq='U', 
+               fill_value=None,
                dtype=None, shape=None, formats=None,
-               names=None, titles=None, aligned=False, byteorder=None):
+               names=None, titles=None, aligned=False, byteorder=None,):
     """Creates a mrecarray from a (flat) list of masked arrays.
 
-:Parameters:
-    - `arraylist` : Sequence
-      A list of (masked) arrays. Each element of the sequence is first converted
-      to a masked array if needed. If a 2D array is passed as argument, it is
-      processed line by line
-    - `dtype` : numeric.dtype
-      Data type descriptor.
-    - `shape` : Integer *[None]*
-      Number of records. If None, `shape` is defined from the shape of the first
-      array in the list.
-    - `formats` :
+    Parameters
+    ----------
+    arraylist : sequence
+        A list of (masked) arrays. Each element of the sequence is first converted
+        to a masked array if needed. If a 2D array is passed as argument, it is
+        processed line by line
+    dtype : numeric.dtype
+        Data type descriptor.
+    shape : integer
+        Number of records. If None, shape is defined from the shape of the
+        first array in the list.
+    formats : sequence
+        Sequence of formats for each individual field. If None, the formats will
+        be autodetected by inspecting the fields and selecting the highest dtype
+        possible.
+    names : sequence
+        Sequence of the names of each field.
+    titles : sequence
       (Description to write)
-    - `names` :
-      (description to write)
-    - `titles`:
-      (Description to write)
-    - `aligned`: Boolen *[False]*
+    aligned : boolean
       (Description to write, not used anyway)
-    - `byteorder`: Boolen *[None]*
+    byteorder: boolean
       (Description to write, not used anyway)
+    fill_value : sequence
+        Sequence of data to be used as filling values.
 
-
+    Notes
+    -----
+    Lists of tuples should be preferred over lists of lists for faster processing.
     """
-    arraylist = [MA.asarray(x) for x in arraylist]
-    # Define/check the shape.....................
-    if shape is None or shape == 0:
-        shape = arraylist[0].shape
-    if isinstance(shape, int):
-        shape = (shape,)
-    # Define formats from scratch ...............
-    if formats is None and dtype is None:
-        formats = _getformats(arraylist)
-    # Define the dtype ..........................
-    if dtype is not None:
-        descr = numeric.dtype(dtype)
-        _names = descr.names
-    else:
-        parsed = format_parser(formats, names, titles, aligned, byteorder)
-        _names = parsed._names
-        descr = parsed._descr
-    # Determine shape from data-type.............
-    if len(descr) != len(arraylist):
-        msg = "Mismatch between the number of fields (%i) and the number of "\
-              "arrays (%i)"
-        raise ValueError, msg % (len(descr), len(arraylist))
-    d0 = descr[0].shape
-    nn = len(d0)
-    if nn > 0:
-        shape = shape[:-nn]
-    # Make sure the shape is the correct one ....
-    for k, obj in enumerate(arraylist):
-        nn = len(descr[k].shape)
-        testshape = obj.shape[:len(obj.shape)-nn]
-        if testshape != shape:
-            raise ValueError, "Array-shape mismatch in array %d" % k
-    # Reconstruct the descriptor, by creating a _data and _mask version
-    return TimeSeriesRecords(arraylist, dtype=descr)
+    _array = mrecfromarrays(arraylist, dtype=dtype, shape=shape, formats=formats,
+                            names=names, titles=titles, aligned=aligned, 
+                            byteorder=byteorder, fill_value=fill_value)
+    _array = _array.view(trecarray)
+    _array._dates = _getdates(dates, length=len(_array), 
+                              start_date=start_date,freq=freq)
+    return _array
 
-def __getdates(dates=None, newdates=None, length=None, freq=None,
-               start_date=None):
-    """Determines new dates (private function not meant to be used)."""
-    if dates is None:
-        if newdates is not None:
-            if not hasattr(newdates, 'freq'):
-                newdates = date_array(dlist=newdates, freq=freq)
-        else:
-            newdates = date_array(start_date=start_date, length=length,
-                                  freq=freq)
-    elif not hasattr(dates, 'freq'):
-        newdates = date_array(dlist=dates, freq=freq)
-    else:
-        newdates = dates
-    return newdates
 
 #..............................................................................
 def fromrecords(reclist, dates=None, freq=None, start_date=None,
+                fill_value=None, mask=nomask,
                 dtype=None, shape=None, formats=None, names=None,
                 titles=None, aligned=False, byteorder=None):
     """Creates a MaskedRecords from a list of records.
@@ -384,12 +300,6 @@ def fromrecords(reclist, dates=None, freq=None, start_date=None,
     If formats is None, then this will auto-detect formats. Use a list of
     tuples rather than a list of lists for faster processing.
     """
-    # reclist is in fact a mrecarray .................
-    if isinstance(reclist, TimeSeriesRecords):
-        mdescr = reclist.dtype
-        shape = reclist.shape
-        return TimeSeriesRecords(reclist, dtype=mdescr)
-    # No format, no dtype: create from to arrays .....
     _data = mrecfromrecords(reclist, dtype=dtype, shape=shape, formats=formats,
                             names=names, titles=titles, aligned=aligned,
                             byteorder=byteorder)
@@ -403,13 +313,15 @@ def fromrecords(reclist, dates=None, freq=None, start_date=None,
         [_names.remove(n) for n in reserved]
         _dtype = numeric.dtype([t for t in _dtype.descr \
                                     if t[0] not in reserved ])
-        _data = [_data[n] for n in _names]
+        _data = mrecfromarrays([_data[n] for n in _names], dtype=_dtype)
     #
-    newdates = __getdates(dates=dates, newdates=newdates, length=len(_data),
-                          freq=freq, start_date=start_date)
+    result = _data.view(trecarray)
+    if dates is None:
+        dates = getattr(reclist, '_dates', None)
+    result._dates = _getdates(dates=dates, newdates=newdates, length=len(_data),
+                              freq=freq, start_date=start_date)
     #
-    return TimeSeriesRecords(_data, dates=newdates, dtype=_dtype,
-                           names=_names)
+    return result
 
 
 def fromtextfile(fname, delimitor=None, commentchar='#', missingchar='',
@@ -492,10 +404,12 @@ def fromtextfile(fname, delimitor=None, commentchar='#', missingchar='',
     _datalist = [masked_array(a,mask=m,dtype=t)
                      for (a,m,t) in zip(_variables.T, _mask, vartypes)]
     #
-    newdates = __getdates(dates=dates, newdates=newdates, length=nvars,
-                          freq=None, start_date=None)
+    newdates = _getdates(dates=dates, newdates=newdates, length=nvars,
+                         freq=None, start_date=None)
 
     # Sort the datalist according to newdates._unsorted
     idx = newdates._unsorted
     _sorted_datalist = [a[idx] for a in _datalist]
-    return TimeSeriesRecords(_sorted_datalist, dates=newdates, dtype=mdescr)
+    return fromarrays(_sorted_datalist, dates=newdates, dtype=mdescr)
+
+
