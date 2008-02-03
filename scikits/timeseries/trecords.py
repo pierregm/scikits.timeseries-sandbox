@@ -40,7 +40,7 @@ from numpy.ma.mrecords import _checknames, \
      fromrecords as mrecfromrecords, fromarrays as mrecfromarrays
 
 from tseries import TimeSeries, time_series, _getdatalength
-from dates import Date, DateArray, date_array
+from tdates import Date, DateArray, date_array
 
 #ndarray = numeric.ndarray
 _byteorderconv = numpy.core.records._byteorderconv
@@ -63,9 +63,6 @@ def _getformats(data):
     formats = ''
     for obj in data:
         obj = numeric.asarray(obj)
-#        if not isinstance(obj, ndarray):
-##        if not isinstance(obj, ndarray):
-#            raise ValueError, "item in the array list must be an ndarray."
         formats += _typestr[obj.dtype.type]
         if issubclass(obj.dtype.type, ntypes.flexible):
             formats += `obj.itemsize`

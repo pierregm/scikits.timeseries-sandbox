@@ -32,8 +32,8 @@ from numpy.ma import MaskedArray, MAError, masked, nomask, \
     
 import scipy.io    
 
-import dates
-from dates import \
+import tdates
+from tdates import \
     DateError, InsufficientDateError, \
     Date, isDate, DateArray, isDateArray, \
     date_array, date_array_fromlist, date_array_fromrange, now, \

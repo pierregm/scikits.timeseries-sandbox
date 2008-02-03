@@ -12,14 +12,14 @@ __revision__ = "$Revision: 3327 $"
 __date__     = '$Date: 2007-09-18 20:51:14 -0400 (Tue, 18 Sep 2007) $'
 
 import const
-import dates
-from dates import *
+import tdates
+from tdates import *
 import tseries
 from tseries import *
 import trecords
 from trecords import *
 
-__all__ = ['const', 'dates','tseries','trecords']
-__all__ += dates.__all__
+__all__ = ['const', 'tdates','tseries','trecords']
+__all__ += tdates.__all__
 __all__ += tseries.__all__
 __all__ += trecords.__all__
