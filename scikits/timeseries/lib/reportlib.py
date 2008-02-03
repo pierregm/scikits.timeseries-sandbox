@@ -16,9 +16,9 @@ Ideas borrowed from:
 :Examples:
 
     import numpy as np
-    import timeseries as ts
+    from scikits import timeseries as ts
+    from scikits.timeseries.lib.reportlib import Report, wrap_onspace
     from numpy import ma
-    from timeseries import Report, wrap_onspace
 
     series1 = ts.time_series(np.random.uniform(-100,100,15), start_date=ts.thisday('b')-15)
     series2 = ts.time_series(np.random.uniform(-100,100,13), start_date=ts.thisday('b')-10)
@@ -59,7 +59,7 @@ __date__     = '$Date: 2008-01-12 05:06:39 -0500 (Sat, 12 Jan 2008) $'
 
 import sys
 import operator, types, copy
-import tseries as ts
+from scikits import timeseries as ts
 from numpy import ma
 
 __all__ = [

@@ -33,13 +33,12 @@ import numpy
 from numpy import int_, bool_
 from numpy import ma as MA
 
-import scikits.timeseries as timeseries
+from scikits import timeseries
 from scikits.timeseries import \
     date_array, Date, DateArray, get_freq_group, TimeSeries
 from scikits.timeseries import const as _c
 
 import warnings
-
 
 #####---------------------------------------------------------------------------
 #---- --- Matplotlib extensions ---
