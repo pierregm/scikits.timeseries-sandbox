@@ -22,7 +22,7 @@ from numpy.ma import masked_array, masked, nomask
 from numpy.ma.testutils import assert_equal, assert_array_equal
 
 from scikits.timeseries import tseries, Date, date_array_fromlist, \
-     date_array_fromrange, date_array, thisday, time_series, TimeSeries, \
+     date_array_fromrange, date_array, now, time_series, TimeSeries, \
      adjust_endpoints, mask_period, align_series, align_with, \
      fill_missing_dates, tsmasked, concatenate, stack, split
 
@@ -270,7 +270,7 @@ class TestGetitem(TestCase):
 
     def test_on2d(self):
         "Tests getitem on a 2D series"
-        (a,b,d) = ([1,2,3],[3,2,1], date_array(thisday('M'),length=3))
+        (a,b,d) = ([1,2,3],[3,2,1], date_array(now('M'),length=3))
         ser_x = time_series(numpy.column_stack((a,b)), dates=d)
         assert_equal(ser_x[0,0], time_series(a[0],d[0]))
         assert_equal(ser_x[0,:], time_series([(a[0],b[0])], d[0]))
@@ -279,7 +279,7 @@ class TestGetitem(TestCase):
 
     def test_onnd(self):
         "Tests getitem on a nD series"
-        hodie = thisday('D')
+        hodie = now('D')
         # Case 1D
         series = time_series(numpy.arange(5), mask=[1,0,0,0,0], start_date=hodie)
         assert_equal(series[0], 0)
@@ -506,7 +506,7 @@ test_dates test suite.
         assert_equal(series_pickled._mask, series._mask)
         #
         data = masked_array(numpy.matrix(range(10)).T, mask=[1,0,0,0,0]*2)
-        dates = date_array(start_date=thisday('D'), length=10)
+        dates = date_array(start_date=now('D'), length=10)
         series = time_series(data,dates=dates)
         series_pickled = cPickle.loads(series.dumps())
         assert_equal(series_pickled._dates, series._dates)
