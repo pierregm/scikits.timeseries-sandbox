@@ -774,6 +774,15 @@ filled with `fill_value`. Subclassing is preserved.
         result = self._series.filled(fill_value=fill_value).view(type(self))
         result._dates = self._dates
         return result
+
+    def tolist(self):
+        """Returns the dates and data portion of the TimeSeries "zipped" up in
+a list of standard python objects (eg. datetime, int, etc...)."""
+        if self.ndim > 0:
+            return zip(self.dates.tolist(), self.series.tolist())
+        else:
+            return self.series.tolist()
+
     #......................................................
     # Pickling
     def __getstate__(self):
