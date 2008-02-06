@@ -51,7 +51,8 @@ reserved_fields = numpy.ma.mrecords.reserved_fields + ['_dates']
 import warnings
 
 __all__ = [
-'TimeSeriesRecords','fromarrays','fromrecords','fromtextfile',
+'TimeSeriesRecords','time_records',
+'fromarrays','fromrecords','fromtextfile',
 ]
 
 def _getformats(data):
@@ -161,8 +162,6 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
             return obj
         # We want some elements ..
         (sindx, dindx) = self._TimeSeries__checkindex(indx)
-#        obj = numeric.array(self._data[sindx],
-#                            copy=False, subok=True).view(type(self))
         obj = narray(self._data[sindx], copy=False, subok=True).view(type(self))
         obj.__dict__.update(_dates=_localdict['_dates'][dindx],
                             _fill_value=_localdict['_fill_value'])

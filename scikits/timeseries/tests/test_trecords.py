@@ -25,9 +25,9 @@ from numpy.ma.mrecords import addfield
 from numpy.ma import getmaskarray, nomask, masked_array
 
 from scikits.timeseries.trecords import \
-     TimeSeriesRecords, TimeSeries,\
+    TimeSeriesRecords, TimeSeries,\
     fromarrays, fromtextfile, fromrecords, \
-    date_array, time_series
+    date_array, time_series, time_records
 
 
 #..............................................................................
@@ -48,7 +48,7 @@ class TestMRecords(TestCase):
         dlist = ['2007-%02i' % (i+1) for i in d]
         dates = date_array(dlist)
         ts = time_series(mrec,dates)
-        mts = TimeSeriesRecords(mrec,dates)
+        mts = time_records(mrec,dates)
         self.data = [d, m, mrec, dlist, dates, ts, mts]
 
     def test_get(self):
@@ -150,7 +150,7 @@ class TestMRecords(TestCase):
         assert_equal(mrecfr.f0, mrec.f0)
         assert_equal(mrecfr.dtype, mrec.dtype)
         #....................
-        tmp = TimeSeriesRecords(mts._series[::-1], dates=mts.dates)
+        tmp = time_records(mts._series[::-1], dates=mts.dates)
         mrecfr = fromrecords(tmp)
         assert_equal(mrecfr.f0, mrec.f0[::-1])
 

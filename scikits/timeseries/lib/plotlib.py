@@ -16,7 +16,7 @@ import matplotlib
 from matplotlib import pylab, rcParams
 from matplotlib import _pylab_helpers
 from matplotlib.artist import setp
-from matplotlib.axes import Subplot, PolarSubplot
+from matplotlib.axes import Subplot
 from matplotlib.cbook import flatten
 from matplotlib.collections import LineCollection
 from matplotlib.contour import ContourSet
@@ -85,16 +85,12 @@ The specific Subplot object class to add is given through the keywords
     #
     SubplotClass = kwargs.pop("SubplotClass", Subplot)
     SubplotClass = kwargs.pop("subclass",SubplotClass)
-    if isinstance(args[0], Subplot) or isinstance(args[0], PolarSubplot):
+    if isinstance(args[0], Subplot):
         a = args[0]
         assert(a.get_figure() is figure_instance)
 #        a.set_figure(figure_instance)
     else:
-        ispolar = kwargs.pop('polar', False)
-        if ispolar:
-            a = PolarSubplot(figure_instance, *args, **kwargs)
-        else:
-            a = SubplotClass(figure_instance, *args, **kwargs)
+        a = SubplotClass(figure_instance, *args, **kwargs)
 
     figure_instance.axes.append(a)
     figure_instance._axstack.push(a)
