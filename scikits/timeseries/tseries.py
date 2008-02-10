@@ -1423,7 +1423,8 @@ start_date and end_date, but values shifted by `nper`.
 
 *Parameters*:
     series : {TimeSeries}
-        TimeSeries object to shift
+        TimeSeries object to shift. Ignore this parameter if calling this as a
+        method.
     nper : {int}
         number of periods to shift. Negative numbers shift values to the
         right, positive to the left
@@ -1440,7 +1441,7 @@ timeseries(data  = [0 1 2 3],
 timeseries(data  = [-- 0 1 2],
            dates = [2005 ... 2008],
            freq  = A-DEC)
->>> pct_change = 100 * (series/tshift(series, -1, copy=False) - 1)
+>>> pct_change = 100 * (series/series.tshift(-1, copy=False) - 1)
 """
     newdata = masked_array(numeric.empty(series.shape, dtype=series.dtype),
                            mask=True)
@@ -1467,17 +1468,18 @@ def pct(series, nper=1):
 
 *Parameters*:
     series : {TimeSeries}
-        TimeSeries object to to calculate percentage chage for
+        TimeSeries object to to calculate percentage chage for. Ignore this
+        parameter if calling this as a method.
     nper : {int}
         number of periods for percentage change
 
 *Example*:
 >>> series = time_series([2.,1.,2.,3.], start_date=Date(freq='A', year=2005))
->>> pct(series)
+>>> series.pct()
 timeseries(data  = [-- -50.0 100.0 50.0],
            dates = [2005 ... 2008],
            freq  = A-DEC)
->>> pct(series, 2)
+>>> series.pct(2)
 timeseries(data  = [-- -- 0.0 200.0],
            dates = [2005 ... 2008],
            freq  = A-DEC)
