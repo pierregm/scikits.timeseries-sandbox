@@ -21,28 +21,28 @@ import numpy.ma as MA
 from numpy.ma import masked_array, masked, nomask
 from numpy.ma.testutils import assert_equal, assert_array_equal
 
-from scikits.timeseries import tseries, Date, date_array_fromlist, \
-     date_array_fromrange, date_array, now, time_series, TimeSeries, \
-     adjust_endpoints, mask_period, align_series, align_with, \
-     fill_missing_dates, tsmasked, concatenate, stack, split
+from scikits.timeseries import \
+    tseries, Date, date_array, now, time_series, TimeSeries, \
+    adjust_endpoints, mask_period, align_series, align_with, \
+    fill_missing_dates, tsmasked, concatenate, stack, split
 
 class TestCreation(TestCase):
     "Base test class for MaskedArrays."
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
         dlist = ['2007-01-%02i' % i for i in range(1,16)]
-        dates = date_array_fromlist(dlist, 'Daily')
+        dates = date_array(dlist, freq='D')
         data = masked_array(numeric.arange(15), mask=[1,0,0,0,0]*3)
         self.d = (dlist, dates, data)
 
     def test_fromlist (self):
         "Base data definition."
         (dlist, dates, data) = self.d
-        series = time_series(data, dlist, freq='Daily')
+        series = time_series(data, dlist, freq='D')
         assert(isinstance(series, TimeSeries))
         assert_equal(series._mask, [1,0,0,0,0]*3)
         assert_equal(series._series, data)
-        assert_equal(series._dates, date_array_fromlist(dlist))
+        assert_equal(series._dates, dates)
         assert_equal(series.freqstr, 'D')
 
     def test_fromrange (self):
@@ -58,7 +58,7 @@ class TestCreation(TestCase):
     def test_fromseries (self):
         "Base data definition."
         (dlist, dates, data) = self.d
-        series = time_series(data, dlist, freq='Daily')
+        series = time_series(data, dlist, freq='D')
         dates = dates+15
         series = time_series(series, dates)
         assert(isinstance(series, TimeSeries))
@@ -97,18 +97,18 @@ class TestCreation(TestCase):
         "Tests that the data are properly sorted along the dates."
         dlist = ['2007-01-%02i' % i for i in (3,2,1)]
         data = [10,20,30]
-        series = time_series(data,dlist, freq='Daily')
+        series = time_series(data, dlist, freq='D')
         assert_equal(series._data,[30,20,10])
         #
-        dates = date_array_fromlist(dlist, freq='D')
+        dates = date_array(dlist, freq='D')
         series = TimeSeries(data, dates)
         assert_equal(series._data,[30,20,10])
         #
-        series = time_series(data, dlist, freq='Daily', mask=[1,0,0])
+        series = time_series(data, dlist, freq='D', mask=[1,0,0])
         assert_equal(series._mask,[0,0,1])
         #
         data = masked_array([10,20,30],mask=[1,0,0])
-        series = time_series(data, dlist, freq='Daily')
+        series = time_series(data, dlist, freq='D')
         assert_equal(series._mask,[0,0,1])
 #...............................................................................
 
@@ -117,9 +117,9 @@ class TestArithmetics(TestCase):
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
         dlist = ['2007-01-%02i' % i for i in range(1,16)]
-        dates = date_array_fromlist(dlist, freq='Daily')
+        dates = date_array(dlist, freq='D')
         data = masked_array(numeric.arange(15), mask=[1,0,0,0,0]*3)
-        self.d = (time_series(data, dlist, freq='Daily'), data)
+        self.d = (time_series(data, dlist, freq='D'), data)
 
     def test_intfloat(self):
         "Test arithmetic timeseries/integers"
@@ -215,7 +215,7 @@ class TestGetitem(TestCase):
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
         dlist = ['2007-01-%02i' % i for i in range(1,16)]
-        dates = date_array_fromlist(dlist, 'Daily')
+        dates = date_array(dlist, freq='D')
         data = masked_array(numeric.arange(15), mask=[1,0,0,0,0]*3, dtype=float_)
         self.d = (time_series(data, dates), data, dates)
 
@@ -320,7 +320,7 @@ class TestFunctions(TestCase):
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
         dlist = ['2007-01-%02i' % i for i in range(1,16)]
-        dates = date_array_fromlist(dlist, freq='Daily')
+        dates = date_array(dlist, freq='D')
         data = masked_array(numeric.arange(15), mask=[1,0,0,0,0]*3)
         self.d = (time_series(data, dates), data, dates)
     #
@@ -454,9 +454,9 @@ test_dates test suite.
         #
         data = numpy.arange(5*24).reshape(5,24)
         datelist = ['2007-07-01','2007-07-02','2007-07-03','2007-07-05','2007-07-06']
-        dates = date_array_fromlist(datelist, 'D')
+        dates = date_array(datelist, freq='D')
         dseries = time_series(data, dates)
-        ndates = date_array_fromrange(start_date=dates[0],end_date=dates[-2])
+        ndates = date_array(start_date=dates[0], end_date=dates[-2])
         #
         fseries = fill_missing_dates(dseries)
         assert_equal(fseries.shape, (6,24))
@@ -579,9 +579,9 @@ test_dates test suite.
     def test_compressed(self):
         "Tests compress"
         dlist = ['2007-01-%02i' % i for i in range(1,16)]
-        dates = date_array_fromlist(dlist)
+        dates = date_array(dlist, freq='D')
         data = masked_array(numeric.arange(15), mask=[1,0,0,0,0]*3, dtype=float_)
-        series = time_series(data, dlist)
+        series = time_series(data, dlist, freq='D')
         #
         keeper = numpy.array([0,1,1,1,1]*3, dtype=bool_)
         c_series = series.compressed()
@@ -600,7 +600,7 @@ test_dates test suite.
     def test_concatenate(self):
         "Tests concatenate"
         dlist = ['2007-%02i' % i for i in range(1,6)]
-        _dates = date_array_fromlist(dlist, 'Monthly')
+        _dates = date_array(dlist, freq='M')
         data = masked_array(numpy.arange(5), mask=[1,0,0,0,0], dtype=float_)
         #
         ser_1 = time_series(data, _dates)

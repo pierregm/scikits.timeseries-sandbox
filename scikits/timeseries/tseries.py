@@ -30,13 +30,11 @@ from numpy.ma import MaskedArray, MAError, masked, nomask, \
     filled, getmask, getmaskarray, hsplit, make_mask_none, mask_or, make_mask, \
     masked_array
     
-import scipy.io    
+import scipy.io
 
 import tdates
 from tdates import \
-    DateError, InsufficientDateError, \
-    Date, isDate, DateArray, isDateArray, \
-    date_array, date_array_fromlist, date_array_fromrange, now, \
+    DateError, InsufficientDateError, Date, DateArray, date_array, now, \
     check_freq, check_freq_str
 
 import const as _c
@@ -434,10 +432,10 @@ A time series is here defined as the combination of two arrays:
             indx = self._dates.date_to_index(
                                     Date(self._dates.freq, string=indx))
             return (indx, indx)
-        elif isDate(indx):
+        elif isinstance(indx, Date):
             indx = self._dates.date_to_index(indx)
             return (indx, indx)
-        elif isDateArray(indx):
+        elif isinstance(indx, DateArray):
             if indx.size == 1:
                 indx = self._dates.date_to_index(indx[0])
                 return (indx,indx)
@@ -1653,7 +1651,7 @@ masked_array(data = [ 1  2  3 30],
     sidx = sidx[norder]
     #
     if not remove_duplicates:
-        ndates = date_array_fromlist(ndates, freq=common_f)
+        ndates = date_array(ndates, freq=common_f)
         result = time_series(ndata, dates=ndates)
     else:
         # Find the original dates

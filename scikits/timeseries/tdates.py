@@ -39,20 +39,13 @@ cseries.set_callback_DateTimeFromString(DateTimeFromString)
 from cseries import Date, now, check_freq, check_freq_str, get_freq_group,\
                     DateCalc_Error, DateCalc_RangeError
 
-# aliases for `now` function. These are deprecated
-today = now
-thisday = now
-
 __all__ = [
-'Date', 'DateArray','isDate','isDateArray',
-'DateError', 'ArithmeticDateError', 'FrequencyDateError','InsufficientDateError',
-'datearray','date_array', 'date_array_fromlist', 'date_array_fromrange',
-'day_of_week','weekday','day_of_year','day','month','quarter','year','hour',
-'minute','second','now','thisday','today','prevbusday','period_break',
-'check_freq','check_freq_str','get_freq_group', 'DateCalc_Error',
-'DateCalc_RangeError'
-           ]
-
+'Date', 'DateArray', 'DateError', 'ArithmeticDateError', 'FrequencyDateError',
+'InsufficientDateError', 'date_array', 'weekday', 'day_of_year', 'day',
+'month', 'quarter', 'year', 'hour', 'minute', 'second', 'now', 'prevbusday',
+'period_break', 'check_freq', 'check_freq_str', 'get_freq_group',
+'DateCalc_Error', 'DateCalc_RangeError'
+          ]
 
 #####---------------------------------------------------------------------------
 #---- --- Date Exceptions ---
@@ -114,13 +107,6 @@ def prevbusday(day_end_hour=18, day_end_min=0):
         return now(_c.FR_BUS) - 1
     else:
         return now(_c.FR_BUS)
-
-
-def isDate(data):
-    "Returns whether `data` is an instance of Date."
-    return isinstance(data, Date) or \
-           (hasattr(data,'freq') and hasattr(data,'value'))
-
 
 #####---------------------------------------------------------------------------
 #---- --- DateArray ---
@@ -291,8 +277,6 @@ accesses the array element by element. Therefore, `d` is a Date object.
     def weekday(self):
         "Returns the day of week."
         return self.__getdateinfo__('W')
-    # deprecated alias for weekday
-    day_of_week = weekday
     @property
     def day_of_year(self):
         "Returns the day of year."
@@ -402,7 +386,8 @@ For non-quarterly dates, this simply returns the year of the date."""
     relation : {"END", "START"} (optional)
         Applies only when converting a lower frequency Date to a higher
         frequency Date, or when converting a weekend Date to a business
-        frequency Date. Valid values are 'START' and 'END'.
+        frequency Date. Valid values are 'START' and 'END' (or just 'S' and
+        'E' for brevity if you wish). 
        
         For example, if converting a monthly date to a daily date, specifying
         'START' ('END') would result in the first (last) day in the month.
@@ -414,17 +399,18 @@ For non-quarterly dates, this simply returns the year of the date."""
         if tofreq == self.freq:
             return self
 
-        _rel = relation.upper()[0]
+        relation = relation.upper()
         
-        # support for deprecated values of relation parameter ('BEFORE' and
-        # 'AFTER')
-        if _rel == 'A': _rel = 'E'
-        if _rel == 'B': _rel = 'S'
+        if relation not in ('START', 'END', 'S', 'E'):
+            raise ValueError(
+                "invalid specification for 'relation' parameter: %s" % \
+                relation)
         
         fromfreq = self.freq
         if fromfreq == _c.FR_UND:
             fromfreq = _c.FR_DAY
-        new = cseries.DA_asfreq(numeric.asarray(self), fromfreq, tofreq, _rel)
+        new = cseries.DA_asfreq(
+                numeric.asarray(self), fromfreq, tofreq, relation[0])
         return DateArray(new, freq=freq)
 
     #......................................................
@@ -521,10 +507,6 @@ For non-quarterly dates, this simply returns the year of the date."""
 #####---------------------------------------------------------------------------
 #---- --- DateArray functions ---
 #####---------------------------------------------------------------------------
-def isDateArray(a):
-    "Tests whether an array is a DateArray object."
-    return isinstance(a,DateArray)    
-
 def _listparser(dlist, freq=None):
     "Constructs a DateArray from a list."
     dlist = numeric.asarray(dlist)
@@ -608,7 +590,7 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
         if length == 0:
             return DateArray([], freq=freq)
         raise InsufficientDateError
-    if not isDate(start_date):
+    if not isinstance(start_date, Date):
         dmsg = "Starting date should be a valid Date instance! "
         dmsg += "(got '%s' instead)" % type(start_date)
         raise DateError, dmsg
@@ -618,7 +600,7 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
 #            raise ValueError,"No length precised!"
             length = 1
     else:
-        if not isDate(end_date):
+        if not isinstance(end_date, Date):
             raise DateError, "Ending date should be a valid Date instance!"
         length = int(end_date - start_date) + 1
 #    dlist = [(start_date+i).value for i in range(length)]
@@ -627,18 +609,6 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
     if freq == _c.FR_UND:
         freq = start_date.freq
     return DateArray(dlist, freq=freq)
-datearray = date_array
-
-def date_array_fromlist(dlist, freq=None):
-    "Constructs a DateArray from a list of dates."
-    return date_array(dlist=dlist, freq=freq)
-
-def date_array_fromrange(start_date, end_date=None, length=None,
-                         freq=None):
-    """Constructs a DateArray from a starting date and either an ending date or
-    a length."""
-    return date_array(start_date=start_date, end_date=end_date,
-                      length=length, freq=freq)
 
 #####---------------------------------------------------------------------------
 #---- --- Definition of functions from the corresponding methods ---
@@ -670,9 +640,7 @@ class _frommethod(object):
         except SystemError:
             return getattr(numpy,self._methodname).__call__(caller, *args, **params)
 #............................
-weekday = _frommethod('day_of_week')
-# deprecated alias for weekday
-day_of_week = weekday
+weekday = _frommethod('weekday')
 day_of_year = _frommethod('day_of_year')
 year = _frommethod('year')
 quarter = _frommethod('quarter')

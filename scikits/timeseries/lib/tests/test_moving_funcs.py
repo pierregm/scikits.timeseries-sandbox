@@ -22,7 +22,7 @@ from numpy.ma import MaskedArray, masked
 from numpy.ma import mstats
 
 import scikits.timeseries as TS
-from scikits.timeseries import time_series, thisday
+from scikits.timeseries import time_series, now
 
 from scikits.timeseries.lib import moving_funcs as MF
 
@@ -55,7 +55,7 @@ class TestCMovAverage(TestCase):
             assert_equal(ravg._mask, m)
     #
     def test_ontimeseries(self):
-        data = time_series(self.maskeddata, start_date=thisday('D'))
+        data = time_series(self.maskeddata, start_date=now('D'))
         for width in [3,5,7]:
             k = (width-1)/2
             ravg = MF.cmov_average(data,width)
@@ -69,7 +69,7 @@ class TestCMovAverage(TestCase):
     def tests_onmultitimeseries(self):
         maskeddata = MaskedArray(N.random.random(75).reshape(25,3))
         maskeddata[10] = masked
-        data = time_series(maskeddata, start_date=thisday('D'))
+        data = time_series(maskeddata, start_date=now('D'))
         for width in [3,5,7]:
             k = (width-1)/2
             ravg = MF.cmov_average(data,width)
@@ -122,7 +122,7 @@ class TestMovFuncs(TestCase):
     #
     def test_ontimeseries(self):
 
-        data = time_series(self.maskeddata, start_date=thisday('D'))
+        data = time_series(self.maskeddata, start_date=now('D'))
 
         for Mfunc, Nfunc in self.func_pairs:
             for k in [3,4,5]:
