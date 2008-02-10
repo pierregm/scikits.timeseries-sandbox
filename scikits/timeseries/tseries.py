@@ -46,7 +46,6 @@ __all__ = [
 'day_of_year','day',
 'empty_like',
 'fill_missing_dates','first_unmasked_val','flatten',
-'group_byperiod',
 'hour',
 'last_unmasked_val',
 'mask_period','mask_inside_period','mask_outside_period','minute','month',
@@ -1382,6 +1381,18 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
         if a func is specified that requires additional keyword parameters,
         specify them here.
 """
+
+    if series.ndim > 2 or series.ndim == 0:
+        raise ValueError(
+            "only series with ndim == 1 or ndim == 2 may be converted")
+
+    if series.has_duplicated_dates():
+        raise TimeSeriesError("The input series must not have duplicated dates!")
+
+    if series.has_missing_dates():
+        # can only convert continuous time series, so fill in missing dates
+        series = fill_missing_dates(series)
+
     if series.ndim == 1:
         obj = _convert1d(series, freq, func, position, *args, **kwargs)
     elif series.ndim == 2:
@@ -1395,26 +1406,9 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
             ncols = base.shape[-1]
             obj.shape = (shp[0], shp[-1]//ncols, ncols)
             obj = numpy.swapaxes(obj,1,2)
-    else:
-        raise ValueError(
-            "only series with ndim == 1 or ndim == 2 may be converted")
 
     return obj
-
 TimeSeries.convert = convert
-
-def group_byperiod(series, freq, position='END'):
-    """Converts a series to a frequency, without any processing. If the series
-has missing data, it is first filled with masked data. Duplicate values in the
-series will raise an exception.
-    """
-    if series.has_duplicated_dates():
-        raise TimeSeriesError("The input series must not have duplicated dates!")
-    elif series.has_missing_dates():
-        series = fill_missing_dates(series)
-    return convert(series, freq, func=None, position=position)
-
-TimeSeries.group_byperiod = group_byperiod
 
 #...............................................................................
 def tshift(series, nper, copy=True):
