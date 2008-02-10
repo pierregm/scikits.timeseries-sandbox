@@ -44,7 +44,7 @@ __all__ = [
 'TimeSeriesError','TimeSeriesCompatibilityError','TimeSeries','isTimeSeries',
 'time_series', 'tsmasked',
 'adjust_endpoints','align_series','align_with','aligned','asrecords',
-'compressed','concatenate', 'concatenate_series','convert',
+'compressed','concatenate', 'convert',
 'day_of_year','day',
 'empty_like',
 'fill_missing_dates','first_unmasked_val','flatten',
@@ -1597,13 +1597,6 @@ must be date compatible.
     _timeseriescompat_multiple(*series)
     return time_series(ma.column_stack(series), series[0]._dates,
                        **_attrib_dict(series[0]))
-#...............................................................................
-def concatenate_series(*series, **kwargs):
-    msg = """The use of this function is deprecated.
-Please use concatenate instead.
-Note: Please pay attention to the order of the series!"""
-    raise NameError(msg)
-
 
 def concatenate(series, axis=0, remove_duplicates=True, fill_missing=False):
     """Joins series together.
