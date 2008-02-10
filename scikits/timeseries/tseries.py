@@ -29,8 +29,6 @@ from numpy import ma
 from numpy.ma import MaskedArray, MAError, masked, nomask, \
     filled, getmask, getmaskarray, hsplit, make_mask_none, mask_or, make_mask, \
     masked_array
-    
-import scipy.io
 
 import tdates
 from tdates import \
@@ -415,7 +413,7 @@ A time series is here defined as the combination of two arrays:
             self._dates = newdates
         elif newdates.size > 0:
             _timeseriescompat(self,obj)
-        return    
+        return
     #.........................................................................
     def _get_series(self):
         "Returns the series as a regular masked array."
@@ -911,7 +909,7 @@ split = _frommethod('split')
 ##### ---------------------------------------------------------------------------
 def tofile(self, fileobject, format=None,
            separator=" ", linesep='\n', precision=5,
-           suppress_small=False, keep_open=False): 
+           suppress_small=False, keep_open=False):
     """Writes the TimeSeries to a file. The series should be 2D at most
 
 *Parameters*:
@@ -929,13 +927,19 @@ def tofile(self, fileobject, format=None,
         Number of digits after the decimal place to write.
     suppress_small : {boolean}
         Whether on-zero to round small numbers down to 0.0
-    keep_open : {boolean} 
+    keep_open : {boolean}
         Whether to close the file or to return the open file.
-    
+
 *Returns*:
     file : {file object}
         The open file (if keep_open is non-zero)
-    """   
+    """
+
+    try:
+        import scipy.io
+    except ImportError:
+        raise ImportError("scipy is required for the tofile function/method")
+
     (_dates, _data) = (self._dates, self._series)
     optpars = dict(separator=separator,linesep=linesep,precision=precision,
                    suppress_small=suppress_small,keep_open=keep_open)
@@ -955,7 +959,7 @@ def tofile(self, fileobject, format=None,
     else:
         tmpfiller[:,0] = [_.strftime(format) for _ in _dates.ravel()]
     return scipy.io.write_array(fileobject, tmpfiller, **optpars)
-    
+
 
 TimeSeries.tofile = tofile
 
@@ -1057,7 +1061,7 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
         idx = _dates._unsorted
         data = data[idx]
         _dates._unsorted = None
-    return TimeSeries(data=data, dates=_dates, 
+    return TimeSeries(data=data, dates=_dates,
                       copy=copy, dtype=dtype,
                       fill_value=fill_value, keep_mask=keep_mask,
                       hard_mask=hard_mask,)
