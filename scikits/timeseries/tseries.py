@@ -45,7 +45,7 @@ __all__ = [
 'time_series', 'tsmasked',
 'adjust_endpoints','align_series','align_with','aligned','asrecords',
 'compressed','concatenate', 'concatenate_series','convert',
-'day_of_week','day_of_year','day',
+'day_of_year','day',
 'empty_like',
 'fill_missing_dates','first_unmasked_val','flatten',
 'group_byperiod',
@@ -608,8 +608,6 @@ timeseries(%(data)s,
     def weekday(self):
         """Returns the day of week for each date in self._dates."""
         return self._dates.weekday
-    # deprecated alias for weekday
-    day_of_week = weekday
     @property
     def day_of_year(self):
         """Returns the day of year for each date in self._dates."""
@@ -895,8 +893,6 @@ class _frommethod(object):
             return getattr(numpy,self._methodname).__call__(caller, *args, **params)
 #............................
 weekday = _frommethod('weekday')
-# deprecated alias for weekday 
-day_of_week = weekday
 day_of_year = _frommethod('day_of_year')
 week = _frommethod('week')
 year = _frommethod('year')
