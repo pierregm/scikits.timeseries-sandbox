@@ -40,21 +40,11 @@ import cseries
 
 __all__ = [
 'TimeSeriesError','TimeSeriesCompatibilityError','TimeSeries','isTimeSeries',
-'time_series', 'tsmasked',
-'adjust_endpoints','align_series','align_with','aligned','asrecords',
-'compressed','concatenate', 'convert',
-'day_of_year','day',
-'empty_like',
-'fill_missing_dates','first_unmasked_val','flatten',
-'hour',
-'last_unmasked_val',
-'mask_period','mask_inside_period','mask_outside_period','minute','month',
-'pct',
-'quarter',
-'second','split', 'stack',
-'tofile','tshift',
-'week',
-'year',
+'time_series', 'tsmasked', 'adjust_endpoints', 'align_series', 'align_with',
+'aligned', 'asrecords', 'compressed', 'concatenate', 'convert', 'day_of_year',
+'day', 'empty_like', 'fill_missing_dates','first_unmasked_val','flatten',
+'hour', 'last_unmasked_val', 'minute','month', 'pct', 'quarter', 'second',
+'split', 'stack', 'tofile','tshift', 'week', 'year',
 ]
 
 def _unmasked_val(marray, x):
@@ -1075,83 +1065,7 @@ tsmasked = TimeSeries(masked,dates=DateArray(Date('D',1)))
 ##### --------------------------------------------------------------------------
 #---- ... Additional functions ...
 ##### --------------------------------------------------------------------------
-def mask_period(data, period=None, start_date=None, end_date=None,
-                inside=True, include_edges=True, inplace=False):
-    """Returns x as an array masked where dates fall outside the selection period,
-as well as where data are initially missing (masked).
 
-:Parameters:
-    data : Timeseries
-        Data to process
-    period : Sequence
-        A sequence of (starting date, ending date).
-    start_date : string/Date *[None]*
-        Starting date. If None, uses the first date of the series.
-    end_date : string/Date *[None]*
-        Ending date. If None, uses the last date of the series.
-    inside : Boolean *[True]*
-        Whether the dates inside the range should be masked. If not, masks outside.
-    include_edges : Boolean *[True]*
-        Whether the starting and ending dates should be masked.
-    inplace : Boolean *[True]*
-        Whether the data mask should be modified in place. If not, returns a new
-        TimeSeries.
-    """
-    data = masked_array(data, subok=True, copy=not inplace)
-    if not isTimeSeries(data):
-        raise ValueError,"Data should be a valid TimeSeries!"
-    dates = data._dates
-    if dates.ndim == 1:
-        dates_lims = dates[[0,-1]]
-    else:
-        dates_lims = dates.ravel()[[0,-1]]
-    # Check the period .....................
-    if period is not None:
-        if isinstance(period, (tuple, list, ndarray)):
-            (start_date, end_date) = (period[0], period[-1])
-        else:
-            (start_date, end_date) = (period, start_date)
-    # Check the starting date ..............
-    if start_date is None:
-        start_date = dates_lims[0]
-    elif isinstance(start_date, str):
-        start_date = Date(data.freq, string=start_date)
-    elif not isinstance(start_date, Date):
-        raise DateError,"Starting date should be a valid Date object!"
-    # Check the ending date ................
-    if end_date is None:
-        end_date = dates_lims[-1]
-    elif isinstance(end_date, str):
-        end_date = Date(data.freq, string=end_date)
-    elif not isinstance(end_date, Date):
-        raise DateError,"Starting date should be a valid Date object!"
-    # Constructs the selection mask .........
-    dates = data.dates
-    if inside:
-        if include_edges:
-            selection = (dates >= start_date) & (dates <= end_date)
-        else:
-            selection = (dates > start_date) & (dates < end_date)
-    else:
-        if include_edges:
-            selection = (dates <= start_date) | (dates >= end_date)
-        else:
-            selection = (dates < start_date) | (dates > end_date)
-    data[selection] = masked
-    return data
-
-def mask_inside_period(data, start_date=None, end_date=None,
-                       include_edges=True, inplace=False):
-    """Masks values falling inside a given range of dates."""
-    return mask_period(data, start_date=start_date, end_date=end_date,
-                       inside=True, include_edges=include_edges, inplace=inplace)
-def mask_outside_period(data, start_date=None, end_date=None,
-                       include_edges=True, inplace=False):
-    """Masks values falling outside a given range of dates."""
-    return mask_period(data, start_date=start_date, end_date=end_date,
-                       inside=False, include_edges=include_edges, inplace=inplace)
-
-#...............................................................................
 def compressed(series):
     """Suppresses missing values from a time series."""
     if series._mask is nomask:

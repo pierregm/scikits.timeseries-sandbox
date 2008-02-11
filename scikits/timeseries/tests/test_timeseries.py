@@ -23,7 +23,7 @@ from numpy.ma.testutils import assert_equal, assert_array_equal
 
 from scikits.timeseries import \
     tseries, Date, date_array, now, time_series, TimeSeries, \
-    adjust_endpoints, mask_period, align_series, align_with, \
+    adjust_endpoints, align_series, align_with, \
     fill_missing_dates, tsmasked, concatenate, stack, split
 
 class TestCreation(TestCase):
@@ -470,31 +470,6 @@ test_dates test suite.
         fseries = fill_missing_dates(series)
         assert_equal(fseries.shape, (5,))
         assert_equal(fseries._mask, [0,0,0,1,0,])
-    #
-    def test_maskperiod(self):
-        "Test mask_period"
-        (series, data, dates) = self.d
-        series.mask = nomask
-        (start, end) = ('2007-01-06', '2007-01-12')
-        mask = mask_period(series, start, end, inside=True, include_edges=True,
-                           inplace=False)
-        assert_equal(mask._mask, numpy.array([0,0,0,0,0,1,1,1,1,1,1,1,0,0,0]))
-        mask = mask_period(series, start, end, inside=True, include_edges=False,
-                           inplace=False)
-        assert_equal(mask._mask, [0,0,0,0,0,0,1,1,1,1,1,0,0,0,0])
-        mask = mask_period(series, start, end, inside=False, include_edges=True,
-                           inplace=False)
-        assert_equal(mask._mask, [1,1,1,1,1,1,0,0,0,0,0,1,1,1,1])
-        mask = mask_period(series, start, end, inside=False, include_edges=False,
-                           inplace=False)
-        assert_equal(mask._mask, [1,1,1,1,1,0,0,0,0,0,0,0,1,1,1])
-        # Now w/ multivariables
-        data = masked_array(numeric.arange(30).reshape(-1,2), dtype=float_)
-        series = time_series(data, dates=dates)
-        mask = mask_period(series, start, end, inside=True, include_edges=True,
-                           inplace=False)
-        result = numpy.array([0,0,0,0,0,1,1,1,1,1,1,1,0,0,0])
-        assert_equal(mask._mask, result.repeat(2).reshape(-1,2))
     #
     def test_pickling(self):
         "Tests pickling/unpickling"
