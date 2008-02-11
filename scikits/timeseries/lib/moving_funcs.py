@@ -21,8 +21,6 @@ import numpy as N
 from numpy import bool_, float_, sqrt
 narray = N.array
 
-from scipy.signal import convolve, get_window
-
 import numpy.ma as MA
 from numpy.ma import MaskedArray, nomask, getmask, getmaskarray, masked
 marray = MA.array
@@ -55,12 +53,12 @@ def _moving_func(data, cfunc, kwargs):
         for i in range(data.shape[-1]):
             kwargs['array'] = data[:,i]
             result_dict = cfunc(**kwargs)
-            
+
             if i == 0:
                 rtype = result_dict['array'].dtype
                 result = data.astype(rtype)
                 print data.dtype, result.dtype
-            
+
             rmask = result_dict['mask']
 
             curr_col = marray(result_dict['array'], mask=rmask, copy=False)
@@ -171,14 +169,14 @@ def mov_covar(x, y, span, bias=False, dtype=None):
     $$span$$
     $$bias$$
     $$dtype$$"""
-    
+
     if bias: denom = span
     else: denom = span - 1
-    
+
     sum_prod = _mov_sum(x*y, span, dtype=dtype, type_num_double=True)
     sum_x = _mov_sum(x, span, dtype=dtype, type_num_double=True)
     sum_y = _mov_sum(y, span, dtype=dtype, type_num_double=True)
-    
+
     return sum_prod/denom - (sum_x * sum_y) / (span*denom)
 #...............................................................................
 def mov_corr(x, y, span, dtype=None):
@@ -192,10 +190,10 @@ def mov_corr(x, y, span, dtype=None):
 
     sum_x = _mov_sum(x, span, dtype=dtype, type_num_double=True)
     sum_y = _mov_sum(y, span, dtype=dtype, type_num_double=True)
-    
+
     sum_prod = _mov_sum(x*y, span, dtype=dtype, type_num_double=True)
     _covar = sum_prod/span - (sum_x * sum_y) / (span ** 2)
-    
+
     sum_prod = _mov_sum(x**2, span, dtype=dtype, type_num_double=True)
     _stddev_x = sqrt(sum_prod/span - (sum_x ** 2) / (span ** 2))
 
@@ -209,10 +207,10 @@ def mov_average_expw(data, span, tol=1e-6):
 
 *Parameters*:
     $$data$$
-    span : int 
+    span : int
         Time periods. The smoothing factor is 2/(span + 1)
     tol : float, *[1e-6]*
-        Tolerance for the definition of the mask. When data contains masked 
+        Tolerance for the definition of the mask. When data contains masked
         values, this parameter determinea what points in the result shoud be
         masked. Values in the result that would not be "significantly"
         impacted (as determined by this parameter) by the masked values are
@@ -240,11 +238,11 @@ def cmov_window(data, span, window_type):
     """Applies a centered moving window of type window_type and size span on
 the data.
 
-Returns a (subclass of) MaskedArray. The k first and k last data are always 
+Returns a (subclass of) MaskedArray. The k first and k last data are always
 masked (with k=span//2). When data has a missing value at position i, the
 result has missing values in the interval [i-k:i+k+1].
-    
-    
+
+
 *Parameters*:
     data : {ndarray}
         Data to process. The array should be at most 2D. On 2D arrays, the
@@ -253,7 +251,7 @@ result has missing values in the interval [i-k:i+k+1].
         The width of the window.
     window_type : {string/tuple/float}
         Window type (see Notes)
-        
+
 *Notes*:
 
     The recognized window types are: boxcar, triang, blackman, hamming,
@@ -267,6 +265,7 @@ result has missing values in the interval [i-k:i+k+1].
 
     Note also that only boxcar has been thoroughly tested.
 """
+    from scipy.signal import convolve, get_window
 
     data = marray(data, copy=True, subok=True)
     if data._mask is nomask:
@@ -289,7 +288,7 @@ result has missing values in the interval [i-k:i+k+1].
 
 def cmov_average(data, span):
     """Computes the centered moving average of size span on the data.
-    
+
 *Parameters*:
     data : {ndarray}
         Data to process. The array should be at most 2D. On 2D arrays, the
@@ -297,7 +296,7 @@ def cmov_average(data, span):
     span : {int}
         The width of the window.
 
-*Returns*:    
+*Returns*:
     A (subclass of) MaskedArray. The k first and k last data are always masked
     (with k=span//2). When data has a missing value at position i, the result
     has missing values in the interval [i-k:i+k+1].
