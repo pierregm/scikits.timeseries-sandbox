@@ -2150,11 +2150,30 @@ DateObject_second(DateObject *self, void *closure) {
 static PyObject *
 DateObject_datetime(DateObject *self, void *closure) {
     PyObject *datetime;
+    int hour=0, minute=0, second=0;
+    int freq_group;
     struct date_info dinfo;
+
     if(DateObject_set_date_info_wtime(self, &dinfo) == -1) return NULL;
-    datetime = PyDateTime_FromDateAndTime(dinfo.year, dinfo.month,
-                                          dinfo.day, dinfo.hour,
-                                          dinfo.minute, (int)dinfo.second, 0);
+    freq_group = get_freq_group(self->freq);
+
+    switch(freq_group) {
+    	case FR_HR:
+    		hour = dinfo.hour;
+    		break;
+		case FR_MIN:
+    		hour = dinfo.hour;
+    		minute = dinfo.minute;
+    		break;
+		case FR_SEC:
+    		hour = dinfo.hour;
+    		minute = dinfo.minute;
+    		second = (int)dinfo.second;
+    		break;
+    }
+
+    datetime = PyDateTime_FromDateAndTime(
+				dinfo.year, dinfo.month, dinfo.day, hour, minute, second, 0);
     return datetime;
 }
 
