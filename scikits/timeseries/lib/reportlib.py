@@ -12,7 +12,7 @@ Ideas borrowed from:
 
 - Mike Brown
     http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/148061
-    
+
 :Examples:
 
     import numpy as np
@@ -23,15 +23,15 @@ Ideas borrowed from:
     series1 = ts.time_series(np.random.uniform(-100,100,15), start_date=ts.thisday('b')-15)
     series2 = ts.time_series(np.random.uniform(-100,100,13), start_date=ts.thisday('b')-10)
     series3 = ts.time_series(['string1', 'another string', 'yet another string']*3, start_date=ts.thisday('b')-10)
-    
+
     darray = ts.date_array(start_date=ts.thisday('b')-8, end_date=ts.thisday('b')-3)
-    
+
     txt_o = open('myfile.txt', 'w')
     html_o = open('myfile.html', 'w')
-    
+
     # report containing only numerical series, showing 2 decimal places
     num_report = Report(series1, series2, fmtfunc=lambda x:'%.2f' % x)
-    
+
     # report containing some string and numerical data
     mixed_report = Report(series1, series2, series3)
 
@@ -50,7 +50,7 @@ Ideas borrowed from:
                delim="</td><td>", prefix="<tr><td>", postfix="</td></tr>",
                wrapfunc=wrap_onspace(10, nls='<BR>'), output=html_o)
     html_o.write("</table>")
-    
+
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author: matthew.brett@gmail.com $)"
 __version__ = '1.0'
@@ -122,18 +122,18 @@ to the instance.
 :IVariables:
         - `*tseries` : time series objects. Must all be at the same frequency, but
           do not need to be aligned.
-          
+
         - `dates` (DateArray, *[None]*) : dates at which values of all the series
           will be output. If not specified, data will be output from the minimum
           start_date to the maximum end_date of all the time series objects
-          
+
         - `header_row` (list, *[None]*) : List of column headers. Specifying
           the header for the date column is optional.
-          
+
         - `header_char` (string, *['-']*): Character to be used for the row separator
           line between the header and first row of data. None for no separator. This
           is ignored if `header_row` is None.
-          
+
         - `header_justify` (List of strings or single string, *[None]*) : Determines
           how headers are justified. If not specified, all headers are left justified.
           If a string is specified, it must be one of 'left', 'right', or 'center'
@@ -141,23 +141,23 @@ to the instance.
           header will be justified according to the specification for that header in
           the list. Specifying the justification for the date column is header is
           optional.
-          
+
         - `row_char` (string, *[None]*): Character to be used for the row separator
           line between each row of data. None for no separator
-          
+
         - `footer_func` (List of functions or single function, *[None]*) : A function or
           list of functions for summarizing each data column in the report. For example,
           ma.sum to get the sum of the column. If a list of functions is provided
           there must be exactly one function for each column. Do not specify a function
           for the Date column.
-          
+
         - `footer_char` (string, *['-']*): Character to be used for the row separator
           line between the last row of data and the footer. None for no separator. This
           is ignored if `footer_func` is None.
-          
+
         - `footer_label` (string, *[None]*) : label for the footer row. This goes at the
           end of the date column. This is ignored if footer_func is None.
-          
+
         - `justify` (List of strings or single string, *[None]*) : Determines how data
           are justified in their column. If not specified, the date column and string
           columns are left justified, and everything else is right justified. If a
@@ -165,23 +165,23 @@ to the instance.
           columns will be justified the same way. If a list is specified, each column
           will be justified according to the specification for that column in the list
           Specifying the justification for the date column is optional.
-          
+
         - `prefix` (string, *['']*) : A string prepended to each printed row.
-        
+
         - `postfix` (string, *['']*) : A string appended to each printed row.
-        
+
         - `mask_rep` (string, *['--']*): String used to represent masked values in
           output
-          
+
         - `datefmt` (string, *[None]*) : Formatting string used for displaying the
           dates in the date column. If None, str() is simply called on the dates
-          
+
         - `fmtfunc` (List of functions or single function, *[None]*) : A function or
           list of functions for formatting each data column in the report. If not
           specified, str() is simply called on each item. If a list of functions is
           provided, there must be exactly one function for each column. Do not specify
           a function for the Date column, that is handled by the datefmt argument
-          
+
         - `wrapfunc` (List of functions or single function, *[lambda x:x]*): A function
           f(text) for wrapping text; each element in the column is first wrapped by this
           function. Instances of  wrap_onspace, wrap_onspace_strict, and wrap_always
@@ -189,42 +189,42 @@ to the instance.
           If a list is specified, each column will be wrapped according to the
           specification for that column in the list. Specifying a function for the Date
           column is optional
-          
+
         - `col_width` (list of integers or single integer, *[None]*): use this to specify
           a width for all columns (single integer), or each column individually (list
           of integers). The column will be at least as wide as col_width, but may be
           larger if cell contents exceed col_width. If specifying a list, you may
           optionally specify the width for the Date column as the first entry
-          
+
         - `output` (buffer, *[sys.stdout]*): `output` must have a write method.
-          
+
         - `fixed_width` (boolean, *[True]*): If True, columns are fixed width (ie.
           cells will be padded with spaces to ensure all cells in a given column are
           the same width). If False, `col_width` will be ignored and cells will not
           be padded."""
 
     def __init__(self, *tseries, **kwargs):
-        
+
         self.options = {}
         self.tseries = None
         if len(tseries) > 0:
             self.tseries = tseries
         self.options = self.__make_dict(**kwargs)
-        
+
     def __make_dict(self, **kwargs):
-    
+
         option_dict = copy.copy(self.options)
-        
+
         option_list = list(_default_options)
 
         for x in [kw for kw in kwargs if kw in option_list]:
             option_dict[x] = kwargs.pop(x)
-            
+
         if len(kwargs) > 0:
             raise KeyError("Unrecognized keyword(s): %s" % (", ".join(kwargs.keys())))
-            
+
         return option_dict
-        
+
     def set_series(self, *tseries):
         """set new time series for the report
 
@@ -240,7 +240,7 @@ to the instance.
       string for the Report class for valid options"""
         self.options = self.__make_dict(**kwargs)
 
-    
+
     def __call__(self, *tseries, **kwargs):
         """generate a report
 
@@ -254,10 +254,10 @@ to the instance.
         option_dict = self.__make_dict(**kwargs)
         if len(tseries) == 0:
             tseries = self.tseries
-        
+
         def option(kw):
             return option_dict.get(kw, _default_options[kw])
-            
+
         dates = option('dates')
         header_row = option('header_row')
         header_char = option('header_char')
@@ -278,7 +278,7 @@ to the instance.
         nls=option('nls')
         output=option('output')
         fixed_width=option('fixed_width')
-        
+
         if header_row is not None:
             has_header=True
             if len(header_row) == len(tseries)+1:
@@ -294,7 +294,7 @@ to the instance.
             rows=[]
 
         if fixed_width:
-        
+
             def _standardize_justify(userspec):
                 if isinstance(userspec, str):
                     # justify all columns the the same way
@@ -306,7 +306,7 @@ to the instance.
                         return ['left'] + userspec
                 else:
                     raise ValueError("invalid `justify` specification")
-                    
+
             if justify is not None:
                 justify = _standardize_justify(justify)
             else:
@@ -315,8 +315,8 @@ to the instance.
                 for ser in tseries:
                     if ser.dtype.char in 'SUO': justify.append('left')
                     else: justify.append('right')
-                    
-                    
+
+
             if header_justify is not None:
                 header_justify = _standardize_justify(header_justify)
             else:
@@ -345,30 +345,25 @@ to the instance.
         def wrapfunc_default(func):
             if func is None: return lambda x:x
             else: return func
-            
+
         if isinstance(wrapfunc, list):
             if len(wrapfunc) == len(tseries):
                 wrapfunc = [lambda x: x] + wrapfunc
             wrapfunc = [wrapfunc_default(func) for func in wrapfunc]
         else:
             wrapfunc = [wrapfunc_default(wrapfunc) for x in range(len(tseries)+1)]
-    
-            
+
+
         if isinstance(col_width, list):
             if len(col_width) == len(tseries):
                 col_width = [None] + col_width
         else:
             col_width = [col_width for x in range(len(tseries)+1)]
 
-        def getval(series, date):
-            try:
-                val = series[date]
-            except IndexError:
-                val = ma.masked
-            return val
+        _sd = dates[0]
 
         for d in dates:
-            rows.append([datefmt_func(d)]+[fmtfunc[i](getval(ser, d)) for i, ser in enumerate(tseries)])
+            rows.append([datefmt_func(d)]+[fmtfunc[i](ser.series[d - _sd]) for i, ser in enumerate(tseries)])
 
         if footer_func is not None:
             has_footer=True
@@ -379,17 +374,21 @@ to the instance.
             else: footer_label = [footer_label]
 
             footer_data = []
+            has_missing = dates.has_missing_dates()
+
             for i, ser in enumerate(tseries):
                 if footer_func[i] is None:
                     footer_data.append('')
                 else:
-                    footer_data.append(fmtfunc[i](footer_func[i](ser[dates])))
+                    if has_missing: _input = ser[dates]
+                    else:           _input = ser.series
+                    footer_data.append(fmtfunc[i](footer_func[i](_input)))
 
             rows.append(footer_label + footer_data)
         else:
             has_footer=False
-            
-            
+
+
         def rowWrapper(row):
             newRows = [wrapfunc[i](item).split('\n') for i, item in enumerate(row)]
             return [[(substr or '') for substr in item] for item in map(None,*newRows)]
@@ -439,7 +438,7 @@ to the instance.
                     _justify = header_justify
                 else:
                     _justify = justify
-                    
+
                 output.write(prefix \
                            + delim.join([justify_funcs[str(_justify[colNum]).lower()](str(item),width) for (colNum,item,width) in zip(colNums,row,maxWidths)]) \
                            + postfix + nls)
@@ -455,21 +454,21 @@ to the instance.
 class wrap_onspace(object):
     """A callable word-wrap class that preserves existing line breaks
 and most spaces in the text.
-    
+
 :IVariables:
     - `width` (int): width to wrap at. Won't split up words wider than `width`
     - `nls` (str, *['\n']*): New line separator. Assumes existing line
       breaks use this new line separator as well.
-      
+
 :Parameters (for __call__ method):
     - `text` (str): text to wrap"""
 
     def __init__(self, width, nls='\n'):
         self.width = width
         self.nls = nls
-        
+
     def __call__(self, text):
-    
+
         width = self.width
         nls = self.nls
 
@@ -485,28 +484,28 @@ and most spaces in the text.
                        break_or_space(line, word, width),
                        word),
                       text.split(' ')
-                     )    
+                     )
 
 
 import re
 class wrap_onspace_strict(object):
     """A callable word-wrap class similar to wrap_onspace, but
 enforces the width constraint: words longer than width are split.
-    
+
 :IVariables:
     - `width` (int): width to wrap at. Will split up words wider than `width`
     - `nls` (str, *['\n']*): New line separator. Assumes existing line
       breaks use this new line separator as well.
-      
+
 :Parameters (for __call__ method):
     - `text` (str): text to wrap"""
 
     def __init__(self, width, nls='\n'):
         self.width = width
         self.nls = nls
-        
+
     def __call__(self, text):
-    
+
         width = self.width
         nls = self.nls
 
@@ -518,20 +517,20 @@ import math
 class wrap_always(object):
     """A callable word-wrap class that wraps text on exactly width
 characters. It doesn't split the text into words.
-    
+
 :IVariables:
     - `width` (int): width to wrap at.
     - `nls` (str, *['\n']*): New line separator.
-      
+
 :Parameters (for __call__ method):
     - `text` (str): text to wrap"""
 
     def __init__(self, width, nls='\n'):
         self.width = width
         self.nls = nls
-        
+
     def __call__(self, text):
-    
+
         width = self.width
         nls = self.nls
         return nls.join([ text[width*i:width*(i+1)] \
