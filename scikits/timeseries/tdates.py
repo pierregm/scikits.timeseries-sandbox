@@ -387,8 +387,8 @@ For non-quarterly dates, this simply returns the year of the date."""
         Applies only when converting a lower frequency Date to a higher
         frequency Date, or when converting a weekend Date to a business
         frequency Date. Valid values are 'START' and 'END' (or just 'S' and
-        'E' for brevity if you wish). 
-       
+        'E' for brevity if you wish).
+
         For example, if converting a monthly date to a daily date, specifying
         'START' ('END') would result in the first (last) day in the month.
 """
@@ -400,12 +400,12 @@ For non-quarterly dates, this simply returns the year of the date."""
             return self
 
         relation = relation.upper()
-        
+
         if relation not in ('START', 'END', 'S', 'E'):
             raise ValueError(
                 "invalid specification for 'relation' parameter: %s" % \
                 relation)
-        
+
         fromfreq = self.freq
         if fromfreq == _c.FR_UND:
             fromfreq = _c.FR_DAY
