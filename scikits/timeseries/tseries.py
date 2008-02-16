@@ -253,7 +253,7 @@ unchanged.
 
         func = getattr(super(TimeSeries, instance), self._name)
         if compat:
-            result = func(other, *args).view(type(instance))
+            result = numpy.array(func(other, *args), subok=True).view(type(instance))
             result._dates = instance._dates
         else:
             _result = func(other, *args)
