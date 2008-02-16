@@ -256,11 +256,18 @@ unchanged.
             result = numpy.array(func(other, *args), subok=True).view(type(instance))
             result._dates = instance._dates
         else:
-            _result = func(other, *args)
+            if hasattr(other, '_series'):
+                _other = other._series
+            else:
+                _other = other
+
+            _result = func(_other, *args)
+
             if hasattr(_result, '_series'):
                 result = _result._series
             else:
                 result = _result
+
         return result
 
 class _tsarraymethod(object):
