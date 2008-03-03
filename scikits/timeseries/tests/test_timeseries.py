@@ -207,6 +207,34 @@ class TestArithmetics(TestCase):
         assert(series._series[0] is masked)
         assert(series[0]._series is masked)
 
+    def test_singleton_ops(self):
+        "verify handling of singleton operations"
+        (series, data) =self.d
+        a, b = series[0], series[1]
+
+        assert_equal(a.ndim, 0)
+        assert_equal(a.dates.ndim, 1)
+
+        # date information should be preserved when performing operations on
+        # singletons with the same date
+        result_compatible = a + a
+        assert(isinstance(result_compatible, TimeSeries))
+        assert_equal(result_compatible.dates, a.dates)
+
+        # plain MaskedArray is returned when performing operations on
+        # singletons with  incompatible dates
+        result_incompatible = a + b
+        assert(not isinstance(result_incompatible, TimeSeries))
+
+    def test_incompatible_dates(self):
+        """test operations on two time series with same dimensions but
+incompatible dates"""
+        (series, data) =self.d
+        a, b = series[1:], series[:-1]
+        result = a + b
+        assert(not isinstance(result, TimeSeries))
+        assert_equal(result.ndim, a.ndim)
+        assert_equal(result.size, a.size)
 
 #...............................................................................
 
