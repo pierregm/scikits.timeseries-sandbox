@@ -1099,8 +1099,8 @@ static int init_freq_group(int num_items, int num_roots, int base_const,
             PyObject *alias_v1, *alias_v2;
             char *root, *alt;
 
-            if ((root = malloc((30) * sizeof(char))) == NULL) return INT_ERR_CODE;
-            if ((alt = malloc((30) * sizeof(char))) == NULL) return INT_ERR_CODE;
+            if ((root = PyArray_malloc((30) * sizeof(char))) == NULL) return INT_ERR_CODE;
+            if ((alt = PyArray_malloc((30) * sizeof(char))) == NULL) return INT_ERR_CODE;
 
             strcpy(root, group_prefixes[j]);
             strcpy(alt, group_prefixes[j]);
@@ -1720,7 +1720,7 @@ DateObject_strftime(DateObject *self, PyObject *args)
     c_date.tm_isdst = -1;
 
     result_len = strlen(orig_fmt_str) + 50;
-    if ((result = malloc(result_len * sizeof(char))) == NULL) {return PyErr_NoMemory();}
+    if ((result = PyArray_malloc(result_len * sizeof(char))) == NULL) {return PyErr_NoMemory();}
 
     fmt_str = orig_fmt_str;
 
@@ -1767,7 +1767,7 @@ DateObject_strftime(DateObject *self, PyObject *args)
                 { return NULL; }
 
                 if(strcmp(extra_fmts[i][0], "%q") == 0) {
-                    if ((extra_str = malloc(2 * sizeof(char))) == NULL) {
+                    if ((extra_str = PyArray_malloc(2 * sizeof(char))) == NULL) {
                         free(tmp_str);
                         return PyErr_NoMemory();
                     }
@@ -1780,7 +1780,7 @@ DateObject_strftime(DateObject *self, PyObject *args)
                         year = year % 100;
                     } else { year_len = 4; }
 
-                    if ((extra_str = malloc((year_len+1) * sizeof(char))) == NULL) {
+                    if ((extra_str = PyArray_malloc((year_len+1) * sizeof(char))) == NULL) {
                         free(tmp_str);
                         return PyErr_NoMemory();
                     }
@@ -1863,7 +1863,7 @@ DateObject___repr__(DateObject* self)
 
     repr_len = strlen(str_rep) + strlen(freqstr) + 6;
 
-    if((repr = malloc((repr_len + 1) * sizeof(char))) == NULL)
+    if((repr = PyArray_malloc((repr_len + 1) * sizeof(char))) == NULL)
     { return PyErr_NoMemory(); }
 
     strcpy(repr, "<");

@@ -83,7 +83,7 @@ char *str_uppercase(char *str) {
     if (str) {
         int i, len=strlen(str);
         char *result;
-        if((result = malloc((len + 1)*sizeof(char))) == NULL) {
+        if((result = PyArray_malloc((len + 1)*sizeof(char))) == NULL) {
             return (char *)PyErr_NoMemory();
         }
         strcpy(result, str);
@@ -137,7 +137,7 @@ char *str_replace(const char *s, const char *old, const char *new) {
         }
     }
 
-    ret = malloc(i + 1 + count * (newlen - oldlen));
+    ret = PyArray_malloc(i + 1 + count * (newlen - oldlen));
     if (ret == NULL) {return (char *)PyErr_NoMemory();}
 
     i = 0;

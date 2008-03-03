@@ -356,7 +356,7 @@ check_mov_args(PyObject *orig_arrayobj, int span, int min_win_size,
 
     if (span < min_win_size) {
         char *error_str;
-        error_str = malloc(60 * sizeof(char));
+        error_str = PyArray_malloc(60 * sizeof(char));
         MEM_CHECK(error_str)
         sprintf(error_str,
                 "span must be greater than or equal to %i",
@@ -366,7 +366,7 @@ check_mov_args(PyObject *orig_arrayobj, int span, int min_win_size,
         return NULL;
     }
 
-    raw_result_mask = malloc((*orig_ndarray_tmp)->dimensions[0] * sizeof(int));
+    raw_result_mask = PyArray_malloc((*orig_ndarray_tmp)->dimensions[0] * sizeof(int));
     MEM_CHECK(raw_result_mask)
 
     {
@@ -539,7 +539,7 @@ calc_mov_ranked(PyArrayObject *orig_ndarray, int span, int rtype, char rank_type
         /* this array will be used for quick access to the data in the original
            array (so PyArray_GETITEM doesn't have to be used over and over in the
            main loop) */
-        ref_array = malloc(arr_size * sizeof(PyObject*));
+        ref_array = PyArray_malloc(arr_size * sizeof(PyObject*));
         MEM_CHECK(ref_array)
 
         for (i=0; i<arr_size; i++) {
@@ -549,7 +549,7 @@ calc_mov_ranked(PyArrayObject *orig_ndarray, int span, int rtype, char rank_type
 
         /* this array wll be used for keeping track of the "ranks" of the values
            in the current window */
-        r = malloc(span * sizeof(int));
+        r = PyArray_malloc(span * sizeof(int));
         MEM_CHECK(r)
 
         for (i=0; i < span; i++) {
