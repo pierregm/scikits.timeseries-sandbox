@@ -834,6 +834,65 @@ time series to a new one being created"""
 ##--- ... Additional methods ...
 ##### --------------------------------------------------------------------------
 
+def _extrema(self, method, axis=None,fill_value=None):
+    "Private function used by max/min"
+    (_series, _dates) = (self._series, self._dates)
+    func = getattr(_series, method)
+    idx = func(axis,fill_value)    
+    # 1D series .......................
+    if (_dates.size == _series.size):
+        if axis is None:
+            return self.ravel()[idx]
+        else:
+            return self[idx]
+    # nD series .......................
+    else:
+        if axis is None:
+            idces = numpy.unravel_index(idx, _series.shape)
+            result = time_series(_series[idces], dates=_dates[idces[0]])
+        else:
+            _shape = _series.shape
+            _dates = numpy.repeat(_dates,numpy.prod(_shape[1:])).reshape(_shape)
+            _s = numpy.rollaxis(_series,axis,0)[idx]
+            _d = numpy.rollaxis(_dates,axis,0)[idx]
+            _s = numpy.choose(idx, numpy.rollaxis(_series,axis,0))
+            _d = numpy.choose(idx, numpy.rollaxis(_dates,axis,0))
+            result = time_series(_s, dates=_d)  
+        return result
+        
+def _max(self, axis=None, fill_value=None):
+    """Return the maximum of self along the given axis.
+    Masked values are filled with fill_value.
+
+    Parameters
+    ----------
+    axis : int, optional
+        Axis along which to perform the operation.
+        If None, applies to a flattened version of the array.
+    fill_value : {var}, optional
+        Value used to fill in the masked values.
+        If None, use the the output of maximum_fill_value().
+    """
+    return _extrema(self,'argmax',axis,fill_value)
+TimeSeries.max = _max
+
+def _min(self,axis=None,fill_value=None):
+    """Return the minimum of self along the given axis.
+    Masked values are filled with fill_value.
+
+    Parameters
+    ----------
+    axis : int, optional
+        Axis along which to perform the operation.
+        If None, applies to a flattened version of the array.
+    fill_value : {var}, optional
+        Value used to fill in the masked values.
+        If None, use the the output of minimum_fill_value().
+    """
+    return _extrema(self, 'argmin',axis,fill_value)
+TimeSeries.min = _min
+
+
 #.......................................
 
 

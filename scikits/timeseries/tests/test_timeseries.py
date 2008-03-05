@@ -627,6 +627,32 @@ test_dates test suite.
         #
         newseries = concatenate((ser_1, ser_1[::-1]))
         assert_equal(newseries, ser_1)
+    #
+    def test_maxmin(self):
+        "Test min/max"
+        series = time_series(numpy.arange(10), start_date=now('D'))
+        smax = series.max()
+        assert(isinstance(smax, TimeSeries))
+        assert_equal(smax, 9)
+        assert_equal(smax._dates, date_array(series._dates[-1]))
+        #
+        smin = series.min()
+        assert(isinstance(smin, TimeSeries))
+        assert_equal(smin, 0)
+        assert_equal(smin._dates, date_array(series._dates[0]))
+        #
+        series = time_series([[0,1,2,3,4],[9,8,7,6,5]], 
+                                start_date=now('D'))
+        smax = series.max(0)
+        assert_equal(smax._series,[9,8,7,6,5])
+        assert_equal(smax._dates,date_array([series._dates[1]]*5))
+        smax = series.max(1)
+        assert_equal(smax._series,[4,9])
+        assert_equal(smax._dates,series._dates)
+        smax = series.max()
+        assert_equal(smax._series,[9])
+        assert_equal(smax._dates,date_array(series._dates[1]))
+    #
 
 
 
