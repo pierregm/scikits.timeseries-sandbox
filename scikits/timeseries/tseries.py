@@ -803,8 +803,11 @@ a list of standard python objects (eg. datetime, int, etc...)."""
         """
         (ver, shp, typ, isf, raw, msk, flv, dsh, dtm, frq) = state
         super(TimeSeries, self).__setstate__((ver, shp, typ, isf, raw, msk, flv))
-        self._dates.__setstate__((dsh, dtype(int_), isf, dtm))
-        self._dates.freq = frq
+        _dates = self._dates
+        _dates.__setstate__((dsh, dtype(int_), isf, dtm))
+        _dates.freq = frq
+        _dates._cachedinfo.update(dict(full=None, hasdups=None, steps=None,
+                                       toobj=None, toord=None, tostr=None))
 #
     def __reduce__(self):
         """Returns a 3-tuple for pickling a MaskedArray."""
