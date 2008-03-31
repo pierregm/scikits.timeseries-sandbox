@@ -143,6 +143,7 @@ is returned.
         if 'context' not in kwargs:
             kwargs['context'] = 'DateOK'
         method = getattr(super(DateArray,instance), self.methodname)
+        other_val = other
         if isinstance(other, DateArray):
             if other.freq != freq:
                 raise FrequencyDateError("Cannot operate on dates", \
@@ -151,15 +152,15 @@ is returned.
             if other.freq != freq:
                 raise FrequencyDateError("Cannot operate on dates", \
                                          freq, other.freq)
-            other = other.value
+            other_val = other.value
         elif isinstance(other, ndarray):
             if other.dtype.kind not in ['i','f']:
                 raise ArithmeticDateError
-        if self._asdates:
-            return instance.__class__(method(other, *args),
+        if self._asdates and not isinstance(other, (DateArray, Date)):
+            return instance.__class__(method(other_val, *args),
                                       freq=freq)
         else:
-            return method(other, *args)
+            return method(other_val, *args)
 
 class DateArray(ndarray):
     """Defines a ndarray of dates, as ordinals.
@@ -222,8 +223,8 @@ accesses the array element by element. Therefore, `d` is a Date object.
         # Case 1. A simple integer
         if isinstance(r, (generic, int)):
             return Date(self.freq, value=r)
-        elif hasattr(r, 'size') and r.size == 1:
-            # need to check if it has a size attribute for situations
+        elif hasattr(r, 'ndim') and r.ndim == 0:
+            # need to check if it has a ndim attribute for situations
             # like when the datearray is the data for a maskedarray
             # or some other subclass of ndarray with wierd getitem
             # behaviour

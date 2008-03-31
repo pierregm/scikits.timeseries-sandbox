@@ -828,9 +828,9 @@ class TestMethods(TestCase):
         assert_equal(mdates[-1].value, 24084)
         # Using a date
         lag = mdates.find_dates(mdates[0])
-        assert_equal(mdates[lag], mdates[0])
+        assert_equal(mdates[lag][0], mdates[0])
         lag = mdates.find_dates(Date('M', value=24080))
-        assert_equal(mdates[lag], mdates[5])
+        assert_equal(mdates[lag][0], mdates[5])
         # Using several dates
         lag = mdates.find_dates(Date(freq='M', value=24073), Date(freq='M', value=24084))
         assert_equal(mdates[lag],
