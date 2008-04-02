@@ -32,14 +32,14 @@ from numpy.ma import MaskedArray, MAError, masked, nomask, \
 
 import tdates
 from tdates import \
-    DateError, InsufficientDateError, Date, DateArray, date_array, now, \
-    check_freq, check_freq_str
+    DateError, FrequencyDateError, InsufficientDateError, Date, DateArray, \
+    date_array, now, check_freq, check_freq_str
 
 import const as _c
 import cseries
 
 __all__ = [
-'TimeSeriesError','TimeSeriesCompatibilityError','TimeSeries','isTimeSeries',
+'TimeSeriesError','TimeSeriesCompatibilityError','TimeSeries',
 'time_series', 'tsmasked', 'adjust_endpoints', 'align_series', 'align_with',
 'aligned', 'asrecords', 'compressed', 'concatenate', 'convert', 'day_of_year',
 'day', 'empty_like', 'fill_missing_dates','first_unmasked_val','flatten',
@@ -397,11 +397,6 @@ A time series is here defined as the combination of two arrays:
         MaskedArray.__array_finalize__(self, obj)
         return
     #.........................................................................
-#    def __array_wrap__(self, obj, context=None):
-#        result = super(TimeSeries, self).__array_wrap__(obj, context)
-#        result._dates = self._dates
-#        return result
-    #.........................................................................
     def _update_from(self, obj):
         super(TimeSeries, self)._update_from(obj)
         newdates = getattr(obj, '_dates', DateArray([]))
@@ -438,8 +433,22 @@ A time series is here defined as the combination of two arrays:
                 tmp = numpy.fromiter((d2i(i) for i in indx),int_)
                 return (tmp,tmp)
         elif isinstance(indx,slice):
-            slice_start = self.__checkindex(indx.start)[0]
-            slice_stop = self.__checkindex(indx.stop)[0]
+            def _check_indx(indx):
+                if indx is None or isinstance(indx, int):
+                    return indx
+                if isinstance(indx, str):
+                    indx = Date(self._dates.freq, string=indx)
+                if not isinstance(indx, Date):
+                    raise ValueError(
+                        "invalid object used in slice: %s" % repr(indx))
+                if indx.freq != self._dates.freq:
+                    raise FrequencyDateError(
+                        "Cannot perform slice", indx.freq, self._dates.freq)
+                return numpy.sum(self._dates < indx)
+
+            slice_start = _check_indx(indx.start)
+            slice_stop = _check_indx(indx.stop)
+
             indx = slice(slice_start, slice_stop, indx.step)
             return (indx,indx)
         elif isinstance(indx, tuple):
@@ -448,7 +457,7 @@ A time series is here defined as the combination of two arrays:
             if self._dates.size == self.size:
                 return (indx, indx)
             return (indx,indx[0])
-        elif isTimeSeries(indx):
+        elif isinstance(indx, TimeSeries):
             indx = indx._series
         if getmask(indx) is not nomask:
             msg = "Masked arrays must be filled before they can be used " + \
@@ -486,23 +495,6 @@ Sets item described by index. If value is masked, masks those locations.
             raise MAError, 'Cannot alter the masked element.'
         (sindx, _) = self.__checkindex(indx)
         super(TimeSeries, self).__setitem__(sindx, value)
-    #........................
-    def __getslice__(self, i, j):
-        "Gets slice described by i, j"
-        (si,di) = self.__checkindex(i)
-        (sj,dj) = self.__checkindex(j)
-        result = super(TimeSeries, self).__getitem__(slice(si,sj))
-        result._dates = self._dates[di:dj]
-        return result
-    #....
-    def __setslice__(self, i, j, value):
-        "Gets item described by i. Not a copy as in previous versions."
-        (si,_) = self.__checkindex(i)
-        (sj,_) = self.__checkindex(j)
-        #....
-        if isinstance(value, TimeSeries):
-            assert(_timeseriescompat(self[si:sj], value))
-        super(TimeSeries, self).__setitem__(slice(si,sj), value)
     #......................................................
     def __str__(self):
         """Returns a string representation of self (w/o the dates...)"""
@@ -841,7 +833,7 @@ def _extrema(self, method, axis=None,fill_value=None):
     "Private function used by max/min"
     (_series, _dates) = (self._series, self._dates)
     func = getattr(_series, method)
-    idx = func(axis,fill_value)    
+    idx = func(axis,fill_value)
     # 1D series .......................
     if (_dates.size == _series.size):
         if axis is None:
@@ -860,9 +852,9 @@ def _extrema(self, method, axis=None,fill_value=None):
             _d = numpy.rollaxis(_dates,axis,0)[idx]
             _s = numpy.choose(idx, numpy.rollaxis(_series,axis,0))
             _d = numpy.choose(idx, numpy.rollaxis(_dates,axis,0))
-            result = time_series(_s, dates=_d)  
+            result = time_series(_s, dates=_d)
         return result
-        
+
 def _max(self, axis=None, fill_value=None):
     """Return the maximum of self along the given axis.
     Masked values are filled with fill_value.
@@ -1123,11 +1115,6 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
                       copy=copy, dtype=dtype,
                       fill_value=fill_value, keep_mask=keep_mask,
                       hard_mask=hard_mask,)
-
-
-def isTimeSeries(series):
-    "Returns whether the series is a valid TimeSeries object."
-    return isinstance(series, TimeSeries)
 
 tsmasked = TimeSeries(masked,dates=DateArray(Date('D',1)))
 
@@ -1497,7 +1484,7 @@ corresponding to the initially missing dates are masked, or filled to
               "Unable to define a proper date resolution (found %s)." % freqstr
     # Check the dates .............
     if dates is None:
-        if not isTimeSeries(data):
+        if not isinstance(data, TimeSeries):
             raise InsufficientDateError
         dates = data._dates
     else:
