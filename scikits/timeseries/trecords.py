@@ -104,7 +104,7 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
                 formats=None, names=None, titles=None,
                 byteorder=None, aligned=False,
                 mask=nomask, hard_mask=False, fill_value=None, keep_mask=True,
-                copy=False, 
+                copy=False,
                 dates=None, freq='U', start_date=None, observed=None,
                 **options):
         self = mrecarray.__new__(cls, shape, dtype=dtype, buf=buf, offset=offset,
@@ -114,7 +114,7 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
                                  keep_mask=keep_mask, fill_value=fill_value,
                                  )
         #
-        newdates = _getdates(dates, length=len(self), 
+        newdates = _getdates(dates, length=len(self),
                              start_date=start_date,freq=freq)
         _data._dates = newdates
         _data._observed = observed
@@ -148,7 +148,7 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
             obj._dates = _dict['_dates']
             return obj
         return getattribute(self,attr)
-    
+
     #......................................................
     def __getitem__(self, indx):
         """Returns all the fields sharing the same fieldname base.
@@ -236,7 +236,7 @@ def time_records(mrecord, dates=None):
 
 
 
-def fromarrays(arraylist, dates=None, start_date=None, freq='U', 
+def fromarrays(arraylist, dates=None, start_date=None, freq='U',
                fill_value=None,
                dtype=None, shape=None, formats=None,
                names=None, titles=None, aligned=False, byteorder=None,):
@@ -273,10 +273,10 @@ def fromarrays(arraylist, dates=None, start_date=None, freq='U',
     Lists of tuples should be preferred over lists of lists for faster processing.
     """
     _array = mrecfromarrays(arraylist, dtype=dtype, shape=shape, formats=formats,
-                            names=names, titles=titles, aligned=aligned, 
+                            names=names, titles=titles, aligned=aligned,
                             byteorder=byteorder, fill_value=fill_value)
     _array = _array.view(trecarray)
-    _array._dates = _getdates(dates, length=len(_array), 
+    _array._dates = _getdates(dates, length=len(_array),
                               start_date=start_date,freq=freq)
     return _array
 
@@ -298,7 +298,7 @@ def fromrecords(reclist, dates=None, freq=None, start_date=None,
     """
     _data = mrecfromrecords(reclist, dtype=dtype, shape=shape, formats=formats,
                             names=names, titles=titles, aligned=aligned,
-                            byteorder=byteorder)
+                            byteorder=byteorder, mask=mask)
     _dtype = _data.dtype
     # Check the names for a '_dates' .................
     newdates = None

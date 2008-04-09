@@ -153,6 +153,9 @@ class TestMRecords(TestCase):
         tmp = time_records(mts._series[::-1], dates=mts.dates)
         mrecfr = fromrecords(tmp)
         assert_equal(mrecfr.f0, mrec.f0[::-1])
+        #....................
+        mrecfr = fromrecords(mrec.data, dates=dates, mask=m)
+        assert_array_equal(mrecfr.mask, m)
 
     def test_fromtextfile(self):
         "Tests reading from a text file."
