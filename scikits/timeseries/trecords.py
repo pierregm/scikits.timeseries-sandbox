@@ -14,27 +14,20 @@ __date__     = '$Date: 2008-01-12 05:06:39 -0500 (Sat, 12 Jan 2008) $'
 
 import sys
 
-import numpy
-from numpy import ndarray, bool_, complex_, float_, int_, str_, object_, \
-    array as narray
-import numpy.core.fromnumeric as fromnumeric
-import numpy.core.numeric as numeric
+import numpy as np
+from numpy import bool_, complex_, float_, int_, str_, object_, \
+    ndarray, chararray, recarray
 import numpy.core.numerictypes as ntypes
 import numpy.core.umath as umath
-from numpy.core.defchararray import chararray
-from numpy.core.records import find_duplicate
-from numpy.core.records import format_parser, recarray, record, \
+from numpy.core.records import find_duplicate, format_parser, record, \
     fromarrays as recfromarrays
 
-import numpy.ma as MA
-
+import numpy.ma as ma
 from numpy.ma import MaskedArray, MAError, \
      default_fill_value, masked_print_option, masked, nomask, \
-     getmask, getmaskarray, make_mask,\
-    make_mask_none, mask_or, masked_array, filled
+     getmask, getmaskarray, make_mask, make_mask_none, mask_or, filled
 
 import numpy.ma.mrecords
-reload(numpy.ma.mrecords)
 from numpy.ma.mrecords import _checknames, \
      _guessvartypes, openfile, MaskedRecords, mrecarray, addfield, \
      fromrecords as mrecfromrecords, fromarrays as mrecfromarrays
@@ -63,7 +56,7 @@ def _getformats(data):
 
     formats = ''
     for obj in data:
-        obj = numeric.asarray(obj)
+        obj = np.asarray(obj)
         formats += _typestr[obj.dtype.type]
         if issubclass(obj.dtype.type, ntypes.flexible):
             formats += `obj.itemsize`
@@ -162,10 +155,10 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
             return obj
         # We want some elements ..
         (sindx, dindx) = self._TimeSeries__checkindex(indx)
-        obj = narray(self._data[sindx], copy=False, subok=True).view(type(self))
+        obj = np.array(self._data[sindx], copy=False, subok=True).view(type(self))
         obj.__dict__.update(_dates=_localdict['_dates'][dindx],
                             _fill_value=_localdict['_fill_value'])
-        obj._fieldmask = narray(_localdict['_fieldmask'][sindx]).view(recarray)
+        obj._fieldmask = np.array(_localdict['_fieldmask'][sindx]).view(recarray)
         return obj
 
     def __getslice__(self, i, j):
@@ -205,7 +198,7 @@ Otherwise fill with fill value.
         """
         _names = self.dtype.names
         _dates = self._dates
-        if numeric.size(_dates) > 2 and self._dates.isvalid():
+        if np.size(_dates) > 2 and self._dates.isvalid():
             timestr = "[%s ... %s]" % (str(_dates[0]),str(_dates[-1]))
         else:
             timestr = str(_dates)
@@ -230,7 +223,7 @@ trecarray = TimeSeriesRecords
 #####---------------------------------------------------------------------------
 
 def time_records(mrecord, dates=None):
-    trecords = narray(mrecord, subok=True).view(trecarray)
+    trecords = np.array(mrecord, subok=True).view(trecarray)
     trecords._dates = dates
     return trecords
 
@@ -307,7 +300,7 @@ def fromrecords(reclist, dates=None, freq=None, start_date=None,
     if len(reserved) > 0:
         newdates = _data[reserved[-1]]
         [_names.remove(n) for n in reserved]
-        _dtype = numeric.dtype([t for t in _dtype.descr \
+        _dtype = np.dtype([t for t in _dtype.descr \
                                     if t[0] not in reserved ])
         _data = mrecfromarrays([_data[n] for n in _names], dtype=_dtype)
     #
@@ -359,8 +352,8 @@ def fromtextfile(fname, delimitor=None, commentchar='#', missingchar='',
     if varnames is None:
         varnames = _varnames
     # Get the data ..............................
-    _variables = MA.asarray([line.strip().split(delimitor) for line in f
-                                  if line[0] != commentchar and len(line) > 1])
+    _variables = ma.asarray([line.strip().split(delimitor) for line in f
+                             if line[0] != commentchar and len(line) > 1])
     (nvars, nfields) = _variables.shape
     # Check if we need to get the dates..........
     if dates_column is None:
@@ -386,7 +379,7 @@ def fromtextfile(fname, delimitor=None, commentchar='#', missingchar='',
     if vartypes is None:
         vartypes = _guessvartypes(_variables[0])
     else:
-        vartypes = [numeric.dtype(v) for v in vartypes]
+        vartypes = [np.dtype(v) for v in vartypes]
         if len(vartypes) != nfields:
             msg = "Attempting to %i dtypes for %i fields!"
             msg += " Reverting to default."
@@ -397,7 +390,7 @@ def fromtextfile(fname, delimitor=None, commentchar='#', missingchar='',
     # Get the data and the mask .................
     # We just need a list of masked_arrays. It's easier to create it like that:
     _mask = (_variables.T == missingchar)
-    _datalist = [masked_array(a,mask=m,dtype=t)
+    _datalist = [ma.array(a,mask=m,dtype=t)
                      for (a,m,t) in zip(_variables.T, _mask, vartypes)]
     #
     newdates = _getdates(dates=dates, newdates=newdates, length=nvars,

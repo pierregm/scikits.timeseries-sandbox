@@ -13,13 +13,10 @@ __date__     = '$Date: 2008-01-15 08:09:03 -0500 (Tue, 15 Jan 2008) $'
 import types
 import datetime
 
-import numpy
-import numpy.core.fromnumeric  as fromnumeric
-import numpy.core.numeric as numeric
+import numpy as np
 from scipy.testing import *
 
-from numpy.ma import masked_array
-
+import numpy.ma as ma
 from numpy.ma.testutils import assert_equal, assert_array_equal
 
 import scikits.timeseries as ts
@@ -42,7 +39,7 @@ class TestCreation(TestCase):
         assert_equal(dates.freqstr,'D')
         assert(dates.isfull())
         assert(not dates.has_duplicated_dates())
-        assert_equal(dates, 732677+numpy.arange(len(dlist)))
+        assert_equal(dates, 732677+np.arange(len(dlist)))
 
         # Still daily data, that we force to month
         dates = date_array(dlist, freq='M')
@@ -57,7 +54,7 @@ class TestCreation(TestCase):
         assert_equal(dates.freqstr,'M')
         assert(dates.isfull())
         assert(not dates.has_duplicated_dates())
-        assert_equal(dates, 24073 + numpy.arange(12))
+        assert_equal(dates, 24073 + np.arange(12))
         print "finished test_fromstrings"
 
     def test_fromstrings_wmissing(self):
@@ -69,7 +66,7 @@ class TestCreation(TestCase):
         assert_equal(dates.freqstr,'U')
         assert(not dates.isfull())
         assert(not dates.has_duplicated_dates())
-        assert_equal(dates.tovalue(), 732676 + numpy.array([1,2,4,5,7,8,10,11,13]))
+        assert_equal(dates.tovalue(), 732676 + np.array([1,2,4,5,7,8,10,11,13]))
         #
         ddates = date_array(dlist, freq='D')
         assert_equal(ddates.freqstr,'D')

@@ -12,7 +12,7 @@ __revision__ = "$Revision: 3836 $"
 __date__     = '$Date: 2008-01-15 08:09:03 -0500 (Tue, 15 Jan 2008) $'
 
 
-import numpy
+import numpy as np
 from scipy.testing import *
 from numpy.ma import masked
 from numpy.ma.testutils import assert_equal, assert_almost_equal
@@ -35,7 +35,7 @@ class TestCountmissing(TestCase):
     #
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
-        data = time_series(numpy.arange(731),
+        data = time_series(np.arange(731),
                            start_date=Date(string='2003-01-01', freq='D'),
                            freq='D')
         self.data = data
@@ -47,7 +47,7 @@ class TestCountmissing(TestCase):
         assert_equal(count_missing(data.convert('M')), [0]*24)
         #
         series = data.copy()
-        series[numpy.logical_not(data.day % 10)] = masked
+        series[np.logical_not(data.day % 10)] = masked
         assert_equal(count_missing(series), 70)
         assert_equal(count_missing(series.convert('A')), (35,35))
         assert_equal(count_missing(series.convert('M')),
@@ -61,7 +61,7 @@ class TestCountmissing(TestCase):
     #
     def test_accept_atmost_missing(self):
         series = self.data.copy()
-        series[numpy.logical_not(self.data.day % 10)] = masked
+        series[np.logical_not(self.data.day % 10)] = masked
         result = accept_atmost_missing(series.convert('M'),3,True)
         assert_equal(result._mask.all(-1), [0]*24)
         result = accept_atmost_missing(series.convert('M'),3,False)

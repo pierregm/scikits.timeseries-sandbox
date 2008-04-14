@@ -11,7 +11,7 @@ __revision__ = "$Revision: 3822 $"
 __date__     = '$Date: 2008-01-12 05:06:39 -0500 (Sat, 12 Jan 2008) $'
 
 
-import numpy
+import numpy as np
 from numpy.ma import masked
 
 import const as _c
@@ -27,9 +27,9 @@ def isleapyear(year):
     year : integer / sequence
         A given (list of) year(s).
     """
-    year = numpy.asarray(year)
-    return numpy.logical_or(year % 400 == 0,
-                            numpy.logical_and(year % 4 == 0, year % 100 > 0))
+    year = np.asarray(year)
+    return np.logical_or(year % 400 == 0,
+                         np.logical_and(year % 4 == 0, year % 100 > 0))
 
 #..............................................................................
 def count_missing(series):
@@ -62,7 +62,7 @@ count_missing will discard these extra missing values.
     elif period == 31 and (freq//_c.FR_MTH == 1):
         months = series.months
         # row: months, cols: days
-        missing[numpy.array([m in [4,6,9,11] for m in months])] -= 1
+        missing[np.array([m in [4,6,9,11] for m in months])] -= 1
         isfeb = (months == 2)
         missing[isfeb] -= 2
         missing[isfeb & ~isleapyear(series.year)] -= 1
@@ -75,11 +75,11 @@ count_missing will discard these extra missing values.
             missing[isfeb] -= 2
         elif freq in (_c.FR_QTREFEB, _c.FR_QTRSFEB, _c.FR_QTREMAY, _c.FR_QTRSMAY,
                       _c.FR_QTREAUG, _c.FR_QTRSAUG, _c.FR_QTRENOV, _c.FR_QTRSNOV):
-            missing[numpy.array([m in [2,11] for m in months])] -= 1
+            missing[np.array([m in [2,11] for m in months])] -= 1
             isfeb = (months == 2)
         elif freq in (_c.FR_QTREMAR, _c.FR_QTRSMAR, _c.FR_QTREJUN, _c.FR_QTRSJUN,
                       _c.FR_QTRESEP, _c.FR_QTRSSEP, _c.FR_QTREDEC, _c.FR_QTRSDEC):
-            missing[numpy.array([m in [3,6] for m in months])] -= 1
+            missing[np.array([m in [3,6] for m in months])] -= 1
             isfeb = (months == 3)
         missing[isfeb & ~isleapyear(series.year)] -= 1
     elif period not in (12,7):
@@ -100,7 +100,7 @@ def accept_atmost_missing(series, max_missing, strict=False):
     strict : boolean *[False]*
         Whether the
     """
-    series = numpy.array(series, copy=True, subok=True)
+    series = np.array(series, copy=True, subok=True)
     if not isinstance(series, TimeSeries):
         raise TypeError, "The input data should be a valid TimeSeries object! "\
                          "(got %s instead)" % type(series)
@@ -108,7 +108,7 @@ def accept_atmost_missing(series, max_missing, strict=False):
     missing = count_missing(series)
     # Transform an acceptable percentage in a number
     if max_missing < 1:
-        max_missing = numpy.round(max_missing * series.shape[-1],0)
+        max_missing = np.round(max_missing * series.shape[-1],0)
     #
     series.unshare_mask()
     if strict:
@@ -127,8 +127,8 @@ Returns a frequency code.
     # objects vs timeseries dates or ints
 
     if type(dates[0]) is dt.datetime:
-        sorted_dates = numpy.sort(dates)
-        ddif = numpy.diff(sorted_dates)
+        sorted_dates = np.sort(dates)
+        ddif = np.diff(sorted_dates)
         dset = set(ddif)
         try:
             dset.remove(dt.timedelta(0))
@@ -155,7 +155,7 @@ Returns a frequency code.
             warnings.warn("Unable to estimate the frequency! %s" % res.__str__())
             fcode = _c.FR_UND
     else:
-        ddif = numeric.asarray(numpy.diff(dates))
+        ddif = np.asarray(np.diff(dates))
         ddif.sort()
         if ddif.size == 0:
             fcode = _c.FR_UND
@@ -171,14 +171,14 @@ Returns a frequency code.
             fcode = _c.FR_QTR
         elif (ddif[0] >= 365.) and (ddif[-1] <= 366.):
             fcode = _c.FR_ANN
-        elif numpy.abs(24.*ddif[0] - 1) <= 1e-5 and \
-             numpy.abs(24.*ddif[-1] - 1) <= 1e-5:
+        elif np.abs(24.*ddif[0] - 1) <= 1e-5 and \
+             np.abs(24.*ddif[-1] - 1) <= 1e-5:
             fcode = _c.FR_HR
-        elif numpy.abs(1440.*ddif[0] - 1) <= 1e-5 and \
-             numpy.abs(1440.*ddif[-1] - 1) <= 1e-5:
+        elif np.abs(1440.*ddif[0] - 1) <= 1e-5 and \
+             np.abs(1440.*ddif[-1] - 1) <= 1e-5:
             fcode = _c.FR_MIN
-        elif numpy.abs(86400.*ddif[0] - 1) <= 1e-5 and \
-             numpy.abs(86400.*ddif[-1] - 1) <= 1e-5:
+        elif np.abs(86400.*ddif[0] - 1) <= 1e-5 and \
+             np.abs(86400.*ddif[-1] - 1) <= 1e-5:
             fcode = _c.FR_SEC
         else:
             warnings.warn("Unable to estimate the frequency! %.3f<>%.3f" %\

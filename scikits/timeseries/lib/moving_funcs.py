@@ -17,13 +17,13 @@ __all__ = ['mov_sum', 'mov_median', 'mov_min', 'mov_max',
            'cmov_average', 'cmov_mean', 'cmov_window'
            ]
 
-import numpy as N
+import numpy as np
 from numpy import bool_, float_, sqrt
-narray = N.array
+narray = np.array
 
-import numpy.ma as MA
+import numpy.ma as ma
 from numpy.ma import MaskedArray, nomask, getmask, getmaskarray, masked
-marray = MA.array
+marray = ma.array
 
 from scikits.timeseries.cseries import \
     MA_mov_sum, MA_mov_median, MA_mov_min, MA_mov_max
@@ -38,7 +38,7 @@ def _process_result_dict(orig_data, result_dict):
     data = orig_data.astype(rarray.dtype).copy()
     data.flat = rarray.ravel()
     if not hasattr(data, '__setmask__'):
-        data = data.view(MA.MaskedArray)
+        data = data.view(MaskedArray)
     data.__setmask__(rmask)
     return data
 
@@ -218,17 +218,17 @@ def mov_average_expw(data, span, tol=1e-6):
 
     data = marray(data, copy=True, subok=True)
     ismasked = (data._mask is not nomask)
-    data._mask = N.zeros(data.shape, bool_)
+    data._mask = np.zeros(data.shape, bool_)
     _data = data._data
     #
     k = 2./float(span + 1)
     def expmave_sub(a, b):
         return a + k * (b - a)
     #
-    data._data.flat = N.frompyfunc(expmave_sub, 2, 1).accumulate(_data)
+    data._data.flat = np.frompyfunc(expmave_sub, 2, 1).accumulate(_data)
     if ismasked:
-        _unmasked = N.logical_not(data._mask).astype(float_)
-        marker = 1. - N.frompyfunc(expmave_sub, 2, 1).accumulate(_unmasked)
+        _unmasked = np.logical_not(data._mask).astype(float_)
+        marker = 1. - np.frompyfunc(expmave_sub, 2, 1).accumulate(_unmasked)
         data._mask[marker > tol] = True
     data._mask[0] = True
     #
@@ -269,7 +269,7 @@ result has missing values in the interval [i-k:i+k+1].
 
     data = marray(data, copy=True, subok=True)
     if data._mask is nomask:
-        data._mask = N.zeros(data.shape, bool_)
+        data._mask = np.zeros(data.shape, bool_)
     window = get_window(window_type, span, fftbins=False)
     (n, k) = (len(data), span//2)
     #

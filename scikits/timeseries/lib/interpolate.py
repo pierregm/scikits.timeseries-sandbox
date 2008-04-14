@@ -10,14 +10,14 @@ __version__ = '1.0'
 __revision__ = "$Revision: 3822 $"
 __date__     = '$Date: 2008-01-12 05:06:39 -0500 (Sat, 12 Jan 2008) $'
 
-import numpy.core.numeric as numeric
+import numpy as np
+import numpy.ma as ma
+from numpy.ma import masked, nomask, getmask
+from numpy.ma.extras import flatnotmasked_edges
 
 from scipy.interpolate import fitpack
 
-from numpy import ma as MA
-from numpy.ma import masked, nomask, getmask
-from numpy.ma.extras import flatnotmasked_edges
-marray = MA.array
+marray = ma.array
 
 __all__ = [
     'forward_fill', 'backward_fill', 'interp_masked1d',
@@ -34,7 +34,7 @@ consecutive masked values. If maxgap is None, then forward fill all masked
 values.
 """
     # Initialization ..................
-    if numeric.ndim(marr) > 1:
+    if np.ndim(marr) > 1:
         raise ValueError,"The input array should be 1D only!"
     marr = marray(marr, copy=True)
     if getmask(marr) is nomask or marr.size == 0:
@@ -75,7 +75,7 @@ def interp_masked1d(marr, kind='linear'):
 Interpolates masked values in marr according to method kind.
 kind must be one of 'constant', 'linear', 'cubic', quintic'
 """
-    if numeric.ndim(marr) > 1:
+    if np.ndim(marr) > 1:
         raise ValueError("array must be 1 dimensional!")
     #
     marr = marray(marr, copy=True)

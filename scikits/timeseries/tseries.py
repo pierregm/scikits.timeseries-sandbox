@@ -16,13 +16,10 @@ __version__ = '1.0'
 __revision__ = "$Revision: 3822 $"
 __date__     = '$Date: 2008-01-12 05:06:39 -0500 (Sat, 12 Jan 2008) $'
 
-import numpy
-from numpy import ndarray
-from numpy import bool_, complex_, float_, int_, object_
-from numpy import dtype
-import numpy.core.numeric as numeric
+import numpy as np
+from numpy import bool_, complex_, float_, int_, object_, dtype,\
+    ndarray, recarray
 import numpy.core.umath as umath
-from numpy.core.records import recarray
 from numpy.core.records import fromarrays as recfromarrays
 
 from numpy import ma
@@ -38,14 +35,23 @@ from tdates import \
 import const as _c
 import cseries
 
-__all__ = [
-'TimeSeriesError','TimeSeriesCompatibilityError','TimeSeries',
-'time_series', 'tsmasked', 'adjust_endpoints', 'align_series', 'align_with',
-'aligned', 'asrecords', 'compressed', 'concatenate', 'convert', 'day_of_year',
-'day', 'empty_like', 'fill_missing_dates','first_unmasked_val','flatten',
-'hour', 'last_unmasked_val', 'minute','month', 'pct', 'quarter', 'second',
-'split', 'stack', 'tofile','tshift', 'week', 'year',
-]
+__all__ = ['TimeSeries','TimeSeriesCompatibilityError','TimeSeriesError',
+           'adjust_endpoints', 'align_series', 'align_with','aligned','asrecords',
+           'compressed', 'concatenate', 'convert',
+           'day','day_of_year',
+           'empty_like',
+           'fill_missing_dates','first_unmasked_val','flatten',
+           'hour',
+           'last_unmasked_val',
+           'minute','month',
+           'pct',
+           'quarter',
+           'second','split','stack',
+           'time_series','tofile','tshift','tsmasked',
+           'week','weekday',
+           'year',
+           ]
+
 
 def _unmasked_val(marray, x):
     "helper function for first_unmasked_val and last_unmasked_val"
@@ -190,7 +196,7 @@ Returns True if everything's fine, raises an exception otherwise.
 """
     # If there's only 1 element, the date is a Date object, which has no
     # size...
-    tsize = numeric.size(dates)
+    tsize = np.size(dates)
     dsize = data.size
     # Only one data
     if dsize == tsize:
@@ -206,10 +212,10 @@ Returns True if everything's fine, raises an exception otherwise.
 
 def _getdatalength(data):
     "Estimates the length of a series (size/nb of variables)."
-    if numeric.ndim(data) >= 2:
-        return numeric.asarray(numeric.shape(data))[:-1].prod()
+    if np.ndim(data) >= 2:
+        return np.asarray(np.shape(data))[:-1].prod()
     else:
-        return numeric.size(data)
+        return np.size(data)
 
 def _compare_frequencies(*series):
     """Compares the frequencies of a sequence of series.
@@ -217,7 +223,7 @@ def _compare_frequencies(*series):
 Returns the common frequency, or raises an exception if series have different
 frequencies.
 """
-    unique_freqs = numpy.unique([x.freqstr for x in series])
+    unique_freqs = np.unique([x.freqstr for x in series])
     try:
         common_freq = unique_freqs.item()
     except ValueError:
@@ -253,7 +259,7 @@ unchanged.
 
         func = getattr(super(TimeSeries, instance), self._name)
         if compat:
-            result = numpy.array(func(other, *args), subok=True).view(type(instance))
+            result = np.array(func(other, *args), subok=True).view(type(instance))
             result._dates = instance._dates
         else:
             if hasattr(other, '_series'):
@@ -375,7 +381,7 @@ A time series is here defined as the combination of two arrays:
         if not subok or not isinstance(_data,TimeSeries):
             _data = _data.view(cls)
         if _data is masked:
-            assert(numeric.size(newdates)==1)
+            assert(np.size(newdates)==1)
             return _data.view(cls)
         assert(_datadatescompat(_data,dates))
         _data._dates = dates
@@ -430,7 +436,7 @@ A time series is here defined as the combination of two arrays:
                 return (indx,indx)
             else:
                 d2i = self._dates.date_to_index
-                tmp = numpy.fromiter((d2i(i) for i in indx),int_)
+                tmp = np.fromiter((d2i(i) for i in indx),int_)
                 return (tmp,tmp)
         elif isinstance(indx,slice):
             def _check_indx(indx):
@@ -444,7 +450,7 @@ A time series is here defined as the combination of two arrays:
                 if indx.freq != self._dates.freq:
                     raise FrequencyDateError(
                         "Cannot perform slice", indx.freq, self._dates.freq)
-                return numpy.sum(self._dates < indx)
+                return np.sum(self._dates < indx)
 
             slice_start = _check_indx(indx.start)
             slice_stop = _check_indx(indx.stop)
@@ -470,9 +476,9 @@ A time series is here defined as the combination of two arrays:
 Returns the item described by i. Not a copy.
 """
         (sindx, dindx) = self.__checkindex(indx)
-        newdata = numeric.array(self._series[sindx], copy=False, subok=True)
+        newdata = np.array(self._series[sindx], copy=False, subok=True)
         newdate = self._dates[dindx]
-        singlepoint = (len(numeric.shape(newdate))==0)
+        singlepoint = (len(np.shape(newdate))==0)
         if singlepoint:
             newdate = DateArray(newdate)
             if newdata is masked:
@@ -515,7 +521,7 @@ timeseries(%(data)s,
            dates = %(time)s,
            freq  = %(freq)s)
 """
-        if numeric.size(self._dates) > 2 and self.isvalid():
+        if np.size(self._dates) > 2 and self.isvalid():
             timestr = "[%s ... %s]" % (str(self._dates[0]),str(self._dates[-1]))
         else:
             timestr = str(self.dates)
@@ -740,7 +746,7 @@ original series (unlike the `convert` method).
         else:
             n = self.shape[1]
             arr = hsplit(self, n)[0]
-            return [self.__class__(numpy.squeeze(a),
+            return [self.__class__(np.squeeze(a),
                                    self._dates,
                                    **_attrib_dict(self)) for a in arr]
 
@@ -778,7 +784,7 @@ a list of standard python objects (eg. datetime, int, etc...)."""
                  getmaskarray(self).tostring(),
                  self._fill_value,
                  self._dates.shape,
-                 numeric.asarray(self._dates).tostring(),
+                 np.asarray(self._dates).tostring(),
                  self.freq,
                  )
         return state
@@ -843,15 +849,15 @@ def _extrema(self, method, axis=None,fill_value=None):
     # nD series .......................
     else:
         if axis is None:
-            idces = numpy.unravel_index(idx, _series.shape)
+            idces = np.unravel_index(idx, _series.shape)
             result = time_series(_series[idces], dates=_dates[idces[0]])
         else:
             _shape = _series.shape
-            _dates = numpy.repeat(_dates,numpy.prod(_shape[1:])).reshape(_shape)
-            _s = numpy.rollaxis(_series,axis,0)[idx]
-            _d = numpy.rollaxis(_dates,axis,0)[idx]
-            _s = numpy.choose(idx, numpy.rollaxis(_series,axis,0))
-            _d = numpy.choose(idx, numpy.rollaxis(_dates,axis,0))
+            _dates = np.repeat(_dates,np.prod(_shape[1:])).reshape(_shape)
+            _s = np.rollaxis(_series,axis,0)[idx]
+            _d = np.rollaxis(_dates,axis,0)[idx]
+            _s = np.choose(idx, np.rollaxis(_series,axis,0))
+            _d = np.choose(idx, np.rollaxis(_dates,axis,0))
             result = time_series(_s, dates=_d)
         return result
 
@@ -934,11 +940,11 @@ class _frommethod(object):
             if hasattr(method, '__call__'):
                 return method.__call__(*args, **params)
             return method
-        method = getattr(numpy.asarray(caller), self._methodname)
+        method = getattr(np.asarray(caller), self._methodname)
         try:
             return method(*args, **params)
         except SystemError:
-            return getattr(numpy,self._methodname).__call__(caller, *args, **params)
+            return getattr(np,self._methodname).__call__(caller, *args, **params)
 #............................
 weekday = _frommethod('weekday')
 day_of_year = _frommethod('day_of_year')
@@ -995,13 +1001,13 @@ def tofile(self, fileobject, format=None,
                    suppress_small=suppress_small,keep_open=keep_open)
     if _dates.size == _data.size:
         # 1D version
-        tmpfiller = ma.empty((_dates.size,2), dtype=numpy.object_)
+        tmpfiller = ma.empty((_dates.size,2), dtype=np.object_)
         _data = _data.reshape(-1)
         tmpfiller[:,1:] = ma.atleast_2d(_data).T
     else:
         sshape = list(_data.shape)
         sshape[-1] += 1
-        tmpfiller = ma.empty(sshape, dtype=numpy.object_)
+        tmpfiller = ma.empty(sshape, dtype=np.object_)
         tmpfiller[:,1:] = _data
     #
     if format is None:
@@ -1020,7 +1026,7 @@ Fields are `_dates`, `_data` and _`mask`.
         """
     desctype = [('_dates',int_), ('_series',series.dtype), ('_mask', bool_)]
     flat = series.ravel()
-    _dates = numeric.asarray(flat._dates)
+    _dates = np.asarray(flat._dates)
     if flat.size > 0:
         return recfromarrays([_dates, flat._data, getmaskarray(flat)],
                              dtype=desctype,
@@ -1043,7 +1049,7 @@ def flatten(series):
     if series._dates.size == series._series.size:
         newshape = (series._series.size,)
     else:
-        newshape = (numeric.asarray(shp_ini[:-1]).prod(), shp_ini[-1])
+        newshape = (np.asarray(shp_ini[:-1]).prod(), shp_ini[-1])
     newseries = series._series.reshape(newshape)
     return time_series(newseries, newdates)
 TimeSeries.flatten = flatten
@@ -1208,8 +1214,8 @@ def adjust_endpoints(a, start_date=None, end_date=None):
     newshape[0] = len(newdates)
     newshape = tuple(newshape)
 
-    newseries = numeric.empty(newshape, dtype=a.dtype).view(type(a))
-    newseries.__setmask__(numeric.ones(newseries.shape, dtype=bool_))
+    newseries = np.empty(newshape, dtype=a.dtype).view(type(a))
+    newseries.__setmask__(np.ones(newseries.shape, dtype=bool_))
     newseries._update_from(a)
     newseries._dates = newdates
     if dstart is not None:
@@ -1230,10 +1236,10 @@ def align_series(*series, **kwargs):
     """
     if len(series) < 2:
         return series
-    unique_freqs = numpy.unique([x.freqstr for x in series])
+    unique_freqs = np.unique([x.freqstr for x in series])
     common_freq = _compare_frequencies(*series)
     valid_states = [x.isvalid() for x in series]
-    if not numpy.all(valid_states):
+    if not np.all(valid_states):
         raise TimeSeriesError, \
             "Cannot adjust a series with missing or duplicated dates."
 
@@ -1375,7 +1381,7 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
             shp = obj.shape
             ncols = base.shape[-1]
             obj.shape = (shp[0], shp[-1]//ncols, ncols)
-            obj = numpy.swapaxes(obj,1,2)
+            obj = np.swapaxes(obj,1,2)
 
     return obj
 TimeSeries.convert = convert
@@ -1407,7 +1413,7 @@ timeseries(data  = [-- 0 1 2],
            freq  = A-DEC)
 >>> pct_change = 100 * (series/series.tshift(-1, copy=False) - 1)
 """
-    newdata = masked_array(numeric.empty(series.shape, dtype=series.dtype),
+    newdata = masked_array(np.empty(series.shape, dtype=series.dtype),
                            mask=True)
     if copy:
         inidata = series._series.copy()
@@ -1448,7 +1454,7 @@ timeseries(data  = [-- -- 0.0 200.0],
            dates = [2005 ... 2008],
            freq  = A-DEC)
 """
-    newdata = masked_array(numeric.empty(series.shape, dtype=series.dtype),
+    newdata = masked_array(np.empty(series.shape, dtype=series.dtype),
                            mask=True)
     if nper < newdata.size:
         newdata[nper:] = 100*(series._series[nper:]/series._series[:-nper] - 1)
@@ -1506,7 +1512,7 @@ corresponding to the initially missing dates are masked, or filled to
         else:
             datat = TimeSeries
     else:
-        datad = numpy.asarray(data)
+        datad = np.asarray(data)
         datam = nomask
         datat = TimeSeries
     # Check whether we need to flatten the data
@@ -1520,26 +1526,26 @@ corresponding to the initially missing dates are masked, or filled to
     # Get the steps between consecutive data.
     delta = dflat.get_steps()-1
     gap = delta.nonzero()
-    slcid = numpy.r_[[0,], numpy.arange(1,osize)[gap], [osize,]]
-    oldslc = numpy.array([slice(i,e)
-                          for (i,e) in numpy.broadcast(slcid[:-1],slcid[1:])])
+    slcid = np.r_[[0,], np.arange(1,osize)[gap], [osize,]]
+    oldslc = np.array([slice(i,e) 
+                       for (i,e) in np.broadcast(slcid[:-1],slcid[1:])])
     addidx = delta[gap].astype(int_).cumsum()
-    newslc = numpy.r_[[oldslc[0]],
-                      [slice(i+d,e+d) for (i,e,d) in \
-                           numpy.broadcast(slcid[1:-1],slcid[2:],addidx)]
+    newslc = np.r_[[oldslc[0]],
+                   [slice(i+d,e+d) for (i,e,d) in \
+                           np.broadcast(slcid[1:-1],slcid[2:],addidx)]
                      ]
     #.............................
     # Just a quick check
-    vdflat = numeric.asarray(dflat)
-    vnewdates = numeric.asarray(newdates)
+    vdflat = np.asarray(dflat)
+    vnewdates = np.asarray(newdates)
     for (osl,nsl) in zip(oldslc,newslc):
-        assert numpy.equal(vdflat[osl],vnewdates[nsl]).all(),\
+        assert np.equal(vdflat[osl],vnewdates[nsl]).all(),\
             "Slicing mishap ! Please check %s (old) and %s (new)" % (osl,nsl)
     #.............................
     newshape = list(datad.shape)
     newshape[0] = nsize
-    newdatad = numeric.empty(newshape, data.dtype)
-    newdatam = numeric.ones(newshape, bool_)
+    newdatad = np.empty(newshape, data.dtype)
+    newdatam = np.ones(newshape, bool_)
     #....
     if datam is nomask:
         for (new,old) in zip(newslc,oldslc):
@@ -1598,10 +1604,10 @@ masked_array(data = [ 1  2  3 30],
     # Get the common frequency, raise an error if incompatibility
     common_f = _compare_frequencies(*series)
     # Concatenate the order of series
-    sidx = numpy.concatenate([numpy.repeat(i,len(s))
-                              for (i,s) in enumerate(series)], axis=axis)
+    sidx = np.concatenate([np.repeat(i,len(s))
+                          for (i,s) in enumerate(series)], axis=axis)
     # Concatenate the dates and data
-    ndates = numpy.concatenate([s._dates for s in series], axis=axis)
+    ndates = np.concatenate([s._dates for s in series], axis=axis)
     ndata = ma.concatenate([s._series for s in series], axis=axis)
     # Resort the data chronologically
     norder = ndates.argsort(kind='mergesort')
@@ -1614,7 +1620,7 @@ masked_array(data = [ 1  2  3 30],
         result = time_series(ndata, dates=ndates)
     else:
         # Find the original dates
-        orig = numpy.concatenate([[True],(numpy.diff(ndates) != 0)])
+        orig = np.concatenate([[True],(np.diff(ndates) != 0)])
         result = time_series(ndata.compress(orig),
                              dates=ndates.compress(orig),freq=common_f)
     if fill_missing:
@@ -1623,7 +1629,7 @@ masked_array(data = [ 1  2  3 30],
 #...............................................................................
 def empty_like(series):
     """Returns an empty series with the same dtype, mask and dates as series."""
-    result = numpy.empty_like(series).view(type(series))
+    result = np.empty_like(series).view(type(series))
     result._dates = series._dates
     result._mask = series._mask
     return result

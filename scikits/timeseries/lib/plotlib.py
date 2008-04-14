@@ -29,9 +29,9 @@ from matplotlib.ticker import Formatter, ScalarFormatter, FuncFormatter, \
                               Locator, FixedLocator
 from matplotlib.transforms import nonsingular
 
-import numpy
+import numpy as np
 from numpy import int_, bool_
-from numpy import ma as MA
+import numpy.ma as ma
 
 from scikits import timeseries
 from scikits.timeseries import \
@@ -163,9 +163,9 @@ def _daily_finder(vmin, vmax, freq, asformatter):
     dates_ = date_array(start_date=Date(freq,vmin),
                         end_date=Date(freq, vmax))
     # Initialize the output
-    info = numpy.zeros(span,
-                       dtype=[('val',int_),('maj',bool_),('min',bool_),('fmt','|S10')])
-    info['val'] = numpy.arange(vmin, vmax+1)
+    info = np.zeros(span,
+                    dtype=[('val',int_),('maj',bool_),('min',bool_),('fmt','|S10')])
+    info['val'] = np.arange(vmin, vmax+1)
     info['fmt'] = ''
     info['maj'][[0,-1]] = True
 
@@ -278,9 +278,9 @@ def _monthly_finder(vmin, vmax, freq, asformatter):
     span = vmax - vmin + 1
     #............................................
     # Initialize the output
-    info = numpy.zeros(span,
-                       dtype=[('val',int_),('maj',bool_),('min',bool_),('fmt','|S8')])
-    info['val'] = numpy.arange(vmin, vmax+1)
+    info = np.zeros(span,
+                    dtype=[('val',int_),('maj',bool_),('min',bool_),('fmt','|S8')])
+    info['val'] = np.arange(vmin, vmax+1)
     dates_ = info['val']
     info['fmt'] = ''
     year_start = (dates_ % 12 == 1).nonzero()[0]
@@ -342,9 +342,9 @@ def _quarterly_finder(vmin, vmax, freq, asformatter):
     (vmin, vmax) = (int(vmin), int(vmax))
     span = vmax - vmin + 1
     #............................................
-    info = numpy.zeros(span,
-                       dtype=[('val',int_),('maj',bool_),('min',bool_),('fmt','|S8')])
-    info['val'] = numpy.arange(vmin, vmax+1)
+    info = np.zeros(span,
+                    dtype=[('val',int_),('maj',bool_),('min',bool_),('fmt','|S8')])
+    info['val'] = np.arange(vmin, vmax+1)
     info['fmt'] = ''
     dates_ = info['val']
     year_start = (dates_ % 4 == 1).nonzero()[0]
@@ -386,9 +386,9 @@ def _annual_finder(vmin, vmax, freq, asformatter):
     (vmin, vmax) = (int(vmin), int(vmax+1))
     span = vmax - vmin + 1
     #............................................
-    info = numpy.zeros(span,
-                       dtype=[('val',int_),('maj',bool_),('min',bool_),('fmt','|S8')])
-    info['val'] = numpy.arange(vmin, vmax+1)
+    info = np.zeros(span,
+                    dtype=[('val',int_),('maj',bool_),('min',bool_),('fmt','|S8')])
+    info['val'] = np.arange(vmin, vmax+1)
     info['fmt'] = ''
     dates_ = info['val']
     #............................................
@@ -438,8 +438,8 @@ class TimeSeries_DateLocator(Locator):
         "Returns the default locations of ticks."
         locator = self.finder(vmin, vmax, self.freq, False)
         if self.isminor:
-            return numpy.compress(locator['min'], locator['val'])
-        return numpy.compress(locator['maj'], locator['val'])
+            return np.compress(locator['min'], locator['val'])
+        return np.compress(locator['maj'], locator['val'])
 
     def __call__(self):
         'Return the locations of the ticks.'
@@ -508,10 +508,10 @@ class TimeSeries_DateFormatter(Formatter):
         "Returns the default ticks spacing."
         info = self.finder(vmin, vmax, self.freq, True)
         if self.isminor:
-            format = numpy.compress(info['min'] & numpy.logical_not(info['maj']), 
-                                    info)
+            format = np.compress(info['min'] & numpy.logical_not(info['maj']), 
+                                 info)
         else:
-            format = numpy.compress(info['maj'], info)
+            format = np.compress(info['maj'], info)
         self.formatdict = dict([(x,f) for (x,_,_,f) in format])
         return self.formatdict
 
@@ -717,7 +717,7 @@ This command accepts the same keywords as matplotlib.plot."""
             elif isinstance(date, str):
                 return timeseries.Date(freq, string=date).value
             elif isinstance(date, (int,float)) or \
-                (isinstance(date, numpy.ndarray) and (date.size == 1)):
+                (isinstance(date, np.ndarray) and (date.size == 1)):
                 return date
             raise ValueError("Unrecognizable date '%s'" % date)
         # Fix left limit ..............

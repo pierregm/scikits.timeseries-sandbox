@@ -12,17 +12,15 @@ __date__     = '$Date: 2008-01-15 08:09:03 -0500 (Tue, 15 Jan 2008) $'
 
 import types
 
-import numpy
-import numpy.core.fromnumeric  as fromnumeric
-from scipy.testing import *
-
-from numpy.ma.testutils import assert_equal, assert_array_equal, assert_equal_records
-
-import numpy.ma as MA
-import numpy.ma.mrecords as MR
+import numpy as np
+import numpy.core.records as nr
+import numpy.ma as ma
+from numpy.ma import nomask
+import numpy.ma.mrecords as mr
 from numpy.ma.mrecords import addfield
 
-from numpy.ma import getmaskarray, nomask, masked_array
+from scipy.testing import *
+from numpy.ma.testutils import assert_equal, assert_array_equal, assert_equal_records
 
 from scikits.timeseries.trecords import \
     TimeSeriesRecords, TimeSeries,\
@@ -39,12 +37,12 @@ class TestMRecords(TestCase):
 
     def setup(self):
         "Generic setup"
-        d = numpy.arange(5)
-        m = MA.make_mask([1,0,0,1,1])
-        base_d = numpy.r_[d,d[::-1]].reshape(2,-1).T
-        base_m = numpy.r_[[m, m[::-1]]].T
-        base = MA.array(base_d, mask=base_m)
-        mrec = MR.fromarrays(base.T,)
+        d = np.arange(5)
+        m = ma.make_mask([1,0,0,1,1])
+        base_d = np.r_[d,d[::-1]].reshape(2,-1).T
+        base_m = np.r_[[m, m[::-1]]].T
+        base = ma.array(base_d, mask=base_m)
+        mrec = mr.fromarrays(base.T,)
         dlist = ['2007-%02i' % (i+1) for i in d]
         dates = date_array(dlist)
         ts = time_series(mrec,dates)
@@ -74,8 +72,8 @@ class TestMRecords(TestCase):
         assert(isinstance(mts.f0, TimeSeries))
         assert_equal(mts.f0, time_series(d, dates=dates, mask=m))
         assert_equal(mts.f1, time_series(d[::-1], dates=dates, mask=m[::-1]))
-        assert((mts._fieldmask == numpy.core.records.fromarrays([m, m[::-1]])).all())
-        assert_equal(mts._mask, numpy.r_[[m,m[::-1]]].all(0))
+        assert((mts._fieldmask == nr.fromarrays([m, m[::-1]])).all())
+        assert_equal(mts._mask, np.r_[[m,m[::-1]]].all(0))
         assert_equal(mts.f0[1], mts[1].f0)
         #
         assert(isinstance(mts[:2], TimeSeriesRecords))
@@ -90,15 +88,15 @@ class TestMRecords(TestCase):
         assert_equal(mts['f0']._data, [5,5,5,5,5])
         mts.f0 = 1
         assert_equal(mts['f0']._data, [1]*5)
-        assert_equal(getmaskarray(mts['f0']), [0]*5)
-        mts.f1 = MA.masked
+        assert_equal(ma.getmaskarray(mts['f0']), [0]*5)
+        mts.f1 = ma.masked
         assert_equal(mts.f1.mask, [1]*5)
-        assert_equal(getmaskarray(mts['f1']), [1]*5)
-        mts._mask = MA.masked
-        assert_equal(getmaskarray(mts['f1']), [1]*5)
+        assert_equal(ma.getmaskarray(mts['f1']), [1]*5)
+        mts._mask = ma.masked
+        assert_equal(ma.getmaskarray(mts['f1']), [1]*5)
         assert_equal(mts['f0']._mask, mts['f1']._mask)
-        mts._mask = MA.nomask
-        assert_equal(getmaskarray(mts['f1']), [0]*5)
+        mts._mask = ma.nomask
+        assert_equal(ma.getmaskarray(mts['f1']), [0]*5)
         assert_equal(mts['f0']._mask, mts['f1']._mask)
 
     def test_setslices(self):
@@ -123,7 +121,7 @@ class TestMRecords(TestCase):
         mts.harden_mask()
         assert(mts._hardmask)
         mts._mask = nomask
-        assert_equal(mts._mask, numpy.r_[[m,m[::-1]]].all(0))
+        assert_equal(mts._mask, np.r_[[m,m[::-1]]].all(0))
         mts.soften_mask()
         assert(not mts._hardmask)
         mts._mask = nomask
@@ -133,14 +131,14 @@ class TestMRecords(TestCase):
     def test_addfield(self):
         "Tests addfield"
         [d, m, mrec, dlist, dates, ts, mts] = self.data
-        mts = addfield(mts, masked_array(d+10, mask=m[::-1]))
+        mts = addfield(mts, ma.array(d+10, mask=m[::-1]))
         assert_equal(mts.f2, d+10)
         assert_equal(mts.f2._mask, m[::-1])
 
     def test_fromrecords(self):
         "Test from recarray."
         [d, m, mrec, dlist, dates, ts, mts] = self.data
-        nrec = numpy.core.records.fromarrays(numpy.r_[[d,d[::-1]]])
+        nrec = nr.fromarrays(np.r_[[d,d[::-1]]])
         mrecfr = fromrecords(nrec.tolist(), dates=dates)
         assert_equal(mrecfr.f0, mrec.f0)
         assert_equal(mrecfr.dtype, mrec.dtype)

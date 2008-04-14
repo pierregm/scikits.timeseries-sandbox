@@ -17,15 +17,12 @@ import warnings
 import types
 
 
-import numpy
-from numpy import bool_, float_, int_, object_
-from numpy import ndarray
-import numpy.core.numeric as numeric
-import numpy.core.fromnumeric as fromnumeric
+import numpy as np
+from numpy import bool_, float_, int_, object_, ndarray
 import numpy.core.numerictypes as ntypes
 from numpy.core.numerictypes import generic
 
-import numpy.ma as MA
+import numpy.ma as ma
 
 from parser import DateFromString, DateTimeFromString
 
@@ -181,7 +178,7 @@ accesses the array element by element. Therefore, `d` is a Date object.
         else:
             _freq = check_freq(freq)
         # Get the dates ..........
-        _dates = numeric.array(dates, copy=copy, dtype=int_, subok=1)
+        _dates = np.array(dates, copy=copy, dtype=int_, subok=1)
         if _dates.ndim == 0:
             _dates.shape = (1,)
         _dates = _dates.view(cls)
@@ -210,7 +207,7 @@ accesses the array element by element. Therefore, `d` is a Date object.
         if isinstance(indx, Date):
             indx = self.find_dates(indx)
             reset_full = False
-        elif numeric.asarray(indx).dtype.kind == 'O':
+        elif np.asarray(indx).dtype.kind == 'O':
             try:
                 indx = self.find_dates(indx)
             except AttributeError:
@@ -332,16 +329,16 @@ For non-quarterly dates, this simply returns the year of the date."""
     weeks = week
 
     def __getdateinfo__(self, info):
-        return numeric.asarray(cseries.DA_getDateInfo(numeric.asarray(self),
-                                                      self.freq, info,
-                                                      int(self.isfull())),
+        return np.asarray(cseries.DA_getDateInfo(np.asarray(self),
+                                                 self.freq, info,
+                                                 int(self.isfull())),
                                dtype=int_)
     __getDateInfo = __getdateinfo__
     #.... Conversion methods ....................
     #
     def tovalue(self):
         "Converts the dates to integer values."
-        return numeric.asarray(self)
+        return np.asarray(self)
     #
     def toordinal(self):
         "Converts the dates from values to ordinals."
@@ -351,13 +348,13 @@ For non-quarterly dates, this simply returns the year of the date."""
                 diter = (d.value for d in self)
             else:
                 diter = (d.toordinal() for d in self)
-            toord = numeric.fromiter(diter, dtype=float_)
+            toord = np.fromiter(diter, dtype=float_)
             self._cachedinfo['toord'] = toord
         return self._cachedinfo['toord']
     #
     def tolist(self):
         """Returns a hierarchical python list of standard datetime objects."""
-        _result = numpy.empty(self.shape, dtype=numpy.object_)
+        _result = np.empty(self.shape, dtype=np.object_)
         _result.flat = [d.datetime for d in self.ravel()]
 #        for idx, val in numpy.ndenumerate(self):
 #            operator.setitem(_result, idx, Date(freq=self.freq, value=val).datetime)
@@ -370,8 +367,8 @@ For non-quarterly dates, this simply returns the year of the date."""
             firststr = str(self[0])
             if self.size > 0:
                 ncharsize = len(firststr)
-                tostr = numpy.fromiter((str(d) for d in self),
-                                        dtype='|S%i' % ncharsize)
+                tostr = np.fromiter((str(d) for d in self), 
+                                    dtype='|S%i' % ncharsize)
             else:
                 tostr = firststr
             self._cachedinfo['tostr'] = tostr
@@ -410,8 +407,7 @@ For non-quarterly dates, this simply returns the year of the date."""
         fromfreq = self.freq
         if fromfreq == _c.FR_UND:
             fromfreq = _c.FR_DAY
-        new = cseries.DA_asfreq(
-                numeric.asarray(self), fromfreq, tofreq, relation[0])
+        new = cseries.DA_asfreq(np.asarray(self), fromfreq, tofreq, relation[0])
         return DateArray(new, freq=freq)
 
     #......................................................
@@ -437,13 +433,13 @@ For non-quarterly dates, this simply returns the year of the date."""
                 return flatten_sequence(args)
 
         ifreq = self.freq
-        c = numpy.zeros(self.shape, bool_)
+        c = np.zeros(self.shape, bool_)
         for d in flatargs(*dates):
             if d.freq != ifreq:
                 d = d.asfreq(ifreq)
             c += (self == d.value)
         c = c.nonzero()
-        if fromnumeric.size(c) == 0:
+        if np.size(c) == 0:
             raise IndexError, "Date out of bounds!"
         return c
 
@@ -456,7 +452,7 @@ For non-quarterly dates, this simply returns the year of the date."""
             return index
         else:
             index_asarray = (self == date.value).nonzero()
-            if fromnumeric.size(index_asarray) == 0:
+            if np.size(index_asarray) == 0:
                 raise IndexError, "Date out of bounds!"
             return index_asarray[0][0]
     #......................................................
@@ -465,7 +461,7 @@ For non-quarterly dates, this simply returns the year of the date."""
     The timesteps have the same unit as the frequency of the series."""
         if self._cachedinfo['steps'] is None:
             _cached = self._cachedinfo
-            val = numeric.asarray(self).ravel()
+            val = np.asarray(self).ravel()
             if val.size > 1:
                 steps = val[1:] - val[:-1]
                 if _cached['full'] is None:
@@ -475,7 +471,7 @@ For non-quarterly dates, this simply returns the year of the date."""
             else:
                 _cached['full'] = True
                 _cached['hasdups'] = False
-                steps = numeric.array([], dtype=int_)
+                steps = np.array([], dtype=int_)
             self._cachedinfo['steps'] = steps
         return self._cachedinfo['steps']
 
@@ -510,7 +506,7 @@ For non-quarterly dates, this simply returns the year of the date."""
 #####---------------------------------------------------------------------------
 def _listparser(dlist, freq=None):
     "Constructs a DateArray from a list."
-    dlist = numeric.asarray(dlist)
+    dlist = np.asarray(dlist)
     idx = dlist.argsort()
     dlist = dlist[idx]
     if dlist.ndim == 0:
@@ -530,7 +526,7 @@ def _listparser(dlist, freq=None):
         template = dlist[0]
         #...as Date objects
         if isinstance(template, Date):
-            dates = numpy.fromiter((d.value for d in dlist), int_)
+            dates = np.fromiter((d.value for d in dlist), int_)
         #...as mx.DateTime objects
         elif hasattr(template,'absdays'):
             dates = [Date(freq, datetime=m) for m in dlist]
@@ -605,7 +601,7 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
             raise DateError, "Ending date should be a valid Date instance!"
         length = int(end_date - start_date) + 1
 #    dlist = [(start_date+i).value for i in range(length)]
-    dlist = numeric.arange(length, dtype=int_)
+    dlist = np.arange(length, dtype=int_)
     dlist += start_date.value
     if freq == _c.FR_UND:
         freq = start_date.freq
@@ -635,11 +631,11 @@ class _frommethod(object):
             if hasattr(method, '__call__'):
                 return method.__call__(*args, **params)
             return method
-        method = getattr(fromnumeric.asarray(caller), self._methodname)
+        method = getattr(np.asarray(caller), self._methodname)
         try:
             return method(*args, **params)
         except SystemError:
-            return getattr(numpy,self._methodname).__call__(caller, *args, **params)
+            return getattr(np,self._methodname).__call__(caller, *args, **params)
 #............................
 weekday = _frommethod('weekday')
 day_of_year = _frommethod('day_of_year')

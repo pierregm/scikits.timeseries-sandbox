@@ -11,20 +11,19 @@ __version__ = '1.0'
 __revision__ = "$Revision: 3836 $"
 __date__     = '$Date: 2008-01-15 08:09:03 -0500 (Tue, 15 Jan 2008) $'
 
-import numpy
+import numpy as np
 from numpy import bool_, complex_, float_, int_, object_
-import numpy.core.fromnumeric  as fromnumeric
-import numpy.core.numeric as numeric
 from scipy.testing import *
 
-import numpy.ma as MA
-from numpy.ma import masked_array, masked, nomask
+import numpy.ma as ma
+from numpy.ma import masked, nomask
 from numpy.ma.testutils import assert_equal, assert_array_equal
 
 from scikits.timeseries import \
     tseries, Date, date_array, now, time_series, TimeSeries, \
     adjust_endpoints, align_series, align_with, \
     fill_missing_dates, tsmasked, concatenate, stack, split
+    
 
 class TestCreation(TestCase):
     "Base test class for MaskedArrays."
@@ -32,7 +31,7 @@ class TestCreation(TestCase):
         TestCase.__init__(self, *args, **kwds)
         dlist = ['2007-01-%02i' % i for i in range(1,16)]
         dates = date_array(dlist, freq='D')
-        data = masked_array(numeric.arange(15), mask=[1,0,0,0,0]*3)
+        data = ma.array(np.arange(15), mask=[1,0,0,0,0]*3)
         self.d = (dlist, dates, data)
 
     def test_fromlist (self):
@@ -79,7 +78,7 @@ class TestCreation(TestCase):
         assert_equal(series._data, data)
         assert_equal(series.freqstr, 'D')
         #
-        series[5] = MA.masked
+        series[5] = masked
         # ensure that series can be represented by a string after masking a value
         # (there was a bug before that prevented this from working when using a
         # DateArray for the data)
@@ -107,7 +106,7 @@ class TestCreation(TestCase):
         series = time_series(data, dlist, freq='D', mask=[1,0,0])
         assert_equal(series._mask,[0,0,1])
         #
-        data = masked_array([10,20,30],mask=[1,0,0])
+        data = ma.array([10,20,30],mask=[1,0,0])
         series = time_series(data, dlist, freq='D')
         assert_equal(series._mask,[0,0,1])
 #...............................................................................
@@ -118,7 +117,7 @@ class TestArithmetics(TestCase):
         TestCase.__init__(self, *args, **kwds)
         dlist = ['2007-01-%02i' % i for i in range(1,16)]
         dates = date_array(dlist, freq='D')
-        data = masked_array(numeric.arange(15), mask=[1,0,0,0,0]*3)
+        data = ma.array(np.arange(15), mask=[1,0,0,0,0]*3)
         self.d = (time_series(data, dlist, freq='D'), data)
 
     def test_intfloat(self):
@@ -244,7 +243,7 @@ class TestGetitem(TestCase):
         TestCase.__init__(self, *args, **kwds)
         dlist = ['2007-01-%02i' % i for i in range(1,16)]
         dates = date_array(dlist, freq='D')
-        data = masked_array(numeric.arange(15), mask=[1,0,0,0,0]*3, dtype=float_)
+        data = ma.array(np.arange(15), mask=[1,0,0,0,0]*3, dtype=float_)
         self.d = (time_series(data, dates), data, dates)
 
     def test_wdate(self):
@@ -289,7 +288,7 @@ class TestGetitem(TestCase):
         # With set
         series[:5] = 0
         assert_equal(series[:5]._series, [0,0,0,0,0])
-        dseries = numpy.log(series)
+        dseries = np.log(series)
         series[-5:] = dseries[-5:]
         assert_equal(series[-5:], dseries[-5:])
         # Now, using dates !
@@ -299,7 +298,7 @@ class TestGetitem(TestCase):
     def test_on2d(self):
         "Tests getitem on a 2D series"
         (a,b,d) = ([1,2,3],[3,2,1], date_array(now('M'),length=3))
-        ser_x = time_series(numpy.column_stack((a,b)), dates=d)
+        ser_x = time_series(np.column_stack((a,b)), dates=d)
         assert_equal(ser_x[0,0], time_series(a[0],d[0]))
         assert_equal(ser_x[0,:], time_series([(a[0],b[0])], d[0]))
         assert_equal(ser_x[:,0], time_series(a, d))
@@ -309,20 +308,20 @@ class TestGetitem(TestCase):
         "Tests getitem on a nD series"
         hodie = now('D')
         # Case 1D
-        series = time_series(numpy.arange(5), mask=[1,0,0,0,0], start_date=hodie)
+        series = time_series(np.arange(5), mask=[1,0,0,0,0], start_date=hodie)
         assert_equal(series[0], 0)
         # Case 1D + mask
-        series = time_series(numpy.arange(5), mask=[1,0,0,0,0], start_date=hodie)
+        series = time_series(np.arange(5), mask=[1,0,0,0,0], start_date=hodie)
         assert series[0] is tsmasked
         # Case 2D
-        series = time_series(numpy.arange(10).reshape(5,2), start_date=hodie)
+        series = time_series(np.arange(10).reshape(5,2), start_date=hodie)
         assert_equal(len(series), 5)
         assert_equal(series[0], [[0,1]])
         assert_equal(series[0]._dates[0], (hodie))
         assert_equal(series[:,0], [0,2,4,6,8])
         assert_equal(series[:,0]._dates, series._dates)
         # Case 2D + mask
-        series = time_series(numpy.arange(10).reshape(5,2), start_date=hodie,
+        series = time_series(np.arange(10).reshape(5,2), start_date=hodie,
                              mask=[[1,1],[0,0],[0,0],[0,0],[0,0]])
         assert_equal(len(series), 5)
         assert_equal(series[0], [[0,1]])
@@ -332,7 +331,7 @@ class TestGetitem(TestCase):
         assert_equal(series[:,0]._mask, [1,0,0,0,0])
         assert_equal(series[:,0]._dates, series._dates)
         # Case 3D
-        series = time_series(numpy.arange(30).reshape(5,3,2), start_date=hodie)
+        series = time_series(np.arange(30).reshape(5,3,2), start_date=hodie)
         x = series[0]
         assert_equal(len(series), 5)
         assert_equal(series[0], [[[0,1],[2,3],[4,5]]])
@@ -349,7 +348,7 @@ class TestFunctions(TestCase):
         TestCase.__init__(self, *args, **kwds)
         dlist = ['2007-01-%02i' % i for i in range(1,16)]
         dates = date_array(dlist, freq='D')
-        data = masked_array(numeric.arange(15), mask=[1,0,0,0,0]*3)
+        data = ma.array(np.arange(15), mask=[1,0,0,0,0]*3)
         self.d = (time_series(data, dates), data, dates)
     #
     def test_adjustendpoints(self):
@@ -361,7 +360,7 @@ class TestFunctions(TestCase):
         assert_equal(dseries, series[3:-2])
         dseries = adjust_endpoints(series, end_date=Date('D', string='2007-01-31'))
         assert_equal(dseries.size, 31)
-        assert_equal(dseries._mask, numpy.r_[series._mask, [1]*16])
+        assert_equal(dseries._mask, np.r_[series._mask, [1]*16])
         dseries = adjust_endpoints(series, end_date=Date('D', string='2007-01-06'))
         assert_equal(dseries.size, 6)
         assert_equal(dseries, series[:6])
@@ -369,7 +368,7 @@ class TestFunctions(TestCase):
                                    start_date=Date('D', string='2007-01-06'),
                                    end_date=Date('D', string='2007-01-31'))
         assert_equal(dseries.size, 26)
-        assert_equal(dseries._mask, numpy.r_[series._mask[5:], [1]*16])
+        assert_equal(dseries._mask, np.r_[series._mask[5:], [1]*16])
     #
     def test_alignseries(self):
         "Tests align_series & align_with"
@@ -406,7 +405,7 @@ class TestFunctions(TestCase):
     #
     def test_split(self):
         """Test the split function."""
-        ms = time_series(numpy.arange(62).reshape(31,2),
+        ms = time_series(np.arange(62).reshape(31,2),
                          start_date=Date(freq='d', year=2005, month=7, day=1))
         d1,d2 = split(ms)
         assert_array_equal(d1.data, ms.data[:,0])
@@ -424,11 +423,11 @@ Just check basic functionality. The details of the actual
 date conversion algorithms already tested by asfreq in the
 test_dates test suite.
         """
-        lowFreqSeries = time_series(numpy.arange(10),
+        lowFreqSeries = time_series(np.arange(10),
                                     start_date=Date(freq='m', year=2005, month=6))
-        highFreqSeries = time_series(numpy.arange(100),
+        highFreqSeries = time_series(np.arange(100),
                                     start_date=Date(freq='b', year=2005, month=6, day=1))
-        ndseries = time_series(numpy.arange(124).reshape(62,2),
+        ndseries = time_series(np.arange(124).reshape(62,2),
                              start_date=Date(freq='d', year=2005, month=7, day=1))
 
         lowToHigh_start = lowFreqSeries.convert('B', position='START')
@@ -480,7 +479,7 @@ test_dates test suite.
         assert(not filled_ser.has_duplicated_dates())
         assert_equal(filled_ser.size, _end - _start + 1)
         #
-        data = numpy.arange(5*24).reshape(5,24)
+        data = np.arange(5*24).reshape(5,24)
         datelist = ['2007-07-01','2007-07-02','2007-07-03','2007-07-05','2007-07-06']
         dates = date_array(datelist, freq='D')
         dseries = time_series(data, dates)
@@ -508,14 +507,14 @@ test_dates test suite.
         assert_equal(series_pickled._data, series._data)
         assert_equal(series_pickled._mask, series._mask)
         #
-        data = masked_array(numpy.matrix(range(10)).T, mask=[1,0,0,0,0]*2)
+        data = ma.array(np.matrix(range(10)).T, mask=[1,0,0,0,0]*2)
         dates = date_array(start_date=now('D'), length=10)
         series = time_series(data,dates=dates)
         series_pickled = cPickle.loads(series.dumps())
         assert_equal(series_pickled._dates, series._dates)
         assert_equal(series_pickled._data, series._data)
         assert_equal(series_pickled._mask, series._mask)
-        assert(isinstance(series_pickled._data, numpy.matrix))
+        assert(isinstance(series_pickled._data, np.matrix))
 
 
     def test_empty_timeseries(self):
@@ -529,28 +528,28 @@ test_dates test suite.
     def test__timeseriescompat_multiple(self):
         "Tests the compatibility of multiple time series."
         seriesM_10 = time_series(
-                        numpy.arange(10),
+                        np.arange(10),
                         date_array(
                             start_date=Date(freq='m', year=2005, month=1),
                             length=10)
                                 )
 
         seriesD_10 = time_series(
-                        numpy.arange(10),
+                        np.arange(10),
                         date_array(
                             start_date=Date(freq='d', year=2005, month=1, day=1),
                             length=10)
                                 )
 
         seriesD_5 = time_series(
-                        numpy.arange(5),
+                        np.arange(5),
                         date_array(
                             start_date=Date(freq='d', year=2005, month=1, day=1),
                             length=5)
                                 )
 
         seriesD_5_apr = time_series(
-                            numpy.arange(5),
+                            np.arange(5),
                             date_array(
                                 start_date=Date(freq='d', year=2005, month=4, day=1),
                                 length=5)
@@ -583,20 +582,20 @@ test_dates test suite.
         "Tests compress"
         dlist = ['2007-01-%02i' % i for i in range(1,16)]
         dates = date_array(dlist, freq='D')
-        data = masked_array(numeric.arange(15), mask=[1,0,0,0,0]*3, dtype=float_)
+        data = ma.array(np.arange(15), mask=[1,0,0,0,0]*3, dtype=float_)
         series = time_series(data, dlist, freq='D')
         #
-        keeper = numpy.array([0,1,1,1,1]*3, dtype=bool_)
+        keeper = np.array([0,1,1,1,1]*3, dtype=bool_)
         c_series = series.compressed()
         assert_equal(c_series._data, [1,2,3,4,6,7,8,9,11,12,13,14])
         assert_equal(c_series._mask, nomask)
         assert_equal(c_series._dates, dates[keeper])
         #
-        series_st = time_series(MA.column_stack((data,data[::-1])),
+        series_st = time_series(ma.column_stack((data,data[::-1])),
                                 dates=dates)
         c_series = series_st.compressed()
         d = [1,2,3,6,7,8,11,12,13]
-        assert_equal(c_series._data, numpy.c_[(d,list(reversed(d)))])
+        assert_equal(c_series._data, np.c_[(d,list(reversed(d)))])
         assert_equal(c_series._mask, nomask)
         assert_equal(c_series._dates, dates[d])
 
@@ -604,7 +603,7 @@ test_dates test suite.
         "Tests concatenate"
         dlist = ['2007-%02i' % i for i in range(1,6)]
         _dates = date_array(dlist, freq='M')
-        data = masked_array(numpy.arange(5), mask=[1,0,0,0,0], dtype=float_)
+        data = ma.array(np.arange(5), mask=[1,0,0,0,0], dtype=float_)
         #
         ser_1 = time_series(data, _dates)
         ser_2 = time_series(data, dates=_dates+10)
@@ -630,7 +629,7 @@ test_dates test suite.
     #
     def test_maxmin(self):
         "Test min/max"
-        series = time_series(numpy.arange(10), start_date=now('D'))
+        series = time_series(np.arange(10), start_date=now('D'))
         smax = series.max()
         assert(isinstance(smax, TimeSeries))
         assert_equal(smax, 9)
