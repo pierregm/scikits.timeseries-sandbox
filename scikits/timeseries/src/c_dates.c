@@ -1045,7 +1045,7 @@ static double getAbsTime(int freq, long dailyDate, long originalDate) {
 typedef struct {
     PyObject_HEAD
     int freq; /* frequency of date */
-    int value; /* integer representation of date */
+    long value; /* integer representation of date */
     PyObject* cached_vals;
 } DateObject;
 
@@ -2008,6 +2008,13 @@ DateObject___float__(DateObject *self)
     return PyFloat_FromDouble((double)(self->value));
 }
 
+static PyObject *
+DateObject___long__(DateObject *self)
+{
+    return PyLong_FromLong(self->value);
+}
+
+
 /***************************************************
            ====== Date Properties ======
 ****************************************************/
@@ -2244,7 +2251,7 @@ static PyNumberMethods DateObject_as_number = {
     0,                                   /* nb_or */
     0,                                   /* nb_coerce */
     (unaryfunc)DateObject___int__,       /* nb_int */
-    (unaryfunc)0,                        /* nb_long */
+    (unaryfunc)DateObject___long__,      /* nb_long */
     (unaryfunc)DateObject___float__,     /* nb_float */
     (unaryfunc)0,                        /* nb_oct */
     (unaryfunc)0,                        /* nb_hex */
