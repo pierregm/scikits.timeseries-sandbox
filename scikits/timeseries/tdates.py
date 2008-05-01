@@ -497,6 +497,19 @@ For non-quarterly dates, this simply returns the year of the date."""
         "Returns whether the DateArray is valid: no missing/duplicated dates."
         return  (self.isfull() and not self.has_duplicated_dates())
     #......................................................
+    @property
+    def start_date(self):
+        "Returns the first date of the array."
+        if self.size:
+            return self[0]
+        return None
+    
+    @property
+    def end_date(self):
+        "Returns the last date of the array."
+        if self.size:
+            return self[-1]
+        return None
 
 #............................
 

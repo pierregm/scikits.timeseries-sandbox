@@ -137,13 +137,13 @@ def _timeseriescompat(a, b, raise_error=True):
         else:
             return False
     else:
-        step_diff = a._dates.get_steps() != b._dates.get_steps()
+        asteps = getattr(a,'_dates',a).get_steps()
+        bsteps = getattr(b,'_dates',b).get_steps()
+        step_diff = (asteps != bsteps)
         if (step_diff is True) or \
            (hasattr(step_diff, "any") and step_diff.any()):
             if raise_error:
-                raise TimeSeriesCompatibilityError('time_steps',
-                                                   a._dates.get_steps(),
-                                                   b._dates.get_steps())
+                raise TimeSeriesCompatibilityError('time_steps', asteps, bsteps)
             else:
                 return False
         elif a.shape != b.shape:
@@ -243,6 +243,7 @@ unchanged.
 """
     def __init__ (self, methodname):
         self._name = methodname
+        self.obj = None
 
     def __get__(self, obj, objtype=None):
         "Gets the calling object."
@@ -289,6 +290,7 @@ If `ondates` is False, the `_dates` part remains unchanged.
         """
         self._name = methodname
         self._ondates = ondates
+        self.obj = None
 
     def __get__(self, obj, objtype=None):
         self.obj = obj
@@ -317,6 +319,7 @@ series.
            abinop(x, filly) = x for all x to enable reduce.
         """
         self._name = methodname
+        self.obj = None
 
     def __get__(self, obj, objtype=None):
         self.obj = obj
@@ -381,7 +384,7 @@ A time series is here defined as the combination of two arrays:
         if not subok or not isinstance(_data,TimeSeries):
             _data = _data.view(cls)
         if _data is masked:
-            assert(np.size(newdates)==1)
+            assert(np.size(dates)==1)
             return _data.view(cls)
         assert(_datadatescompat(_data,dates))
         _data._dates = dates
@@ -404,12 +407,14 @@ A time series is here defined as the combination of two arrays:
         return
     #.........................................................................
     def _update_from(self, obj):
+        _dates = getattr(self,'_dates',DateArray([]))
         super(TimeSeries, self)._update_from(obj)
         newdates = getattr(obj, '_dates', DateArray([]))
-        if self._dates.size == 0:
-            self._dates = newdates
+        if _dates.size == 0:
+            _dates = newdates
         elif newdates.size > 0:
-            _timeseriescompat(self,obj)
+            _timeseriescompat(_dates,newdates)
+        self._dates = _dates
         return
     #.........................................................................
     def _get_series(self):
@@ -490,6 +495,7 @@ Returns the item described by i. Not a copy.
                 newshape = (list((1,)) + list(newdata.shape))
                 newdata.shape = newshape
         newdata = newdata.view(type(self))
+        newdata._update_from(self)
         newdata._dates = newdate
         return newdata
     #........................
@@ -905,6 +911,7 @@ class _tsblockedmethods(object):
            abinop(x, filly) = x for all x to enable reduce.
         """
         self._name = methodname
+        self.obj = None
     #
     def __get__(self, obj, objtype=None):
         self.obj = obj
@@ -1633,3 +1640,5 @@ def empty_like(series):
     result._dates = series._dates
     result._mask = series._mask
     return result
+
+################################################################################

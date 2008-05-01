@@ -340,7 +340,7 @@ class TestGetitem(TestCase):
         assert_equal(series[:,0]._dates, series._dates)
         x = series[:,:,0]
         assert_equal(series[:,:,0], series._data[:,:,0])
-        assert_equal(series[:,:,0]._dates, series._dates)
+        assert_equal(series[:,:,0]._dates, series._dates)       
 
 class TestFunctions(TestCase):
     "Some getitem tests"
