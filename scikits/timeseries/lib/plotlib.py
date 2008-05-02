@@ -30,7 +30,6 @@ from matplotlib.ticker import Formatter, ScalarFormatter, FuncFormatter, \
 from matplotlib.transforms import nonsingular
 
 import numpy as np
-from numpy import int_, bool_
 import numpy.ma as ma
 
 from scikits import timeseries
@@ -164,7 +163,7 @@ def _daily_finder(vmin, vmax, freq, asformatter):
                         end_date=Date(freq, vmax))
     # Initialize the output
     info = np.zeros(span,
-                    dtype=[('val',int_),('maj',bool_),('min',bool_),('fmt','|S10')])
+                    dtype=[('val',int),('maj',bool),('min',bool),('fmt','|S10')])
     info['val'] = np.arange(vmin, vmax+1)
     info['fmt'] = ''
     info['maj'][[0,-1]] = True
@@ -279,7 +278,7 @@ def _monthly_finder(vmin, vmax, freq, asformatter):
     #............................................
     # Initialize the output
     info = np.zeros(span,
-                    dtype=[('val',int_),('maj',bool_),('min',bool_),('fmt','|S8')])
+                    dtype=[('val',int),('maj',bool),('min',bool),('fmt','|S8')])
     info['val'] = np.arange(vmin, vmax+1)
     dates_ = info['val']
     info['fmt'] = ''
@@ -343,7 +342,7 @@ def _quarterly_finder(vmin, vmax, freq, asformatter):
     span = vmax - vmin + 1
     #............................................
     info = np.zeros(span,
-                    dtype=[('val',int_),('maj',bool_),('min',bool_),('fmt','|S8')])
+                    dtype=[('val',int),('maj',bool),('min',bool),('fmt','|S8')])
     info['val'] = np.arange(vmin, vmax+1)
     info['fmt'] = ''
     dates_ = info['val']
@@ -387,7 +386,7 @@ def _annual_finder(vmin, vmax, freq, asformatter):
     span = vmax - vmin + 1
     #............................................
     info = np.zeros(span,
-                    dtype=[('val',int_),('maj',bool_),('min',bool_),('fmt','|S8')])
+                    dtype=[('val',int),('maj',bool),('min',bool),('fmt','|S8')])
     info['val'] = np.arange(vmin, vmax+1)
     info['fmt'] = ''
     dates_ = info['val']
@@ -508,7 +507,7 @@ class TimeSeries_DateFormatter(Formatter):
         "Returns the default ticks spacing."
         info = self.finder(vmin, vmax, self.freq, True)
         if self.isminor:
-            format = np.compress(info['min'] & numpy.logical_not(info['maj']), 
+            format = np.compress(info['min'] & np.logical_not(info['maj']), 
                                  info)
         else:
             format = np.compress(info['maj'], info)
