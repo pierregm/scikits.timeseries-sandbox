@@ -26,9 +26,9 @@ set_callback_DateTimeFromString(PyObject *dummy, PyObject *args) {
 
 //DERIVED FROM mx.DateTime
 /*
-	Functions in the following section are borrowed from mx.DateTime version
-	2.0.6, and hence this code is subject to the terms of the egenix public
-	license version 1.0.0
+    Functions in the following section are borrowed from mx.DateTime version
+    2.0.6, and hence this code is subject to the terms of the egenix public
+    license version 1.0.0
 */
 
 #define Py_AssertWithArg(x,errortype,errorstr,a1) {if (!(x)) {PyErr_Format(errortype,errorstr,a1);goto onError;}}
@@ -1429,12 +1429,23 @@ DateObject_init(DateObject *self, PyObject *args, PyObject *kwds) {
         int freq_group = get_freq_group(self->freq);
 
         if (datetime) {
-            year=PyDateTime_GET_YEAR(datetime);
-            month=PyDateTime_GET_MONTH(datetime);
-            day=PyDateTime_GET_DAY(datetime);
-            hour=PyDateTime_DATE_GET_HOUR(datetime);
-            minute=PyDateTime_DATE_GET_MINUTE(datetime);
-            second=PyDateTime_DATE_GET_SECOND(datetime);
+            if (PyDateTime_Check(datetime)) {
+                year=PyDateTime_GET_YEAR(datetime);
+                month=PyDateTime_GET_MONTH(datetime);
+                day=PyDateTime_GET_DAY(datetime);
+                hour=PyDateTime_DATE_GET_HOUR(datetime);
+                minute=PyDateTime_DATE_GET_MINUTE(datetime);
+                second=PyDateTime_DATE_GET_SECOND(datetime);
+            } else {
+                PyObject *err_msg, *_type;
+                _type = PyObject_Type(datetime);
+                err_msg = PyString_FromString("expected datetime object, received: ");
+                PyString_ConcatAndDel(&err_msg, PyObject_Str(_type));
+                PyErr_SetString(PyExc_TypeError, PyString_AsString(err_msg));
+                Py_DECREF(_type);
+                Py_DECREF(err_msg);
+                return -1;
+            }
         }
 
         if (!datetime) {
@@ -1609,7 +1620,7 @@ DateObject_asfreq(DateObject *self, PyObject *args, PyObject *kwds)
             if((relation_uc = str_uppercase(relation_raw)) == NULL)
             {return PyErr_NoMemory();}
 
-			// 'BEFORE' and 'AFTER' values for this parameter are deprecated
+            // 'BEFORE' and 'AFTER' values for this parameter are deprecated
             if (strcmp(relation_uc, "END") == 0 ||
                 strcmp(relation_uc, "E") == 0 ||
                 strcmp(relation_uc, "START") == 0 ||
@@ -1639,11 +1650,11 @@ DateObject_asfreq(DateObject *self, PyObject *args, PyObject *kwds)
 
     if ((toFreq = check_freq(freq)) == INT_ERR_CODE) return NULL;
 
-	if (toFreq == self->freq) {
-		result->freq = self->freq;
-		result->value = self->value;
-		return result;
-	}
+    if (toFreq == self->freq) {
+        result->freq = self->freq;
+        result->value = self->value;
+        return result;
+    }
 
     get_asfreq_info(self->freq, toFreq, &af_info);
     asfreq_func = get_asfreq_func(self->freq, toFreq, 0);
@@ -2171,22 +2182,22 @@ DateObject_datetime(DateObject *self, void *closure) {
     freq_group = get_freq_group(self->freq);
 
     switch(freq_group) {
-    	case FR_HR:
-    		hour = dinfo.hour;
-    		break;
-		case FR_MIN:
-    		hour = dinfo.hour;
-    		minute = dinfo.minute;
-    		break;
-		case FR_SEC:
-    		hour = dinfo.hour;
-    		minute = dinfo.minute;
-    		second = (int)dinfo.second;
-    		break;
+        case FR_HR:
+            hour = dinfo.hour;
+            break;
+        case FR_MIN:
+            hour = dinfo.hour;
+            minute = dinfo.minute;
+            break;
+        case FR_SEC:
+            hour = dinfo.hour;
+            minute = dinfo.minute;
+            second = (int)dinfo.second;
+            break;
     }
 
     datetime = PyDateTime_FromDateAndTime(
-				dinfo.year, dinfo.month, dinfo.day, hour, minute, second, 0);
+                dinfo.year, dinfo.month, dinfo.day, hour, minute, second, 0);
     return datetime;
 }
 
@@ -2215,7 +2226,7 @@ static PyGetSetDef DateObject_getseters[] = {
             "Returns the day of month.", NULL},
     {"weekday", (getter)DateObject_weekday, (setter)DateObject_ReadOnlyErr,
             "Returns the day of week.", NULL},
-	// deprecated alias for weekday property
+    // deprecated alias for weekday property
     {"day_of_week", (getter)DateObject_weekday, (setter)DateObject_ReadOnlyErr,
             "Returns the day of week.", NULL},
     {"day_of_year", (getter)DateObject_day_of_year, (setter)DateObject_ReadOnlyErr,
