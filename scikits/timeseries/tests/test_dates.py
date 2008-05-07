@@ -296,6 +296,8 @@ class TestFreqConversion(TestCase):
             assert_func(date_ANOV.asfreq('D', "START"), date_ANOV_to_D_start)
             assert_func(date_ANOV.asfreq('D', "END"), date_ANOV_to_D_end)
 
+            assert_func(date_A.asfreq('A'), date_A)
+
     def test_conv_quarterly(self):
         "frequency conversion tests: from Quarterly Frequency"
 
@@ -377,6 +379,8 @@ class TestFreqConversion(TestCase):
             assert_func(date_QSDEC.asfreq('D', "START"), date_QSDEC_to_D_start)
             assert_func(date_QSDEC.asfreq('D', "END"), date_QSDEC_to_D_end)
 
+            assert_func(date_Q.asfreq('Q'), date_Q)
+
     def test_conv_monthly(self):
         "frequency conversion tests: from Monthly Frequency"
 
@@ -423,6 +427,7 @@ class TestFreqConversion(TestCase):
             assert_func(date_M.asfreq('S', "START"), date_M_to_S_start)
             assert_func(date_M.asfreq('S', "END"), date_M_to_S_end)
 
+            assert_func(date_M.asfreq('M'), date_M)
 
     def test_conv_weekly(self):
         "frequency conversion tests: from Weekly Frequency"
@@ -527,6 +532,8 @@ class TestFreqConversion(TestCase):
             assert_func(date_W.asfreq('S', "START"), date_W_to_S_start)
             assert_func(date_W.asfreq('S', "END"), date_W_to_S_end)
 
+            assert_func(date_W.asfreq('W'), date_W)
+
     def test_conv_business(self):
         "frequency conversion tests: from Business Frequency"
 
@@ -572,6 +579,8 @@ class TestFreqConversion(TestCase):
             assert_func(date_B.asfreq('T', "END"), date_B_to_T_end)
             assert_func(date_B.asfreq('S', "START"), date_B_to_S_start)
             assert_func(date_B.asfreq('S', "END"), date_B_to_S_end)
+
+            assert_func(date_B.asfreq('B'), date_B)
 
     def test_conv_daily(self):
         "frequency conversion tests: from Business Frequency"
@@ -653,6 +662,8 @@ class TestFreqConversion(TestCase):
             assert_func(date_D.asfreq('S', "START"), date_D_to_S_start)
             assert_func(date_D.asfreq('S', "END"), date_D_to_S_end)
 
+            assert_func(date_D.asfreq('D'), date_D)
+
     def test_conv_hourly(self):
         "frequency conversion tests: from Hourly Frequency"
 
@@ -704,6 +715,8 @@ class TestFreqConversion(TestCase):
             assert_func(date_H.asfreq('T', "END"), date_H_to_T_end)
             assert_func(date_H.asfreq('S', "START"), date_H_to_S_start)
             assert_func(date_H.asfreq('S', "END"), date_H_to_S_end)
+
+            assert_func(date_H.asfreq('H'), date_H)
 
     def test_conv_minutely(self):
         "frequency conversion tests: from Minutely Frequency"
@@ -757,6 +770,7 @@ class TestFreqConversion(TestCase):
             assert_func(date_T.asfreq('S', "START"), date_T_to_S_start)
             assert_func(date_T.asfreq('S', "END"), date_T_to_S_end)
 
+            assert_func(date_T.asfreq('T'), date_T)
 
     def test_conv_secondly(self):
         "frequency conversion tests: from Secondly Frequency"
@@ -809,6 +823,7 @@ class TestFreqConversion(TestCase):
             assert_func(date_S.asfreq('T'), date_S_to_T)
             assert_func(date_S_end_of_minute.asfreq('T'), date_S_to_T)
 
+            assert_func(date_S.asfreq('S'), date_S)
 
 class TestMethods(TestCase):
     "Base test class for MaskedArrays."
