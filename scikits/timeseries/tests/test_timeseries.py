@@ -653,7 +653,15 @@ test_dates test suite.
         assert_equal(smax._dates,date_array(series._dates[1]))
     #
 
-
+class TestMisc(TestCase):
+    #
+    def test_ma_ufuncs(self):
+        a = time_series([-2,-1,0,1,2], start_date=now('D'))
+        z = ma.sqrt(a)
+        assert(isinstance(z,TimeSeries))
+        assert_equal(z, [1,1,0,1,np.sqrt(2)])
+        assert_equal(z._mask, [1,1,0,0,0])
+        assert_equal(z._dates, a._dates)
 
 ###############################################################################
 #------------------------------------------------------------------------------
