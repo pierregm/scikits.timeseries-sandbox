@@ -214,9 +214,9 @@ def _daily_finder(vmin, vmax, freq, asformatter):
         month_start = period_break(dates_,'month')
         week_start = period_break(dates_,'week')
         info['maj'][month_start] = True
-        info['min'][week_start] = True     
-        info['min'][year_start] = False  
-        info['min'][month_start] = False  
+        info['min'][week_start] = True
+        info['min'][year_start] = False
+        info['min'][month_start] = False
         if asformatter:
             info['fmt'][month_start] = '%b'
             info['fmt'][year_start] = '%b\n%Y'
@@ -442,9 +442,14 @@ class TimeSeries_DateLocator(Locator):
 
     def __call__(self):
         'Return the locations of the ticks.'
-#        self.verify_intervals()
-#        vmin, vmax = self.viewInterval.get_bounds()
-        (vmin, vmax) = self.axis.get_view_interval()
+        if hasattr(self, "axis"):
+            # new matplotlib
+            (vmin, vmax) = self.axis.get_view_interval()
+        else:
+            # matplotlib version <= 0.91.x
+            self.verify_intervals()
+            vmin, vmax = self.viewInterval.get_bounds()
+
         if vmax < vmin:
             vmin, vmax = vmax, vmin
         if self.isdynamic:
@@ -460,9 +465,14 @@ class TimeSeries_DateLocator(Locator):
         """Sets the view limits to the nearest multiples of base that contain
     the data.
         """
-#        self.verify_intervals()
-#        dmin, dmax = self.dataInterval.get_bounds()
-        (dmin,dmax) = self.axis.get_data_interval()
+        if hasattr(self, "axis"):
+            # new matplotlib
+            (vmin, vmax) = self.axis.get_data_interval()
+        else:
+            # matplotlib version <= 0.91.x
+            self.verify_intervals()
+            vmin, vmax = self.dataInterval.get_bounds()
+
         locs = self._get_default_locs(dmin, dmax)
         (vmin, vmax) = locs[[0, -1]]
         if vmin == vmax:
@@ -509,7 +519,7 @@ class TimeSeries_DateFormatter(Formatter):
         "Returns the default ticks spacing."
         info = self.finder(vmin, vmax, self.freq, True)
         if self.isminor:
-            format = np.compress(info['min'] & np.logical_not(info['maj']), 
+            format = np.compress(info['min'] & np.logical_not(info['maj']),
                                  info)
         else:
             format = np.compress(info['maj'], info)
@@ -520,15 +530,11 @@ class TimeSeries_DateFormatter(Formatter):
         'Sets the locations of the ticks'
         self.locs = locs
         if len(self.locs) > 0:
-#            self.verify_intervals()
             self._set_default_format(locs[0], locs[-1])
     #
     def __call__(self, x, pos=0):
         fmt = self.formatdict.pop(x, '')
         return Date(self.freq, value=int(x)).strftime(fmt)
-
-
-
 
 #####--------------------------------------------------------------------------
 #---- --- TimeSeries plots ---
@@ -743,12 +749,12 @@ def add_yaxis(fsp=None, position='right', yscale=None, basey=10, subsy=None,
 
 *Parameters*:
     fsp : {Subplot}
-        Subplot to which the secondary y-axis is added. 
+        Subplot to which the secondary y-axis is added.
         If None, the current subplot is selected
     position : {string}
         Position of the new axis, as either 'left' or 'right'.
     yscale : {string}
-        Scale of the new axis, as either 'log', 'linear' or None. 
+        Scale of the new axis, as either 'log', 'linear' or None.
         If None, uses the same scale as the first y axis
     basey : {integer}
         Base of the logarithm for the new axis (if needed).
