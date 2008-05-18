@@ -19,11 +19,13 @@ import numpy.ma as ma
 from numpy.ma import masked, nomask
 from numpy.ma.testutils import assert_equal, assert_array_equal
 
+from scikits import timeseries as ts
+
 from scikits.timeseries import \
     tseries, Date, date_array, now, time_series, TimeSeries, \
     adjust_endpoints, align_series, align_with, \
-    fill_missing_dates, tsmasked, concatenate, stack, split
-    
+    fill_missing_dates, tsmasked, concatenate, stack, split, tsmasked
+
 
 class TestCreation(TestCase):
     "Base test class for MaskedArrays."
@@ -340,7 +342,7 @@ class TestGetitem(TestCase):
         assert_equal(series[:,0]._dates, series._dates)
         x = series[:,:,0]
         assert_equal(series[:,:,0], series._data[:,:,0])
-        assert_equal(series[:,:,0]._dates, series._dates)       
+        assert_equal(series[:,:,0]._dates, series._dates)
 
 class TestFunctions(TestCase):
     "Some getitem tests"
@@ -640,7 +642,7 @@ test_dates test suite.
         assert_equal(smin, 0)
         assert_equal(smin._dates, date_array(series._dates[0]))
         #
-        series = time_series([[0,1,2,3,4],[9,8,7,6,5]], 
+        series = time_series([[0,1,2,3,4],[9,8,7,6,5]],
                                 start_date=now('D'))
         smax = series.max(0)
         assert_equal(smax._series,[9,8,7,6,5])
@@ -652,6 +654,15 @@ test_dates test suite.
         assert_equal(smax._series,[9])
         assert_equal(smax._dates,date_array(series._dates[1]))
     #
+    def test_pct(self):
+        series = time_series(np.arange(1,10), start_date=now('D'))
+        _pct = series.pct()
+        assert_equal(_pct.dtype, np.dtype('d'))
+        assert_equal(series.start_date, _pct.start_date)
+        assert_equal(series.end_date, _pct.end_date)
+        assert(_pct[0] is tsmasked)
+        assert_equal(_pct[1], 1.0)
+        assert_equal(_pct[2], 0.5)
 
 class TestMisc(TestCase):
     #

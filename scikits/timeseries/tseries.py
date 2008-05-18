@@ -1440,6 +1440,14 @@ timeseries(data  = [-- 0 1 2],
     return newseries
 TimeSeries.tshift = tshift
 #...............................................................................
+def _get_type_num_double(dtype):
+    """used for forcing upcast of dtypes in certain functions (eg. int -> float
+in pct function. Adapted from function of the same name in the c source code.
+"""
+    if dtype.num  < np.dtype('f').num:
+        return np.dtype('d')
+    return dtype
+#...............................................................................
 def pct(series, nper=1):
     """Returns the rolling percentage change of the series.
 
@@ -1450,21 +1458,28 @@ def pct(series, nper=1):
     nper : {int}
         number of periods for percentage change
 
+*Notes*:
+    series of integer types will be upcast
+    1.0 == 100% in result
+
 *Example*:
 >>> series = time_series([2.,1.,2.,3.], start_date=Date(freq='A', year=2005))
 >>> series.pct()
-timeseries(data  = [-- -50.0 100.0 50.0],
+timeseries([-- -0.5 1.0 0.5],
            dates = [2005 ... 2008],
            freq  = A-DEC)
 >>> series.pct(2)
-timeseries(data  = [-- -- 0.0 200.0],
+timeseries([-- -- 0.0 2.0],
            dates = [2005 ... 2008],
            freq  = A-DEC)
 """
+    _dtype = _get_type_num_double(series.dtype)
+    if _dtype != series.dtype:
+        series = series.astype(_dtype)
     newdata = masked_array(np.empty(series.shape, dtype=series.dtype),
                            mask=True)
     if nper < newdata.size:
-        newdata[nper:] = 100*(series._series[nper:]/series._series[:-nper] - 1)
+        newdata[nper:] = (series._series[nper:]/series._series[:-nper] - 1)
     newseries = newdata.view(type(series))
     newseries._dates = series._dates
     newseries._update_from(series)
@@ -1534,7 +1549,7 @@ corresponding to the initially missing dates are masked, or filled to
     delta = dflat.get_steps()-1
     gap = delta.nonzero()
     slcid = np.r_[[0,], np.arange(1,osize)[gap], [osize,]]
-    oldslc = np.array([slice(i,e) 
+    oldslc = np.array([slice(i,e)
                        for (i,e) in np.broadcast(slcid[:-1],slcid[1:])])
     addidx = delta[gap].astype(int_).cumsum()
     newslc = np.r_[[oldslc[0]],
