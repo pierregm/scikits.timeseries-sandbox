@@ -429,6 +429,8 @@ A time series is here defined as the combination of two arrays:
         if isinstance(indx, int):
             return (indx, indx)
         elif isinstance(indx, str):
+            if indx in (self.dtype.names or []):
+                return (indx, None)
             indx = self._dates.date_to_index(
                                     Date(self._dates.freq, string=indx))
             return (indx, indx)
@@ -1653,7 +1655,7 @@ def empty_like(series):
     """Returns an empty series with the same dtype, mask and dates as series."""
     result = np.empty_like(series).view(type(series))
     result._dates = series._dates
-    result._mask = series._mask
+    result._mask = series._mask.copy()
     return result
 
 ################################################################################

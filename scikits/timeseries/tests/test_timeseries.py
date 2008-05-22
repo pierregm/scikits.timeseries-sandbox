@@ -24,8 +24,8 @@ from scikits import timeseries as ts
 from scikits.timeseries import \
     tseries, Date, date_array, now, time_series, TimeSeries, \
     adjust_endpoints, align_series, align_with, \
-    fill_missing_dates, tsmasked, concatenate, stack, split, tsmasked
-
+    concatenate, fill_missing_dates, split, stack, tsmasked
+    
 
 class TestCreation(TestCase):
     "Base test class for MaskedArrays."
@@ -673,7 +673,23 @@ class TestMisc(TestCase):
         assert_equal(z, [1,1,0,1,np.sqrt(2)])
         assert_equal(z._mask, [1,1,0,0,0])
         assert_equal(z._dates, a._dates)
-
+    #
+    def test_emptylike(self):
+        x = time_series([1,2,3,4,5],start_date=now('D'), mask=[1,0,0,0,0])
+        y = ts.empty_like(x)
+        # Basic checks
+        assert_equal(x.dtype, y.dtype)
+        assert_equal(x.shape, y.shape)
+        #
+        y.flat = 0        
+        assert_equal(x.mask, [1,0,0,0,0])
+        assert_equal(y.mask, nomask)
+        #
+        x.mask = nomask
+        y = ts.empty_like(x)
+        assert_equal(y.mask, nomask)
+        
+        
 ###############################################################################
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
