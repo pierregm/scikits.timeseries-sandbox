@@ -157,7 +157,7 @@ Returns
     cvf : ma.array
         Cross-correlation at lags [0,1,...,n,n-1,...,-1]
     """
-    ccf_ = ccf(x,y,periodogram)
+    ccf_ = cvf(x,y,periodogram)
     return ma.fix_invalid(ccf_/ccf_[0])
 
 
