@@ -19,7 +19,6 @@ from numpy.ma.testutils import *
 
 import numpy.ma as MA
 from numpy.ma import MaskedArray, masked
-from numpy.ma import mstats
 
 import scikits.timeseries as TS
 from scikits.timeseries import time_series, now
@@ -91,8 +90,8 @@ class TestMovFuncs(TestCase):
         self.maskeddata[10] = masked
         self.func_pairs = [
             (MF.mov_average, MA.mean),
-            (MF.mov_median, mstats.mmedian),
-            ((lambda x, span : MF.mov_stddev(x, span, bias=True)), MA.std)]
+            (MF.mov_median, MA.median),
+            ((lambda x, span : MF.mov_std(x, span)), MA.std)]
     #
     def test_onregulararray(self):
         data = self.data
@@ -138,13 +137,13 @@ class TestMovFuncs(TestCase):
                 assert_equal(result._mask, result_mask)
                 assert_equal(result._dates, data._dates)
 
-    def test_covar(self):
+    def test_cov(self):
         # test that covariance of series with itself is equal to variance
         data = self.maskeddata
-        for bias in [True, False]:
-            covar = MF.mov_covar(data, data, 3, bias=bias)
-            var = MF.mov_var(data, 3, bias=bias)
-            assert_equal(covar, var)
+        for bias in [1, 0]:
+            cov = MF.mov_cov(data, data, 3, bias=bias)
+            var = MF.mov_var(data, 3, ddof=1-bias)
+            assert_equal(cov, var)
 
 #------------------------------------------------------------------------------
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ __date__     = '$Date: 2007-03-03 18:00:20 -0500 (Sat, 03 Mar 2007) $'
 
 __all__ = ['mov_sum', 'mov_median', 'mov_min', 'mov_max',
            'mov_average', 'mov_mean', 'mov_average_expw',
-           'mov_stddev', 'mov_var', 'mov_covar', 'mov_corr',
+           'mov_std', 'mov_var', 'mov_cov', 'mov_corr',
            'cmov_average', 'cmov_mean', 'cmov_window'
            ]
 
@@ -84,7 +84,8 @@ def mov_sum(data, span, dtype=None):
 *Parameters*:
     $$data$$
     $$span$$
-    $$dtype$$"""
+    $$dtype$$
+"""
 
     return _mov_sum(data, span, dtype=dtype)
 #...............................................................................
@@ -94,7 +95,8 @@ def mov_median(data, span, dtype=None):
 *Parameters*:
     $$data$$
     $$span$$
-    $$dtype$$"""
+    $$dtype$$
+"""
 
     kwargs = {'span':span}
     if dtype is not None:
@@ -108,7 +110,8 @@ def mov_min(data, span, dtype=None):
 *Parameters*:
     $$data$$
     $$span$$
-    $$dtype$$"""
+    $$dtype$$
+"""
 
     kwargs = {'span':span}
     if dtype is not None:
@@ -122,7 +125,8 @@ def mov_max(data, span, dtype=None):
 *Parameters*:
     $$data$$
     $$span$$
-    $$dtype$$"""
+    $$dtype$$
+"""
 
     kwargs = {'span':span}
     if dtype is not None:
@@ -136,31 +140,45 @@ def mov_average(data, span, dtype=None):
 *Parameters*:
     $$data$$
     $$span$$
-    $$dtype$$"""
+    $$dtype$$
+"""
     return _mov_sum(data, span, dtype=dtype, type_num_double=True)/span
 mov_mean = mov_average
 #...............................................................................
-def mov_var(data, span, bias=False, dtype=None):
+def mov_var(data, span, dtype=None, ddof=0):
     """Calculates the moving variance of a 1-D array.
 
 *Parameters*:
     $$data$$
     $$span$$
-    $$bias$$
-    $$dtype$$"""
-    return mov_covar(data, data, span, bias=bias, dtype=dtype)
+    $$dtype$$
+    $$ddof$$
+"""
+    return _mov_cov(data, data, span, ddof, dtype=dtype)
 #...............................................................................
-def mov_stddev(data, span, bias=False, dtype=None):
+def mov_std(data, span, dtype=None, ddof=0):
     """Calculates the moving standard deviation of a 1-D array.
 
 *Parameters*:
     $$data$$
     $$span$$
-    $$bias$$
-    $$dtype$$"""
-    return sqrt(mov_var(data, span, bias=bias, dtype=dtype))
+    $$dtype$$
+    $$ddof$$
+"""
+    return sqrt(mov_var(data, span, dtype=dtype, ddof=ddof))
 #...............................................................................
-def mov_covar(x, y, span, bias=False, dtype=None):
+def _mov_cov(x, y, span, ddof, dtype=None):
+    # helper function
+
+    denom = span - ddof
+
+    sum_prod = _mov_sum(x*y, span, dtype=dtype, type_num_double=True)
+    sum_x = _mov_sum(x, span, dtype=dtype, type_num_double=True)
+    sum_y = _mov_sum(y, span, dtype=dtype, type_num_double=True)
+
+    return sum_prod/denom - (sum_x * sum_y) / (span*denom)
+
+def mov_cov(x, y, span, bias=0, dtype=None):
     """Calculates the moving covariance of two 1-D arrays.
 
 *Parameters*:
@@ -168,16 +186,13 @@ def mov_covar(x, y, span, bias=False, dtype=None):
     $$y$$
     $$span$$
     $$bias$$
-    $$dtype$$"""
+    $$dtype$$
+"""
 
-    if bias: denom = span
-    else: denom = span - 1
+    if bias==0: ddof = 1
+    else:       ddof = 0
 
-    sum_prod = _mov_sum(x*y, span, dtype=dtype, type_num_double=True)
-    sum_x = _mov_sum(x, span, dtype=dtype, type_num_double=True)
-    sum_y = _mov_sum(y, span, dtype=dtype, type_num_double=True)
-
-    return sum_prod/denom - (sum_x * sum_y) / (span*denom)
+    return _mov_cov(x, y, span, ddof, dtype=dtype)
 #...............................................................................
 def mov_corr(x, y, span, dtype=None):
     """Calculates the moving correlation of two 1-D arrays.
@@ -186,7 +201,8 @@ def mov_corr(x, y, span, dtype=None):
     $$x$$
     $$y$$
     $$span$$
-    $$dtype$$"""
+    $$dtype$$
+"""
 
     sum_x = _mov_sum(x, span, dtype=dtype, type_num_double=True)
     sum_y = _mov_sum(y, span, dtype=dtype, type_num_double=True)
@@ -214,7 +230,8 @@ def mov_average_expw(data, span, tol=1e-6):
         values, this parameter determinea what points in the result shoud be
         masked. Values in the result that would not be "significantly"
         impacted (as determined by this parameter) by the masked values are
-        left unmasked."""
+        left unmasked.
+"""
 
     data = marray(data, copy=True, subok=True)
     ismasked = (data._mask is not nomask)
@@ -326,9 +343,15 @@ param_doc['span'] = \
         Time periods to use for each calculation."""
 
 param_doc['bias'] = \
-"""bias : {False, True}, optional
-        If False, Normalization is by (N-1) where N == span (unbiased
-        estimate).  If True then normalization is by N."""
+"""bias : {0, 1}, optional
+        if bias is 0, normalization is by (N-1) where N is the number of
+        observations (unbiased estimate).  If bias is 1 then normalization is
+        by N."""
+
+param_doc['ddof'] = \
+"""bias : {0, integer}, optional
+        Means Delta Degrees of Freedom.  The divisor used in calculations
+        is N-ddof."""
 
 param_doc['dtype'] = \
 """dtype : {numpy data type specification}, optional
