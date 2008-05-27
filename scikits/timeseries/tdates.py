@@ -3,12 +3,16 @@ Classes definition for the support of individual dates and array of dates.
 
 :author: Pierre GF Gerard-Marchant & Matt Knox
 :contact: pierregm_at_uga_dot_edu - mattknox_ca_at_hotmail_dot_com
-:version: $Id: dates.py 3822 2008-01-12 10:06:39Z matthew.brett@gmail.com $
+
 """
-__author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author: matthew.brett@gmail.com $)"
+
+# TODO: Implement DateArray in C (Cython ?)
+
+__author__ = "Pierre GF Gerard-Marchant & Matt Knox"
 __version__ = '1.0'
-__revision__ = "$Revision: 3822 $"
-__date__     = '$Date: 2008-01-12 05:06:39 -0500 (Sat, 12 Jan 2008) $'
+__revision__ = "$Revision$"
+__date__     = '$Date$'
+
 
 import datetime as dt
 
@@ -36,12 +40,22 @@ cseries.set_callback_DateTimeFromString(DateTimeFromString)
 from cseries import Date, now, check_freq, check_freq_str, get_freq_group,\
                     DateCalc_Error, DateCalc_RangeError
 
-__all__ = [
-'Date', 'DateArray', 'DateError', 'ArithmeticDateError', 'FrequencyDateError',
-'InsufficientDateError', 'date_array', 'weekday', 'day_of_year', 'day',
-'month', 'quarter', 'year', 'hour', 'minute', 'second', 'now', 'prevbusday',
-'period_break', 'check_freq', 'check_freq_str', 'get_freq_group',
-'DateCalc_Error', 'DateCalc_RangeError'
+__all__ = ['ArithmeticDateError',
+           'Date', 'DateArray', 'DateCalc_Error', 'DateCalc_RangeError', 
+           'DateError',
+           'FrequencyDateError',
+           'InsufficientDateError',
+           'check_freq', 'check_freq_str',
+           'date_array', 'day', 'day_of_year',
+           'get_freq_group',
+           'hour',
+           'minute', 'month',
+           'now',
+           'period_break', 'prevbusday',
+           'quarter',
+           'second',
+           'weekday', 
+           'year',     
           ]
 
 #####---------------------------------------------------------------------------
@@ -87,11 +101,13 @@ class ArithmeticDateError(DateError):
 def prevbusday(day_end_hour=18, day_end_min=0):
     """Returns the previous business day (Monday-Friday) at business frequency.
 
-*Parameters*:
+    Parameters
+    ----------
     day_end_hour : {18, int} (optional)
     day_end_min : {0, int} (optional)
 
-*Return values*:
+    Returns
+    -------
     If it is currently Saturday or Sunday, then the preceding Friday will be
     returned. If it is later than the specified day_end_hour and day_end_min,
     now('Business') will be returned. Otherwise, now('Business')-1 will be
@@ -217,6 +233,7 @@ accesses the array element by element. Therefore, `d` is a Date object.
         # Select the corresponding unsorted indices (if needed)
         if self._unsorted is not None:
             unsorted = self._unsorted[indx]
+            # TODO: And then what do we do w/ unsorted ???
         # Case 1. A simple integer
         if isinstance(r, (generic, int)):
             return Date(self.freq, value=r)
@@ -527,8 +544,6 @@ def _listparser(dlist, freq=None):
     # Case #1: dates as strings .................
     if dlist.dtype.kind in 'SU':
         #...construct a list of dates
-        for s in dlist:
-            x = Date(freq, string=s)
         dates = [Date(freq, string=s) for s in dlist]
     # Case #2: dates as numbers .................
     elif dlist.dtype.kind in 'if':
