@@ -35,7 +35,6 @@ from numpy.ma.mrecords import _checknames, \
 from tseries import TimeSeries, time_series, _getdatalength
 from tdates import Date, DateArray, date_array
 
-#ndarray = numeric.ndarray
 _byteorderconv = numpy.core.records._byteorderconv
 _typestr = ntypes._typestr
 
@@ -100,14 +99,14 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
                 copy=False,
                 dates=None, freq='U', start_date=None, observed=None,
                 **options):
-        self = mrecarray.__new__(cls, shape, dtype=dtype, buf=buf, offset=offset,
-                                 strides=strides, formats=formats,
-                                 byteorder=byteorder, aligned=aligned,
-                                 mask=mask, hard_mask=hard_mask, copy=copy,
-                                 keep_mask=keep_mask, fill_value=fill_value,
-                                 )
+        _data = mrecarray.__new__(cls, shape, dtype=dtype, buf=buf, offset=offset,
+                                  strides=strides, formats=formats,
+                                  byteorder=byteorder, aligned=aligned,
+                                  mask=mask, hard_mask=hard_mask, copy=copy,
+                                  keep_mask=keep_mask, fill_value=fill_value,
+                                  )
         #
-        newdates = _getdates(dates, length=len(self),
+        newdates = _getdates(dates, length=len(_data),
                              start_date=start_date,freq=freq)
         _data._dates = newdates
         _data._observed = observed
@@ -215,6 +214,48 @@ Otherwise fill with fill value.
         copied = MaskedRecords.copy(self)
         copied._dates = self._dates.copy()
         return copied
+    #.............................................
+    def convert(self, freq, func=None, position='END', *args, **kwargs):
+        """Converts a series to a frequency. Private function called by convert
+
+    Parameters
+    ----------
+    series : TimeSeries
+        the series to convert. Skip this parameter if you are calling this as
+        a method of the TimeSeries object instead of the module function.
+    freq : freq_spec
+        Frequency to convert the TimeSeries to. Accepts any valid frequency
+        specification (string or integer)
+    func : {None,function}, optional
+        When converting to a lower frequency, func is a function that acts on
+        one date's worth of data. func should handle masked values appropriately.
+        If func is None, then each data point in the resulting series will a
+        group of data points that fall into the date at the lower frequency.
+
+        For example, if converting from monthly to daily and you wanted each
+        data point in the resulting series to be the average value for each
+        month, you could specify numpy.ma.average for the 'func' parameter.
+    position : {'END', 'START'}, optional
+        When converting to a higher frequency, position is 'START' or 'END'
+        and determines where the data point is in each period. For example, if
+        going from monthly to daily, and position is 'END', then each data
+        point is placed at the end of the month.
+    *args : {extra arguments for func parameter}, optional
+        if a func is specified that requires additional parameters, specify
+        them here.
+    **kwargs : {extra keyword arguments for func parameter}, optional
+        if a func is specified that requires additional keyword parameters,
+        specify them here.
+    
+        """
+        kwargs.update(func=func, position=position)
+        field_names = self.dtype.names
+        by_field = [self[f].convert(freq,**kwargs) for f in field_names]
+        output = fromarrays(by_field, 
+                            dates=by_field[0].dates,
+                            names=field_names)
+        output.fill_value = self.fill_value
+        return output
 trecarray = TimeSeriesRecords
 
 
@@ -227,7 +268,12 @@ def time_records(mrecord, dates=None):
     trecords._dates = dates
     return trecords
 
-
+#!!!: * The docstrings of the following functions need some serious work ;)
+#!!!: * We should try to have a list of TimeSeries sufficient to build a record...
+#!!!:   without having to precise a list of dates...
+#!!!:   > check the compatibility of dates
+#!!!:   > try to adjust endpoints if needed
+#!!!:   > if one of the series is not a TimeSeries, keep going.
 
 def fromarrays(arraylist, dates=None, start_date=None, freq='U',
                fill_value=None,
@@ -237,7 +283,7 @@ def fromarrays(arraylist, dates=None, start_date=None, freq='U',
 
     Parameters
     ----------
-    arraylist : sequence
+    arraylist : array_like
         A list of (masked) arrays. Each element of the sequence is first converted
         to a masked array if needed. If a 2D array is passed as argument, it is
         processed line by line

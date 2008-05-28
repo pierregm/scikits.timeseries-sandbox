@@ -6,7 +6,7 @@ Classes definition for the support of individual dates and array of dates.
 
 """
 
-# TODO: Implement DateArray in C (Cython ?)
+#!!!: Implement DateArray in C (Cython ?)
 
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox"
 __version__ = '1.0'
@@ -233,7 +233,7 @@ accesses the array element by element. Therefore, `d` is a Date object.
         # Select the corresponding unsorted indices (if needed)
         if self._unsorted is not None:
             unsorted = self._unsorted[indx]
-            # TODO: And then what do we do w/ unsorted ???
+            #!!!: And then what do we do w/ unsorted ???
         # Case 1. A simple integer
         if isinstance(r, (generic, int)):
             return Date(self.freq, value=r)
@@ -571,7 +571,8 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
                freq=None):
     """Factory function for constructing a DateArray
 
-*Parameters*:
+    Parameters
+    ----------
     dlist : {list of dates or DateArray} (optional)
         may be a list of dates, integer representations of dates for a given
         frequency, datetime objects, or an existing DateArray. If specifying
@@ -679,7 +680,8 @@ second = _frommethod('second')
 def period_break(dates, period):
     """Returns the indices where the given period changes.
 
-:Parameters:
+    Parameters
+    ----------
     dates : DateArray
         Array of dates to monitor.
     period : string

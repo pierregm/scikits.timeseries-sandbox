@@ -9,12 +9,20 @@ These two classes were liberally adapted from `MaskedArray` class.
 
 :author: Pierre GF Gerard-Marchant & Matt Knox
 :contact: pierregm_at_uga_dot_edu - mattknox_ca_at_hotmail_dot_com
-:version: $Id: tseries.py 3822 2008-01-12 10:06:39Z matthew.brett@gmail.com $
 """
-__author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author: matthew.brett@gmail.com $)"
+
+#!!!: * Allow different lengths for data and dates to handle 2D data more easily
+#!!!:    In that case, just make sure that the data is (n,rows,cols) where n is the nb of dates
+#!!!: * Add some kind of marker telling whether we are 1D or nD:
+#!!!:    That could be done by checking the ratio series.size/series._dates.size
+#!!!: * Disable some of the tests on date compatibility if we are nD
+#!!!: * Adapt reshaping to preserve the first dimension
+
+__author__ = "Pierre GF Gerard-Marchant & Matt Knox"
 __version__ = '1.0'
 __revision__ = "$Revision: 3822 $"
-__date__     = '$Date: 2008-01-12 05:06:39 -0500 (Sat, 12 Jan 2008) $'
+
+import sys
 
 import numpy as np
 from numpy import bool_, complex_, float_, int_, object_, dtype,\
@@ -429,10 +437,18 @@ A time series is here defined as the combination of two arrays:
         if isinstance(indx, int):
             return (indx, indx)
         elif isinstance(indx, str):
+            # Is indx a named field ?
             if indx in (self.dtype.names or []):
                 return (indx, None)
-            indx = self._dates.date_to_index(
-                                    Date(self._dates.freq, string=indx))
+            # Try to check whether it's a date...
+            try:
+                indx = self._dates.date_to_index(Date(self._dates.freq, 
+                                                      string=indx))
+            except IndexError:
+                # Trap the exception: we need the traceback
+                exc_info = sys.exc_info()
+                msg = "Invalid field or date '%s'" % indx
+                raise IndexError(msg), None, exc_info[2] 
             return (indx, indx)
         elif isinstance(indx, Date):
             indx = self._dates.date_to_index(indx)
@@ -1338,14 +1354,15 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
 def convert(series, freq, func=None, position='END', *args, **kwargs):
     """Converts a series to a frequency. Private function called by convert
 
-*Parameters*:
-    series : {TimeSeries}
+    Parameters
+    ----------
+    series : TimeSeries
         the series to convert. Skip this parameter if you are calling this as
         a method of the TimeSeries object instead of the module function.
-    freq : {freq_spec}
+    freq : freq_spec
         Frequency to convert the TimeSeries to. Accepts any valid frequency
         specification (string or integer)
-    func : {function} (optional)
+    func : {None,function}, optional
         When converting to a lower frequency, func is a function that acts on
         one date's worth of data. func should handle masked values appropriately.
         If func is None, then each data point in the resulting series will a
@@ -1354,19 +1371,22 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
         For example, if converting from monthly to daily and you wanted each
         data point in the resulting series to be the average value for each
         month, you could specify numpy.ma.average for the 'func' parameter.
-    position : {'END', 'START'} (optional)
+    position : {'END', 'START'}, optional
         When converting to a higher frequency, position is 'START' or 'END'
         and determines where the data point is in each period. For example, if
         going from monthly to daily, and position is 'END', then each data
         point is placed at the end of the month.
-    *args : {extra arguments for func parameter} (optional)
+    *args : {extra arguments for func parameter}, optional
         if a func is specified that requires additional parameters, specify
         them here.
-    **kwargs : {extra keyword arguments for func parameter} (optional)
+    **kwargs : {extra keyword arguments for func parameter}, optional
         if a func is specified that requires additional keyword parameters,
         specify them here.
-"""
-
+    
+    """
+    #!!!: Raise some kind of proper exception if the underlying dtype will mess things up
+    #!!!: For example, mean on string array...
+    
     if series.ndim > 2 or series.ndim == 0:
         raise ValueError(
             "only series with ndim == 1 or ndim == 2 may be converted")

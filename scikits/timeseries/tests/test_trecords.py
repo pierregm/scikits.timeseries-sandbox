@@ -22,6 +22,7 @@ from numpy.ma.mrecords import addfield
 from scipy.testing import *
 from numpy.ma.testutils import assert_equal, assert_array_equal, assert_equal_records
 
+import scikits.timeseries as ts
 from scikits.timeseries.trecords import \
     TimeSeriesRecords, TimeSeries,\
     fromarrays, fromtextfile, fromrecords, \
@@ -29,7 +30,7 @@ from scikits.timeseries.trecords import \
 
 
 #..............................................................................
-class TestMRecords(TestCase):
+class TestTimeSeriesRecords(TestCase):
     "Base test class for MaskedArrays."
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
@@ -181,6 +182,38 @@ class TestMRecords(TestCase):
         assert_equal(mrectxt.G, [1,1,1,1])
         assert_equal(mrectxt.F._mask, [1,1,1,1])
         assert_equal(mrectxt.D, [1,2,3.e+5,-1e-10])
+
+
+#..............................................................................
+class TestTimeSeriesRecords_Functions(TestCase):
+    "Base test class for MaskedArrays."
+    def __init__(self, *args, **kwds):
+        TestCase.__init__(self, *args, **kwds)
+        self.setup()
+    #
+    def setup(self):
+        a = time_series(np.random.rand(24), 
+                        start_date=ts.now('M'))
+        b = time_series(np.random.rand(24)*100, dtype=int, 
+                        start_date=ts.now('M'),)
+#        c = time_series(["%02i" % _ for _ in np.arange(24)], 
+#                         start_date=ts.now('M'))
+        c = time_series(np.arange(24), 
+                         start_date=ts.now('M'))
+        trec = fromarrays([a,b,c], dates=a.dates, names='a,b,c')
+        self.info = (a,b,c,trec)
+    #
+    def test_convert(self):
+        #
+        (a, b, c,trec) = self.info
+        base = dict(a=a, b=b, c=c)
+        a_trec = trec.convert('A',ma.mean)
+        # Don't convert the dtype by themselves, that won't work...
+        # ... as ma.mean will convert ints to floats, eg.
+        assert_equal(a_trec.dtype.names, trec.dtype.names)
+        for key in ('a','b','c'):
+            assert_equal(a_trec[key], base[key].convert('A', ma.mean))
+        
 
 ###############################################################################
 #------------------------------------------------------------------------------
