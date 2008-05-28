@@ -433,11 +433,12 @@ def fromtextfile(fname, delimitor=None, commentchar='#', missingchar='',
             vartypes = _guessvartypes(_variables[0])
     # Construct the descriptor ..................
     mdescr = [(n,f) for (n,f) in zip(varnames, vartypes)]
+    mfillv = [ma.default_fill_value(f) for f in vartypes]
     # Get the data and the mask .................
     # We just need a list of masked_arrays. It's easier to create it like that:
     _mask = (_variables.T == missingchar)
-    _datalist = [ma.array(a,mask=m,dtype=t)
-                     for (a,m,t) in zip(_variables.T, _mask, vartypes)]
+    _datalist = [ma.array(a,mask=m,dtype=t,fill_value=f)
+                 for (a,m,t,f) in zip(_variables.T, _mask, vartypes, mfillv)]
     #
     newdates = _getdates(dates=dates, newdates=newdates, length=nvars,
                          freq=None, start_date=None)
