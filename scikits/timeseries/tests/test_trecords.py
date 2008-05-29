@@ -181,7 +181,7 @@ class TestTimeSeriesRecords(TestCase):
         f.close()
         mrectxt = fromtextfile(fname,delimitor=',',varnames='ABCDEFG',
                                dates_column=0)
-        os.unlink(fname)
+        os.remove(fname)
         #
         dlist = ['2007-%02i' % i for i in (1,2,3,5)]
         assert(isinstance(mrectxt, TimeSeriesRecords))

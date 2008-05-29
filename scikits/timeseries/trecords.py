@@ -167,7 +167,7 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
         (sj, dj) = super(TimeSeriesRecords, self)._TimeSeries__checkindex(j)
         newdata = self._data[si:sj].view(type(self))
         newdata.__dict__.update(_dates=_localdict['_dates'][di:dj],
-                                _mask=_localdict['_fieldmask'][si:sj])
+                                _fieldmask=_localdict['_fieldmask'][si:sj])
         return newdata
 
     def __setslice__(self, i, j, value):
