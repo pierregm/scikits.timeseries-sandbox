@@ -1429,7 +1429,7 @@ DateObject_init(DateObject *self, PyObject *args, PyObject *kwds) {
         int freq_group = get_freq_group(self->freq);
 
         if (datetime) {
-            if (PyDateTime_Check(datetime)) {
+            if (PyDateTime_Check(datetime) || PyDate_Check(datetime)) {
                 year=PyDateTime_GET_YEAR(datetime);
                 month=PyDateTime_GET_MONTH(datetime);
                 day=PyDateTime_GET_DAY(datetime);

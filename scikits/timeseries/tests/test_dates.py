@@ -16,7 +16,7 @@ import datetime
 import numpy as np
 from scipy.testing import *
 
-import numpy.ma as ma
+from numpy import ma
 from numpy.ma.testutils import assert_equal, assert_array_equal
 
 import scikits.timeseries as ts
@@ -91,6 +91,15 @@ class TestCreation(TestCase):
         #
         dates = date_array(['2006-01'], freq='M')
         assert_equal(dates[0], ts.Date(freq='M', year=2006, month=1))
+
+        # test from datetime.date object
+        _dt = ts.Date(freq='D', datetime=datetime.date(2007, 1, 1))
+        _tsdt = ts.Date(freq='D', year=2007, month=1, day=1)
+        assert_equal(_dt, _tsdt)
+
+        # test from datetime.datetime object
+        _dt = ts.Date(freq='D', datetime=datetime.datetime(2007, 1, 1, 0, 0, 0, 0))
+        assert_equal(_dt, _tsdt)
         print "finished test_fromsobjects"
 
     def test_consistent_value(self):
