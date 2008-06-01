@@ -299,11 +299,11 @@ def _monthly_finder(vmin, vmax, freq, asformatter):
                 info['fmt'][idx] = '%b\n%Y'
     #........................
     elif span <= 2.5 * periodsperyear:
+        quarter_start = (dates_ % 3 == 1).nonzero()
         info['maj'][year_start] = True
         info['fmt'][quarter_start] = True
         info['min'] = True
         if asformatter:
-            quarter_start = (dates_ % 3 == 1).nonzero()
             info['fmt'][quarter_start] = '%b'
             info['fmt'][year_start] = '%b\n%Y'
     #.......................
@@ -533,8 +533,11 @@ class TimeSeries_DateFormatter(Formatter):
             self._set_default_format(locs[0], locs[-1])
     #
     def __call__(self, x, pos=0):
-        fmt = self.formatdict.pop(x, '')
-        return Date(self.freq, value=int(x)).strftime(fmt)
+        if self.formatdict is None:
+            return ''
+        else:
+            fmt = self.formatdict.pop(x, '')
+            return Date(self.freq, value=int(x)).strftime(fmt)
 
 #####--------------------------------------------------------------------------
 #---- --- TimeSeries plots ---
