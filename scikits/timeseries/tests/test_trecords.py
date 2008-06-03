@@ -175,13 +175,12 @@ class TestTimeSeriesRecords(TestCase):
 """
         import os
         from datetime import datetime
-        fname = 'tmp%s' % datetime.now().strftime("%y%m%d%H%M%S%s")
-        f = open(fname, 'w')
-        f.write(fcontent)
-        f.close()
-        mrectxt = fromtextfile(fname,delimitor=',',varnames='ABCDEFG',
-                               dates_column=0)
-        os.remove(fname)
+        import tempfile
+        (tmp_fd,tmp_fl) = tempfile.mkstemp()
+        os.write(tmp_fd, fcontent)
+        os.close(tmp_fd)
+        mrectxt = fromtextfile(tmp_fl, delimitor=',', varnames='ABCDEFG')
+        os.remove(tmp_fl)
         #
         dlist = ['2007-%02i' % i for i in (1,2,3,5)]
         assert(isinstance(mrectxt, TimeSeriesRecords))
