@@ -63,7 +63,7 @@ The specific Subplot object class to add is given through the keywords
     """
 
     key = figure_instance._make_key(*args, **kwargs)
-    #TODO: Find why, sometimes, key is not hashable (even if tuple)
+    #!!!: Find why, sometimes, key is not hashable (even if tuple)
     # else, there's a fix below
     try:
         key.__hash__()
