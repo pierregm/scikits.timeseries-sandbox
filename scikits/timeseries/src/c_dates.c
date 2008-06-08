@@ -2607,11 +2607,11 @@ static int __skip_periods_week(int freq) {
         case FR_DAY:
             return 7;
         case FR_HR:
-            return 7*28*24;
+            return 7*24;
         case FR_MIN:
-            return 7*28*24*60;
+            return 7*24*60;
         case FR_SEC:
-            return 7*28*24*60*60;
+            return 7*24*60*60;
         default:
             return 1;
     }

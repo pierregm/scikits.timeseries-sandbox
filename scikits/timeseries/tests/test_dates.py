@@ -205,6 +205,10 @@ class TestDateProperties(TestCase):
         assert_equal(h_date.day_of_year, 1)
         assert_equal(h_date.hour, 0)
 
+        harray = date_array(start_date=h_date, end_date=h_date+3000)
+        assert_equal(harray.week[0], h_date.week)
+        assert_equal(harray.week[-1], (h_date+3000).week)
+
         assert_equal(t_date.year, 2007)
         assert_equal(t_date.quarter, 1)
         assert_equal(t_date.month, 1)

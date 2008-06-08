@@ -41,7 +41,7 @@ from cseries import Date, now, check_freq, check_freq_str, get_freq_group,\
                     DateCalc_Error, DateCalc_RangeError
 
 __all__ = ['ArithmeticDateError',
-           'Date', 'DateArray', 'DateCalc_Error', 'DateCalc_RangeError', 
+           'Date', 'DateArray', 'DateCalc_Error', 'DateCalc_RangeError',
            'DateError',
            'FrequencyDateError',
            'InsufficientDateError',
@@ -54,8 +54,8 @@ __all__ = ['ArithmeticDateError',
            'period_break', 'prevbusday',
            'quarter',
            'second',
-           'weekday', 
-           'year',     
+           'weekday',
+           'year',
           ]
 
 #####---------------------------------------------------------------------------
@@ -384,7 +384,7 @@ For non-quarterly dates, this simply returns the year of the date."""
             firststr = str(self[0])
             if self.size > 0:
                 ncharsize = len(firststr)
-                tostr = np.fromiter((str(d) for d in self), 
+                tostr = np.fromiter((str(d) for d in self),
                                     dtype='|S%i' % ncharsize)
             else:
                 tostr = firststr
@@ -520,7 +520,7 @@ For non-quarterly dates, this simply returns the year of the date."""
         if self.size:
             return self[0]
         return None
-    
+
     @property
     def end_date(self):
         "Returns the last date of the array."
@@ -667,6 +667,7 @@ class _frommethod(object):
             return getattr(np,self._methodname).__call__(caller, *args, **params)
 #............................
 weekday = _frommethod('weekday')
+week = _frommethod('week')
 day_of_year = _frommethod('day_of_year')
 year = _frommethod('year')
 quarter = _frommethod('quarter')
