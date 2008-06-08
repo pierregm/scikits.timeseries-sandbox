@@ -55,6 +55,7 @@ __all__ = ['ArithmeticDateError',
            'quarter',
            'second',
            'weekday',
+           'week',
            'year',
           ]
 
