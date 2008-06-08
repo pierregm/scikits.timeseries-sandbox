@@ -32,9 +32,8 @@ from matplotlib.transforms import nonsingular
 import numpy as np
 import numpy.ma as ma
 
-from scikits import timeseries
 from scikits.timeseries import \
-    date_array, Date, DateArray, get_freq_group, TimeSeries
+    date_array, Date, DateArray, get_freq_group, TimeSeries, check_freq_str
 from scikits.timeseries import const as _c
 
 import warnings
@@ -69,25 +68,17 @@ The specific Subplot object class to add is given through the keywords
         key.__hash__()
     except TypeError:
         key = str(key)
-    #
+
     if key in figure_instance._seen:
         ax = figure_instance._seen[key]
         figure_instance.sca(ax)
         return ax
-    #
-    if not len(args):
-        return
-#    if hasattr(args[0], '__array__'):
-#        fixedargs = args[1:]
-#    else:
-#        fixedargs = args
-    #
+
     SubplotClass = kwargs.pop("SubplotClass", Subplot)
     SubplotClass = kwargs.pop("subclass",SubplotClass)
     if isinstance(args[0], Subplot):
         a = args[0]
         assert(a.get_figure() is figure_instance)
-#        a.set_figure(figure_instance)
     else:
         a = SubplotClass(figure_instance, *args, **kwargs)
 
@@ -145,7 +136,21 @@ one label for this level"""
 
 def _daily_finder(vmin, vmax, freq, asformatter):
 
-    if freq == _c.FR_BUS:
+    periodsperday = -1
+
+    if freq >= _c.FR_HR:
+        if freq == _c.FR_SEC:
+            periodsperday = 24*60*60
+        elif freq == _c.FR_MIN:
+            periodsperday = 24*60
+        elif freq == _c.FR_HR:
+            periodsperday = 24
+        else:
+            raise ValueError("unexpected frequency: %s" % check_freq_str(freq))
+        periodsperyear = 365*periodsperday
+        periodspermonth = 28*periodsperday
+
+    elif freq == _c.FR_BUS:
         periodsperyear = 261
         periodspermonth = 19
     elif freq == _c.FR_DAY:
@@ -163,39 +168,108 @@ def _daily_finder(vmin, vmax, freq, asformatter):
                         end_date=Date(freq, vmax))
     # Initialize the output
     info = np.zeros(span,
-                    dtype=[('val',int),('maj',bool),('min',bool),('fmt','|S10')])
-    info['val'] = np.arange(vmin, vmax+1)
-    info['fmt'] = ''
+                    dtype=[('val',int),('maj',bool),('min',bool),('fmt','|S20')])
+    info['val'][:] = np.arange(vmin, vmax+1)
+    info['fmt'][:] = ''
     info['maj'][[0,-1]] = True
 
     def first_label(label_flags):
-        if label_flags[0] == 0: return label_flags[1]
-        else: return label_flags[0]
+        if label_flags[0] == 0 and label_flags.size > 1:
+            return label_flags[1]
+        else:
+            return label_flags[0]
 
     # Case 1. Less than a month
     if span <= periodspermonth:
+
+        day_start = period_break(dates_,'day')
         month_start = period_break(dates_,'month')
-        info['maj'][month_start] = True
-        info['min'] = True
-        if asformatter:
-            year_start = period_break(dates_,'year')
-            info['fmt'][:] = '%d'
-            info['fmt'][month_start] = '%d\n%b'
-            info['fmt'][year_start] = '%d\n%b\n%Y'
-            if not has_level_label(year_start):
-                if not has_level_label(month_start):
-                    if dates_.size > 1:
-                        idx = 1
+
+        def _hour_finder(label_interval, force_year_start):
+            _hour = dates_.hour
+            _prev_hour = (dates_-1).hour
+            hour_start = (_hour - _prev_hour) != 0
+
+            info['maj'][day_start] = True
+            info['min'][hour_start & (_hour % label_interval == 0)] = True
+            if asformatter:
+                year_start = period_break(dates_,'year')
+                info['fmt'][hour_start & (_hour % label_interval == 0)] = '%H:%M'
+                info['fmt'][day_start] = '%H:%M\n%d-%b'
+                info['fmt'][year_start] = '%H:%M\n%d-%b\n%Y'
+                if force_year_start and not has_level_label(year_start):
+                    info['fmt'][first_label(day_start)] = '%H:%M\n%d-%b\n%Y'
+
+        def _minute_finder(label_interval):
+            hour_start = period_break(dates_,'hour')
+
+            _minute = dates_.minute
+            _prev_minute = (dates_-1).minute
+            minute_start = (_minute - _prev_minute) != 0
+
+            info['maj'][hour_start] = True
+            info['min'][minute_start & (_minute % label_interval == 0)] = True
+            if asformatter:
+                year_start = period_break(dates_,'year')
+                info['fmt'][minute_start & (_minute % label_interval == 0)] = '%H:%M'
+                info['fmt'][day_start] = '%H:%M\n%d-%b'
+                info['fmt'][year_start] = '%H:%M\n%d-%b\n%Y'
+
+        def _second_finder(label_interval):
+            minute_start = period_break(dates_,'minute')
+
+            _second = dates_.second
+            _prev_second = (dates_-1).second
+            second_start = (_second - _prev_second) != 0
+
+            info['maj'][minute_start] = True
+            info['min'][second_start & (_second % label_interval == 0)] = True
+            if asformatter:
+                year_start = period_break(dates_,'year')
+                info['fmt'][second_start & (_second % label_interval == 0)] = '%H:%M:%S'
+                info['fmt'][day_start] = '%H:%M:%S\n%d-%b'
+                info['fmt'][year_start] = '%H:%M:%S\n%d-%b\n%Y'
+
+        if span < periodsperday/12000.0: _second_finder(1)
+        elif span < periodsperday/6000.0: _second_finder(2)
+        elif span < periodsperday/2400.0: _second_finder(5)
+        elif span < periodsperday/1200.0: _second_finder(10)
+        elif span < periodsperday/800.0: _second_finder(15)
+        elif span < periodsperday/400.0: _second_finder(30)
+        elif span < periodsperday/150.0: _minute_finder(1)
+        elif span < periodsperday/70.0: _minute_finder(2)
+        elif span < periodsperday/24.0: _minute_finder(5)
+        elif span < periodsperday/12.0: _minute_finder(15)
+        elif span < periodsperday/6.0:  _minute_finder(30)
+        elif span < periodsperday/2.5: _hour_finder(1, False)
+        elif span < periodsperday/1.5: _hour_finder(2, False)
+        elif span < periodsperday*1.25: _hour_finder(3, False)
+        elif span < periodsperday*2.5: _hour_finder(6, True)
+        elif span < periodsperday*4: _hour_finder(12, True)
+        else:
+            info['maj'][month_start] = True
+            info['min'][day_start] = True
+            if asformatter:
+                year_start = period_break(dates_,'year')
+                info['fmt'][day_start] = '%d'
+                info['fmt'][month_start] = '%d\n%b'
+                info['fmt'][year_start] = '%d\n%b\n%Y'
+                if not has_level_label(year_start):
+                    if not has_level_label(month_start):
+                        info['fmt'][first_label(day_start)] = '%d\n%b\n%Y'
                     else:
-                        idx = 0
-                    info['fmt'][idx] = '%d\n%b\n%Y'
-                else:
-                    info['fmt'][first_label(month_start)] = '%d\n%b\n%Y'
+                        info['fmt'][first_label(month_start)] = '%d\n%b\n%Y'
+
     # Case 2. Less than three months
     elif span <= periodsperyear//4:
         month_start = period_break(dates_,'month')
         info['maj'][month_start] = True
-        info['min'] = True
+        if freq < _c.FR_HR:
+            info['min'] = True
+        else:
+            day_start = period_break(dates_,'day')
+            info['min'][day_start] = True
+
         if asformatter:
             week_start = period_break(dates_,'week')
             year_start = period_break(dates_,'year')
@@ -420,8 +494,14 @@ class TimeSeries_DateLocator(Locator):
             self.finder = _quarterly_finder
         elif freq == _c.FR_MTH:
             self.finder = _monthly_finder
-        elif freq in (_c.FR_BUS, _c.FR_DAY) or fgroup == _c.FR_WK:
+        elif freq in (
+            _c.FR_BUS, _c.FR_DAY, _c.FR_HR, _c.FR_MIN, _c.FR_SEC) or \
+            fgroup == _c.FR_WK:
+
             self.finder = _daily_finder
+        else:
+            raise NotImplementedError(
+                "Unsupported frequency: %s" % check_freq_str(freq))
 
     def asminor(self):
         "Returns the locator set to minor mode."
@@ -442,13 +522,9 @@ class TimeSeries_DateLocator(Locator):
 
     def __call__(self):
         'Return the locations of the ticks.'
-        if hasattr(self, "axis"):
-            # new matplotlib
-            (vmin, vmax) = self.axis.get_view_interval()
-        else:
-            # matplotlib version <= 0.91.x
-            self.verify_intervals()
-            vmin, vmax = self.viewInterval.get_bounds()
+
+        # requires matplotlib >= 0.98.0
+        (vmin, vmax) = self.axis.get_view_interval()
 
         if vmax < vmin:
             vmin, vmax = vmax, vmin
@@ -465,15 +541,10 @@ class TimeSeries_DateLocator(Locator):
         """Sets the view limits to the nearest multiples of base that contain
     the data.
         """
-        if hasattr(self, "axis"):
-            # new matplotlib
-            (vmin, vmax) = self.axis.get_data_interval()
-        else:
-            # matplotlib version <= 0.91.x
-            self.verify_intervals()
-            vmin, vmax = self.dataInterval.get_bounds()
+        # requires matplotlib >= 0.98.0
+        (vmin, vmax) = self.axis.get_data_interval()
 
-        locs = self._get_default_locs(dmin, dmax)
+        locs = self._get_default_locs(vmin, vmax)
         (vmin, vmax) = locs[[0, -1]]
         if vmin == vmax:
             vmin -= 1
@@ -502,8 +573,14 @@ class TimeSeries_DateFormatter(Formatter):
             self.finder = _quarterly_finder
         elif freq == _c.FR_MTH:
             self.finder = _monthly_finder
-        elif freq in (_c.FR_BUS, _c.FR_DAY) or fgroup == _c.FR_WK:
+        elif freq in (
+            _c.FR_BUS, _c.FR_DAY, _c.FR_HR, _c.FR_MIN, _c.FR_SEC) or \
+            fgroup == _c.FR_WK:
+
             self.finder = _daily_finder
+        else:
+            raise NotImplementedError(
+                "Unsupported frequency: %s" % check_freq_str(freq))
 
     def asminor(self):
         "Returns the formatter set to minor mode."
@@ -517,6 +594,7 @@ class TimeSeries_DateFormatter(Formatter):
 
     def _set_default_format(self, vmin, vmax):
         "Returns the default ticks spacing."
+
         info = self.finder(vmin, vmax, self.freq, True)
         if self.isminor:
             format = np.compress(info['min'] & np.logical_not(info['maj']),
@@ -528,9 +606,16 @@ class TimeSeries_DateFormatter(Formatter):
 
     def set_locs(self, locs):
         'Sets the locations of the ticks'
+
+        # don't actually use the locs. This is just needed to work with
+        # matplotlib. Force to use vmin, vmax
         self.locs = locs
-        if len(self.locs) > 0:
-            self._set_default_format(locs[0], locs[-1])
+
+        (vmin, vmax) = self.axis.get_view_interval()
+        if vmax < vmin:
+            vmin, vmax = vmax, vmin
+
+        self._set_default_format(vmin, vmax)
     #
     def __call__(self, x, pos=0):
         if self.formatdict is None:
@@ -559,9 +644,7 @@ Accepts the same keywords as a standard subplot, plus a specific `series` keywor
         _series = kwargs.pop('series',
                              getattr(fig,'series',None))
         Subplot.__init__(self,fig,*args,**kwargs)
-#        # Force fig to be defined .....
-#        if fig is None:
-#            fig = TSFigure(_series)
+
         # Process options .......................
         if _series is not None:
             assert hasattr(_series, "dates")
@@ -698,13 +781,6 @@ This command accepts the same keywords as matplotlib.plot."""
         self.xaxis.set_major_formatter(majformatter)
         self.xaxis.set_minor_formatter(minformatter)
         pylab.draw_if_interactive()
-        #........................................
-#        if rcParams['backend'] == 'PS':
-#            rotate = False
-#            warnings.warn("dateplot: PS backend detected, rotate disabled")
-#        if self.is_last_row():
-#            if rotate:
-#                setp(self.get_xticklabels(),rotation=45)
     #......................................................
     def set_datelimits(self, start_date=None, end_date=None):
         """Sets the date limits of the plot to start_date and end_date.
@@ -722,10 +798,10 @@ This command accepts the same keywords as matplotlib.plot."""
         current_limits = self.get_xlim()
         #
         def get_datevalue(date, freq):
-            if isinstance(date, timeseries.Date):
+            if isinstance(date, Date):
                 return date.asfreq(freq).value
             elif isinstance(date, str):
-                return timeseries.Date(freq, string=date).value
+                return Date(freq, string=date).value
             elif isinstance(date, (int,float)) or \
                 (isinstance(date, np.ndarray) and (date.size == 1)):
                 return date
