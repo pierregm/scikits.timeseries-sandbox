@@ -74,7 +74,8 @@ class TestTimeSeriesRecords(TestCase):
         assert_equal(rts.f0, time_series(d, dates=dates, mask=m))
         assert_equal(rts.f1, time_series(d[::-1], dates=dates, mask=m[::-1]))
         assert((rts._fieldmask == nr.fromarrays([m, m[::-1]])).all())
-        assert_equal(rts._mask, np.r_[[m,m[::-1]]].all(0))
+        # Was _mask, now is recordmask
+        assert_equal(rts.recordmask, np.r_[[m,m[::-1]]].all(0))
         assert_equal(rts.f0[1], rts[1].f0)
         #
         assert(isinstance(rts[:2], TimeSeriesRecords))
@@ -112,17 +113,31 @@ class TestTimeSeriesRecords(TestCase):
         "Tests setting slices."
         [d, m, mrec, dlist, dates, mts, rts] = self.data
         #
-        rts[:2] = 5
+        try:
+            rts[:2] = 5
+        except TypeError:
+            pass
+        else:
+            raise TypeError("Should have expected a readable buffer object.")
+        rts[:2] = (5,5)
         assert_equal(rts.f0._data, [5,5,2,3,4])
         assert_equal(rts.f1._data, [5,5,2,1,0])
         assert_equal(rts.f0._mask, [0,0,0,1,1])
         assert_equal(rts.f1._mask, [0,0,0,0,1])
+        #
         rts.harden_mask()
-        rts[-2:] = 5
-        assert_equal(rts.f0._data, [5,5,2,3,4])
-        assert_equal(rts.f1._data, [5,5,2,5,0])
-        assert_equal(rts.f0._mask, [0,0,0,1,1])
-        assert_equal(rts.f1._mask, [0,0,0,0,1])
+        try:
+            rts[-2:] = (5,5)
+            assert_equal(rts.f0._data, [5,5,2,3,4])
+            assert_equal(rts.f1._data, [5,5,2,5,0])
+            assert_equal(rts.f0._mask, [0,0,0,1,1])
+            assert_equal(rts.f1._mask, [0,0,0,0,1])
+        except NotImplementedError:
+            pass
+        except AssertionError:
+            raise
+        else:
+            raise Exception("Flexible hard masks should be supported")
 
     def test_hardmask(self):
         "Test hardmask"
@@ -130,7 +145,8 @@ class TestTimeSeriesRecords(TestCase):
         rts.harden_mask()
         assert(rts._hardmask)
         rts._mask = nomask
-        assert_equal(rts._mask, np.r_[[m,m[::-1]]].all(0))
+        # Was _mask, now is recordmask
+        assert_equal(rts.recordmask, np.r_[[m,m[::-1]]].all(0))
         rts.soften_mask()
         assert(not rts._hardmask)
         rts._mask = nomask
@@ -162,7 +178,7 @@ class TestTimeSeriesRecords(TestCase):
         assert_equal(mrecfr.f0, mrec.f0[::-1])
         #....................
         mrecfr = fromrecords(mrec.data, dates=dates, mask=m)
-        assert_array_equal(mrecfr.mask, m)
+        assert_equal(mrecfr.recordmask, m)
 
     def test_fromtextfile(self):
         "Tests reading from a text file."

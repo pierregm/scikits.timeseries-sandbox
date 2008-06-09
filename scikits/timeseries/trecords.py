@@ -172,7 +172,7 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
 
     def __setslice__(self, i, j, value):
         """Sets the slice described by [i,j] to `value`."""
-        self.view(mrecarray).__setslice__(i,j,value)
+        self.view(mrecarray).__setitem__(slice(i,j),value)
         return
 
     #......................................................
@@ -386,6 +386,17 @@ def fromtextfile(fname, delimitor=None, commentchar='#', missingchar='',
 
 
     Ultra simple: the varnames are in the header, one line"""
+    #!!!: I know it's weak, but the current method to determine variable names
+    #!!!: is seriously FUBAR right now.
+    #!!!: Anyway, we need to use numpy.io first, shouldn't we ?
+    #!!!: Using the kind of autodetermination of dtypes, or all-as-object
+    err_msg = "trecords.fromtextfile is temporarily out of service.\n"\
+              "Please accept our apologies for any inconvenience."
+    raise NotImplementedError(err_msg)
+    
+    # Declare the pattern for the dates column
+    import re
+    datescolpattern = re.compile("'?_?dates?'?", re.IGNORECASE)
     # Try to open the file ......................
     f = openfile(fname)
     # Get the first non-empty line as the varnames
@@ -404,7 +415,7 @@ def fromtextfile(fname, delimitor=None, commentchar='#', missingchar='',
     # Check if we need to get the dates..........
     if dates_column is None:
         dates_column = [i for (i,n) in enumerate(list(varnames))
-                            if n.lower() in ['_dates','dates']]
+                            if datescolpattern.search(n) is not None]
     elif isinstance(dates_column,(int,float)):
         if dates_column > nfields:
             raise ValueError,\

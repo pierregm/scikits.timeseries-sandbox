@@ -131,36 +131,36 @@ class TimeSeriesCompatibilityError(TimeSeriesError):
 def _timeseriescompat(a, b, raise_error=True):
     """Checks the date compatibility of two TimeSeries object.
     Returns True if everything's fine, or raises an exception."""
-    if not (hasattr(a,'freq') and hasattr(b, 'freq')):
+    #!!!: We need to use _varshape to simplify the analysis
+    # Check the frequency ..............
+    (afreq, bfreq) = (getattr(a,'freq',None), getattr(b, 'freq', None))
+    if afreq != bfreq:
+        if raise_error:
+            raise TimeSeriesCompatibilityError('freq', afreq, bfreq)
+        return False
+    # Make sure a.freq is not None
+    if afreq is None:
         return True
-    if a.freq != b.freq:
+    # Check the dates ...................
+    (astart, bstart) = (getattr(a, 'start_date'), getattr(b, 'start_date'))
+    if astart != bstart:
         if raise_error:
-            raise TimeSeriesCompatibilityError('freq', a.freq, b.freq)
-        else:
-            return False
-    elif a.start_date != b.start_date:
+            raise TimeSeriesCompatibilityError('start_date', astart, bstart)
+        return False
+    # Check the time steps ..............
+    asteps = getattr(a,'_dates',a).get_steps()
+    bsteps = getattr(b,'_dates',b).get_steps()
+    step_diff = (asteps != bsteps)
+    if (step_diff is True) or \
+       (hasattr(step_diff, "any") and step_diff.any()):
         if raise_error:
-            raise TimeSeriesCompatibilityError('start_date',
-                                               a.start_date, b.start_date)
-        else:
-            return False
-    else:
-        asteps = getattr(a,'_dates',a).get_steps()
-        bsteps = getattr(b,'_dates',b).get_steps()
-        step_diff = (asteps != bsteps)
-        if (step_diff is True) or \
-           (hasattr(step_diff, "any") and step_diff.any()):
-            if raise_error:
-                raise TimeSeriesCompatibilityError('time_steps', asteps, bsteps)
-            else:
-                return False
-        elif a.shape != b.shape:
-            if raise_error:
-                raise TimeSeriesCompatibilityError(
-                        'size', "1: %s" % str(a.shape),
-                        "2: %s" % str(b.shape))
-            else:
-                return False
+            raise TimeSeriesCompatibilityError('time_steps', asteps, bsteps)
+        return False
+    elif a.shape != b.shape:
+        if raise_error:
+            raise TimeSeriesCompatibilityError('size', "1: %s" % str(a.shape),
+                                                       "2: %s" % str(b.shape))
+        return False
     return True
 
 def _timeseriescompat_multiple(*series):
@@ -200,7 +200,7 @@ def _datadatescompat(data, dates):
     """Checks the compatibility of dates and data at the creation of a
 TimeSeries.
 
-Returns True if everything's fine, raises an exception otherwise.
+Returns a tuple if everything's fine, raises an exception otherwise.
 """
     # If there's only 1 element, the date is a Date object, which has no
     # size...
@@ -208,13 +208,14 @@ Returns True if everything's fine, raises an exception otherwise.
     dsize = data.size
     # Only one data
     if dsize == tsize:
-        return True
+        return ()
     elif data.ndim > 1:
         dsize = data.shape[0]
+        varshape = data.shape[1:]
         if dsize == tsize:
-            return True
+            return varshape
     elif data.ndim == 0 and tsize <= 1:
-        return True
+        return ()
     raise TimeSeriesCompatibilityError('size', "data: %s" % dsize,
                                                "dates: %s" % tsize)
 
@@ -379,8 +380,8 @@ A time series is here defined as the combination of two arrays:
                 fill_value=None, subok=True, keep_mask=True, hard_mask=False,
                 **options):
 
-        maparms = dict(copy=copy, dtype=dtype, fill_value=fill_value, subok=subok,
-                       keep_mask=keep_mask, hard_mask=hard_mask)
+        maparms = dict(copy=copy, dtype=dtype, fill_value=fill_value, 
+                       subok=subok, keep_mask=keep_mask, hard_mask=hard_mask)
         _data = MaskedArray(data, mask=mask, **maparms)
 
         # Get the dates ......................................................
@@ -394,23 +395,20 @@ A time series is here defined as the combination of two arrays:
         if _data is masked:
             assert(np.size(dates)==1)
             return _data.view(cls)
-        assert(_datadatescompat(_data,dates))
+        # Check that the dates and data are compatible in shape.
+        _data._varshape = _datadatescompat(_data,dates)
         _data._dates = dates
-        if _data._dates.size == _data.size:
-            if _data.ndim > 1:
-                current_shape = data.shape
-
-                if dates._unsorted is not None:
-                    _data.shape = (-1,)
-                    _data = _data[dates._unsorted]
-                    _data.shape = current_shape
-                _data._dates.shape = current_shape
-            elif dates._unsorted is not None:
-                _data = _data[dates._unsorted]
+        # Make sure the data is properly sorted.
+        #!!!: WE SHOULD TEST THAT MORE
+        if dates._unsorted is not None:
+            idx = dates._unsorted
+            _data = _data[idx]
+            _data._dates._unsorted = None
         return _data
     #.........................................................................
     def __array_finalize__(self,obj):
         self._dates = getattr(obj, '_dates', DateArray([]))
+        self._varshape = getattr(obj, '_varshape', ())
         MaskedArray.__array_finalize__(self, obj)
         return
     #.........................................................................
@@ -418,7 +416,7 @@ A time series is here defined as the combination of two arrays:
         _dates = getattr(self,'_dates',DateArray([]))
         super(TimeSeries, self)._update_from(obj)
         newdates = getattr(obj, '_dates', DateArray([]))
-        if _dates.size == 0:
+        if not getattr(_dates, 'size', 0):
             _dates = newdates
         elif newdates.size > 0:
             _timeseriescompat(_dates,newdates)
@@ -778,10 +776,11 @@ original series (unlike the `convert` method).
         """Returns an array of the same class as `_data`,  with masked values
 filled with `fill_value`. Subclassing is preserved.
 
-*Parameters*:
+    Parameters
+    ----------
     fill_value : {None, singleton of type self.dtype}, optional
-        The value to fill in masked values with. If `fill_value` is None, uses
-        self.fill_value.
+        The value to fill in masked values with. 
+        If `fill_value` is None, uses self.fill_value.
 """
         result = self._series.filled(fill_value=fill_value).view(type(self))
         result._dates = self._dates
@@ -1080,7 +1079,7 @@ def flatten(series):
 TimeSeries.flatten = flatten
 
 ##### -------------------------------------------------------------------------
-#---- --- TimeSeries creator ---
+#---- --- TimeSeries constructor ---
 ##### -------------------------------------------------------------------------
 def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
                 dtype=None, copy=False, fill_value=None, keep_mask=True,
@@ -1553,15 +1552,23 @@ corresponding to the initially missing dates are masked, or filled to
         datam = data._mask
         if isinstance(data, TimeSeries):
             datat = type(data)
+            datas = data._varshape
         else:
             datat = TimeSeries
+            datas = ()
     else:
         datad = np.asarray(data)
         datam = nomask
         datat = TimeSeries
     # Check whether we need to flatten the data
-    if dates.ndim > 1 and dates.ndim == datad.ndim:
-        datad.shape = -1
+    if data.ndim > 1:
+        if (not datas):
+            datad.shape = -1
+        elif dflat.size != len(datad):
+            err_msg = "fill_missing_dates is not yet implemented for nD series!"
+            raise NotImplementedError(err_msg)
+#    if dates.ndim > 1 and dates.ndim == datad.ndim:
+#        datad.shape = -1
     # ...and now, fill it ! ......
     (tstart, tend) = dflat[[0,-1]]
     newdates = date_array(start_date=tstart, end_date=tend)
@@ -1589,6 +1596,7 @@ corresponding to the initially missing dates are masked, or filled to
     newshape = list(datad.shape)
     newshape[0] = nsize
     newdatad = np.empty(newshape, data.dtype)
+    #!!!: HERE, newdatam should call make_mask_none(newshape, mdtype) for records
     newdatam = np.ones(newshape, bool_)
     #....
     if datam is nomask:

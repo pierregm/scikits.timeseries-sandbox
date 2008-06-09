@@ -190,8 +190,8 @@ class TestArithmetics(TestCase):
         (series, data) =self.d
         assert_equal(series._mask, [1,0,0,0,0]*3)
         series.mask = nomask
-        assert(series._mask is nomask)
-        assert(series._series._mask is nomask)
+        assert(not series._mask.any())
+        assert(not series._series._mask.any())
         #series._series.mask = [1,0,0]*5
         series.mask = [1,0,0]*5
         assert_equal(series._mask, [1,0,0]*5)

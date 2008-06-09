@@ -537,11 +537,13 @@ For non-quarterly dates, this simply returns the year of the date."""
 #####---------------------------------------------------------------------------
 def _listparser(dlist, freq=None):
     "Constructs a DateArray from a list."
-    dlist = np.asarray(dlist)
+    dlist = np.array(dlist, copy=False, ndmin=1)
+    # Make sure that the list is sorted (save the original order if needed)
     idx = dlist.argsort()
-    dlist = dlist[idx]
-    if dlist.ndim == 0:
-        dlist.shape = (1,)
+    if (idx[1:] - idx[:-1] < 0).any():
+        dlist = dlist[idx]
+    else:
+        idx = None
     # Case #1: dates as strings .................
     if dlist.dtype.kind in 'SU':
         #...construct a list of dates
@@ -630,7 +632,6 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
         if not isinstance(end_date, Date):
             raise DateError, "Ending date should be a valid Date instance!"
         length = int(end_date - start_date) + 1
-#    dlist = [(start_date+i).value for i in range(length)]
     dlist = np.arange(length, dtype=int_)
     dlist += start_date.value
     if freq == _c.FR_UND:
