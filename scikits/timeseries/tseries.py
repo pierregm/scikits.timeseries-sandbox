@@ -16,7 +16,7 @@ These two classes were liberally adapted from `MaskedArray` class.
 #!!!: * Add some kind of marker telling whether we are 1D or nD:
 #!!!:    That could be done by checking the ratio series.size/series._dates.size
 #!!!: * Disable some of the tests on date compatibility if we are nD
-#!!!: * Adapt reshaping to preserve the first dimension
+#!!!: * Adapt reshaping to preserve the first dimension: that goes for squeeze
 
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox"
 __version__ = '1.0'
@@ -121,7 +121,7 @@ class TimeSeriesCompatibilityError(TimeSeriesError):
             msg = "Incompatible time steps! (%s <> %s)"
         elif mode == 'start_date':
             msg = "Incompatible starting dates! (%s <> %s)"
-        elif mode == 'size':
+        elif mode in ('size', 'shape'):
             msg = "Incompatible sizes! (%s <> %s)"
         else:
             msg = "Incompatibility !  (%s <> %s)"
@@ -168,56 +168,82 @@ def _timeseriescompat_multiple(*series):
     Returns True if everything's fine, or raises an exception. Unlike
     the binary version, all items must be TimeSeries objects."""
 
-    freqs, start_dates, steps, shapes = \
-        zip(*[(ser.freq, ser.start_date,
-               (ser._dates.get_steps() != series[0]._dates.get_steps()).any(),
-               ser.shape)  for ser in series])
+    defsteps = series[0]._dates.get_steps()
 
+    (freqs, start_dates, steps, shapes) = \
+                                zip(*[(s.freq, 
+                                       s.start_date,
+                                       (s._dates.get_steps() != defsteps).any(),
+                                       s.shape) for s in series])
+    # Check the frequencies ................
+    freqset = set(freqs)
     if len(set(freqs)) > 1:
-        errItems = tuple(set(freqs))
-        raise TimeSeriesCompatibilityError('freq', errItems[0], errItems[1])
-
-    if len(set(start_dates)) > 1:
-        errItems = tuple(set(start_dates))
+        err_items = tuple(freqset)
+        raise TimeSeriesCompatibilityError('freq', err_items[0], err_items[1])
+    # Check the strting dates ..............
+    startset = set(start_dates)
+    if len(startset) > 1:
+        err_items = tuple(startset)
         raise TimeSeriesCompatibilityError('start_dates',
-                                           errItems[0], errItems[1])
-
+                                           err_items[0], err_items[1])
+    # Check the steps ......................
     if max(steps) == True:
-        bad_index = [x for x, val in enumerate(steps) if val][0]
+        bad_index = [x for (x, val) in enumerate(steps) if val][0]
         raise TimeSeriesCompatibilityError('time_steps',
-                series[0]._dates.get_steps(),
-                series[bad_index]._dates.get_steps())
-
-    if len(set(shapes)) > 1:
-        errItems = tuple(set(shapes))
+                                           defsteps,
+                                           series[bad_index]._dates.get_steps())
+    # Check the shapes .....................
+    shapeset = set(shapes)
+    if len(shapeset) > 1:
+        err_items = tuple(shapeset)
         raise TimeSeriesCompatibilityError('size',
-                                           "1: %s" % str(errItems[0].shape),
-                                           "2: %s" % str(errItems[1].shape))
-
+                                           "1: %s" % str(err_items[0].shape),
+                                           "2: %s" % str(err_items[1].shape))
     return True
 
-def _datadatescompat(data, dates):
-    """Checks the compatibility of dates and data at the creation of a
-TimeSeries.
 
-Returns a tuple if everything's fine, raises an exception otherwise.
-"""
-    # If there's only 1 element, the date is a Date object, which has no
-    # size...
-    tsize = np.size(dates)
-    dsize = data.size
-    # Only one data
-    if dsize == tsize:
+def get_varshape(data, dates):
+    """Checks the compatibility of dates and data.
+    
+    Parameters
+    ----------
+    data : array-like
+        Array of data
+    dates : Date, DateArray
+        Sequence of dates
+
+    Returns
+    -------
+    varshape : tuple
+        A tuple indicating the shape of the data at any date.
+        
+    Raises
+    ------
+        A TimeSeriesCompatibilityError exception is raised if something goes
+        wrong.
+
+    """
+
+    dshape = data.shape
+    dates = np.array(dates, copy=False, ndmin=1)
+    tshape = dates.shape
+    err_args = ('shape', "data: %s" % str(dshape), "dates: %s" % str(tshape))
+    # Same size: all is well
+    #???: The (not dates.size) is introduced to deal with tsmasked
+    if (not dates.size) or (dates.size == data.size):
         return ()
-    elif data.ndim > 1:
-        dsize = data.shape[0]
-        varshape = data.shape[1:]
-        if dsize == tsize:
-            return varshape
-    elif data.ndim == 0 and tsize <= 1:
-        return ()
-    raise TimeSeriesCompatibilityError('size', "data: %s" % dsize,
-                                               "dates: %s" % tsize)
+    # More dates than data: not good
+    if (dates.size > data.size) or (data.ndim == 1):
+        raise TimeSeriesCompatibilityError(*err_args)
+    #....................
+    dcumulshape = np.cumprod(dshape).tolist()
+    try:
+        k = dcumulshape.index(dates.size)
+    except ValueError:
+        raise TimeSeriesCompatibilityError(*err_args)
+    else:
+        return dshape[k+1:]
+
 
 def _getdatalength(data):
     "Estimates the length of a series (size/nb of variables)."
@@ -240,6 +266,9 @@ frequencies.
             "All series must have same frequency! (got %s instead)" % \
             unique_freqs
     return common_freq
+
+
+nodates = DateArray([])
 
 ##### ------------------------------------------------------------------------
 ##--- ... Time Series ...
@@ -266,25 +295,16 @@ unchanged.
             compat = _timeseriescompat(instance, other, raise_error=False)
         else:
             compat = True
-
         func = getattr(super(TimeSeries, instance), self._name)
         if compat:
             result = np.array(func(other, *args), subok=True).view(type(instance))
             result._dates = instance._dates
         else:
-            if hasattr(other, '_series'):
-                _other = other._series
-            else:
-                _other = other
-
-            _result = func(_other, *args)
-
-            if hasattr(_result, '_series'):
-                result = _result._series
-            else:
-                result = _result
-
+            other_ = getattr(other, '_series', other)
+            result_ = func(other_, *args)
+            result = getattr(result_, '_series', result_)
         return result
+
 
 class _tsarraymethod(object):
     """Defines a wrapper for basic array methods.
@@ -316,6 +336,7 @@ If `ondates` is False, the `_dates` part remains unchanged.
         else:
             result._dates = instance._dates
         return result
+
 
 class _tsaxismethod(object):
     """Defines a wrapper for array methods working on an axis (mean...).
@@ -351,6 +372,9 @@ series.
                 pass
             return result
 
+
+
+
 class TimeSeries(MaskedArray, object):
     """Base class for the definition of time series.
 
@@ -384,11 +408,6 @@ A time series is here defined as the combination of two arrays:
                        subok=subok, keep_mask=keep_mask, hard_mask=hard_mask)
         _data = MaskedArray(data, mask=mask, **maparms)
 
-        # Get the dates ......................................................
-        if not isinstance(dates, (Date, DateArray)):
-            raise TypeError("The input dates should be a valid Date or " + \
-                            "DateArray object (got %s instead)" % type(dates))
-
         # Get the data .......................................................
         if not subok or not isinstance(_data,TimeSeries):
             _data = _data.view(cls)
@@ -396,7 +415,8 @@ A time series is here defined as the combination of two arrays:
             assert(np.size(dates)==1)
             return _data.view(cls)
         # Check that the dates and data are compatible in shape.
-        _data._varshape = _datadatescompat(_data,dates)
+        _data._varshape = get_varshape(_data,dates)
+        # Set the dates
         _data._dates = dates
         # Make sure the data is properly sorted.
         #!!!: WE SHOULD TEST THAT MORE
@@ -407,20 +427,18 @@ A time series is here defined as the combination of two arrays:
         return _data
     #.........................................................................
     def __array_finalize__(self,obj):
-        self._dates = getattr(obj, '_dates', DateArray([]))
         self._varshape = getattr(obj, '_varshape', ())
+        self._dates = getattr(obj, '_dates', nodates)
         MaskedArray.__array_finalize__(self, obj)
         return
     #.........................................................................
     def _update_from(self, obj):
-        _dates = getattr(self,'_dates',DateArray([]))
+        _dates = getattr(self, '_dates', nodates)
         super(TimeSeries, self)._update_from(obj)
-        newdates = getattr(obj, '_dates', DateArray([]))
+        newdates = getattr(obj, '_dates', nodates)
+        # Only update the dates if we don't have any
         if not getattr(_dates, 'size', 0):
-            _dates = newdates
-        elif newdates.size > 0:
-            _timeseriescompat(_dates,newdates)
-        self._dates = _dates
+            self._dates = newdates
         return
     #.........................................................................
     def _get_series(self):
@@ -495,11 +513,15 @@ A time series is here defined as the combination of two arrays:
     def __getitem__(self, indx):
         """x.__getitem__(y) <==> x[y]
 Returns the item described by i. Not a copy.
-"""
+        """
+        #!!!: We don't need all that for returning a scalar only
+        #!!!: Jus try a regular setitem on ._series and _dates
+        #!!!: Don't reshape the result
         (sindx, dindx) = self.__checkindex(indx)
         newdata = np.array(self._series[sindx], copy=False, subok=True)
         newdate = self._dates[dindx]
         singlepoint = (len(np.shape(newdate))==0)
+#        varshape = self._varshape
         if singlepoint:
             newdate = DateArray(newdate)
             if newdata is masked:
@@ -508,11 +530,13 @@ Returns the item described by i. Not a copy.
                 return newdata
             elif self.ndim > 1:
                 # CHECK: use reshape, or set shape ?
+#                varshape = list(newdata.shape)
                 newshape = (list((1,)) + list(newdata.shape))
                 newdata.shape = newshape
         newdata = newdata.view(type(self))
-        newdata._update_from(self)
+#        newdata._varshape = newdata.shape
         newdata._dates = newdate
+        newdata._update_from(self)
         return newdata
     #........................
     def __setitem__(self, indx, value):
@@ -523,6 +547,27 @@ Sets item described by index. If value is masked, masks those locations.
             raise MAError, 'Cannot alter the masked element.'
         (sindx, _) = self.__checkindex(indx)
         super(TimeSeries, self).__setitem__(sindx, value)
+    #........................
+    def __setattr__(self, attr, value):
+        if attr in ['_dates','dates']:
+            # Make sure it's a DateArray
+            if not isinstance(value, (Date, DateArray)):
+                err_msg = "The input dates should be a valid Date or "\
+                          "DateArray object (got %s instead)" % type(value)
+                raise TypeError(err_msg)
+            # Make sure it has the proper size
+            tsize = getattr(value, 'size', 1)
+            varshape = self._varshape
+            if not varshape:
+                varshape = self._varshape = get_varshape(self, value)
+            dsize = self.size // int(np.prod(varshape))
+            if tsize and tsize != dsize:
+                raise TimeSeriesCompatibilityError("size",
+                                                   "data: %s" % dsize,
+                                                   "dates: %s" % tsize)
+        return super(TimeSeries, self).__setattr__(attr, value)
+
+
     #......................................................
     def __str__(self):
         """Returns a string representation of self (w/o the dates...)"""
@@ -1159,13 +1204,15 @@ def compressed(series):
     if series.ndim == 1:
         keeper = ~(series._mask)
     elif series.ndim == 2:
+        _dates = series._dates
+        _series = series._series
         # Both dates and data are 2D: ravel first
-        if series._dates.ndim == 2:
+        if _dates.ndim == 2:
             series = series.ravel()
             keeper = ~(series._mask)
         # 2D series w/ only one date : return a new series ....
-        elif series._dates.size == 1:
-            result = series._series.compressed().view(type(series))
+        elif _dates.size == 1:
+            result = _series.compressed().view(type(series))
             result._dates = series.dates
             return result
         # a 2D series: suppress the rows (dates are in columns)
@@ -1239,9 +1286,10 @@ def adjust_endpoints(a, start_date=None, end_date=None):
     newshape = tuple(newshape)
 
     newseries = np.empty(newshape, dtype=a.dtype).view(type(a))
+    #!!!: Here, we may wanna use something else than MaskType
     newseries.__setmask__(np.ones(newseries.shape, dtype=bool_))
-    newseries._update_from(a)
     newseries._dates = newdates
+    newseries._update_from(a)
     if dstart is not None:
         start_date = max(start_date, dstart)
         end_date = min(end_date, dend) + 1
@@ -1299,55 +1347,67 @@ def align_with(*series):
 def _convert1d(series, freq, func, position, *args, **kwargs):
     "helper function for `convert` function"
     if not isinstance(series,TimeSeries):
-        raise TypeError, "The argument should be a valid TimeSeries!"
-
-    toFreq = check_freq(freq)
-    fromFreq = series.freq
-
-    if toFreq == _c.FR_UND:
-        raise TimeSeriesError, \
-            "Cannot convert a series to UNDEFINED frequency."
-
-    if fromFreq == _c.FR_UND:
-        raise TimeSeriesError, \
-            "Cannot convert a series with UNDEFINED frequency."
-
+        raise TypeError("The argument should be a valid TimeSeries!")
+    # Check the frequencies ..........................
+    to_freq = check_freq(freq)
+    from_freq = series.freq
+    # Don't do anything if not needed
+    if from_freq == to_freq:
+        return series
+    if from_freq == _c.FR_UND:
+        err_msg = "Cannot convert a series with UNDEFINED frequency."
+        raise TimeSeriesError(err_msg)
+    if to_freq == _c.FR_UND:
+        err_msg = "Cannot convert a series to UNDEFINED frequency."
+        raise TimeSeriesError(err_msg)
+    # Check the validity of the series .....
     if not series.isvalid():
-        raise TimeSeriesError, \
-            "Cannot adjust a series with missing or duplicated dates."
-
+        err_msg = "Cannot adjust a series with missing or duplicated dates."
+        raise TimeSeriesError(err_msg)
+            
+    # Check the position parameter..........
     if position.upper() not in ('END','START'):
-        raise ValueError("Invalid value for position argument: (%s). "\
-                         "Should be in ['END','START']," % str(position))
+        err_msg = "Invalid value for position argument: (%s). "\
+                  "Should be in ['END','START']," % str(position)
+        raise ValueError(err_msg)
 
     start_date = series._dates[0]
 
     if series.size == 0:
-        return TimeSeries(series, freq=toFreq,
-                          start_date=start_date.asfreq(toFreq))
+        return TimeSeries(series, freq=to_freq,
+                          start_date=start_date.asfreq(to_freq))
 
-    tempData = series._series.filled()
-    tempMask = getmaskarray(series)
+    tmpdata = series._series.filled()
+    tmpmask = getmaskarray(series)
 
-    if (tempData.size // series._dates.size) > 1:
+    if (tmpdata.size // series._dates.size) > 1:
         raise TimeSeriesError("convert works with 1D data only !")
 
-    cRetVal = cseries.TS_convert(tempData, fromFreq, toFreq, position,
-                                 int(start_date), tempMask)
-    _values = cRetVal['values']
-    _mask = cRetVal['mask']
-    _startindex = cRetVal['startindex']
-    start_date = Date(freq=toFreq, value=_startindex)
+    cdictresult = cseries.TS_convert(tmpdata, from_freq, to_freq, position,
+                                     int(start_date), tmpmask)
+    start_date = Date(freq=to_freq, value=cdictresult['startindex'])
+    tmpdata = masked_array(cdictresult['values'], mask=cdictresult['mask'])
 
-    tempData = masked_array(_values, mask=_mask)
+    if tmpdata.ndim == 2:
+        if func is None:
+            newvarshape = tmpdata.shape[1:]
+        else:
+            tmpdata = ma.apply_along_axis(func, -1, tmpdata, *args, **kwargs)
+            newvarshape = ()
+    elif tmpdata.ndim == 1:
+        newvarshape = ()
+    
+    newdates = date_array(start_date=start_date, 
+                          length=len(tmpdata),
+                          freq=to_freq)
+#    assert(get_varshape(tmpdata, newdates), newvarshape)
 
-    if tempData.ndim == 2 and func is not None:
-        tempData = ma.apply_along_axis(func, -1, tempData, *args, **kwargs)
-
-    newseries = tempData.view(type(series))
+    newseries = tmpdata.view(type(series))
+    newseries._varshape = newvarshape
+    newseries._dates = date_array(start_date=start_date, 
+                                  length=len(newseries),
+                                  freq=to_freq)
     newseries._update_from(series)
-    newseries._dates = date_array(start_date=start_date, length=len(newseries),
-                                  freq=toFreq)
     return newseries
 
 def convert(series, freq, func=None, position='END', *args, **kwargs):
@@ -1643,14 +1703,15 @@ masked_array(data = [ 1  2  3 30],
       fill_value=999999)
 
 
-*Parameters*:
+    Parameters
+    ----------
     series : {sequence}
         Sequence of time series to join
-    axis : {integer}
+    axis : {0, None, int}, optional
         Axis along which to join
-    remove_duplicates : boolean
+    remove_duplicates : {False, True}, optional
         Whether to remove duplicated dates.
-    fill_missing : {boolean}
+    fill_missing : {False, True}, optional
         Whether to fill the missing dates with missing values.
     """
     # Get the common frequency, raise an error if incompatibility

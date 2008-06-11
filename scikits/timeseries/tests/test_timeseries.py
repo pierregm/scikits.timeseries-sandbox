@@ -19,13 +19,19 @@ import numpy.ma as ma
 from numpy.ma import masked, nomask
 from numpy.ma.testutils import assert_equal, assert_array_equal
 
-from scikits import timeseries as ts
+import scikits.timeseries as ts
 
 from scikits.timeseries import \
-    tseries, Date, date_array, now, time_series, TimeSeries, \
+    TimeSeries, TimeSeriesCompatibilityError, \
+    tseries, Date, date_array, now, time_series, \
     adjust_endpoints, align_series, align_with, \
     concatenate, fill_missing_dates, split, stack, tsmasked
-    
+
+get_varshape = tseries.get_varshape
+_timeseriescompat_multiple = tseries._timeseriescompat_multiple
+
+
+#------------------------------------------------------------------------------
 
 class TestCreation(TestCase):
     "Base test class for MaskedArrays."
@@ -36,6 +42,7 @@ class TestCreation(TestCase):
         data = ma.array(np.arange(15), mask=[1,0,0,0,0]*3)
         self.d = (dlist, dates, data)
 
+
     def test_fromlist (self):
         "Base data definition."
         (dlist, dates, data) = self.d
@@ -45,6 +52,7 @@ class TestCreation(TestCase):
         assert_equal(series._series, data)
         assert_equal(series._dates, dates)
         assert_equal(series.freqstr, 'D')
+
 
     def test_fromrange (self):
         "Base data definition."
@@ -94,6 +102,7 @@ class TestCreation(TestCase):
         series = time_series(data, dates)
         assert_equal(series._data.size, 15)
 
+
     def test_unsorted(self):
         "Tests that the data are properly sorted along the dates."
         dlist = ['2007-01-%02i' % i for i in (3,2,1)]
@@ -111,7 +120,9 @@ class TestCreation(TestCase):
         data = ma.array([10,20,30],mask=[1,0,0])
         series = time_series(data, dlist, freq='D')
         assert_equal(series._mask,[0,0,1])
-#...............................................................................
+
+
+#------------------------------------------------------------------------------
 
 class TestArithmetics(TestCase):
     "Some basic arithmetic tests"
@@ -237,7 +248,7 @@ incompatible dates"""
         assert_equal(result.ndim, a.ndim)
         assert_equal(result.size, a.size)
 
-#...............................................................................
+#------------------------------------------------------------------------------
 
 class TestGetitem(TestCase):
     "Some getitem tests"
@@ -344,6 +355,9 @@ class TestGetitem(TestCase):
         assert_equal(series[:,:,0], series._data[:,:,0])
         assert_equal(series[:,:,0]._dates, series._dates)
 
+
+#------------------------------------------------------------------------------
+
 class TestFunctions(TestCase):
     "Some getitem tests"
     def __init__(self, *args, **kwds):
@@ -425,19 +439,20 @@ Just check basic functionality. The details of the actual
 date conversion algorithms already tested by asfreq in the
 test_dates test suite.
         """
-        lowFreqSeries = time_series(np.arange(10),
-                                    start_date=Date(freq='m', year=2005, month=6))
-        highFreqSeries = time_series(np.arange(100),
-                                    start_date=Date(freq='b', year=2005, month=6, day=1))
+        June2005M = Date(freq='M', year=2005, month=6)
+        June2005B = Date(freq='b', year=2005, month=6, day=1)
+        
+        lowFreqSeries = time_series(np.arange(10), start_date=June2005M)
+        highFreqSeries = time_series(np.arange(100), start_date=June2005B)
         ndseries = time_series(np.arange(124).reshape(62,2),
                              start_date=Date(freq='d', year=2005, month=7, day=1))
 
         lowToHigh_start = lowFreqSeries.convert('B', position='START')
 
         assert_equal(lowToHigh_start.start_date,
-                     Date(freq='m', year=2005, month=6).asfreq("B", relation="START"))
+                     June2005M.asfreq("B", relation="START"))
         assert_equal(lowToHigh_start.end_date,
-                     (Date(freq='m', year=2005, month=6) + 9).asfreq("B", relation="END"))
+                     (June2005M + 9).asfreq("B", relation="END"))
 
         assert_equal(lowToHigh_start._mask[0], False)
         assert_equal(lowToHigh_start._mask[-1], True)
@@ -445,9 +460,9 @@ test_dates test suite.
         lowToHigh_end = lowFreqSeries.convert('B', position='END')
 
         assert_equal(lowToHigh_end.start_date,
-                     Date(freq='m', year=2005, month=6).asfreq("B", relation="START"))
+                     June2005M.asfreq("B", relation="START"))
         assert_equal(lowToHigh_end.end_date,
-                     (Date(freq='m', year=2005, month=6) + 9).asfreq("B", relation="END"))
+                     (June2005M + 9).asfreq("B", relation="END"))
 
         assert_equal(lowToHigh_end._mask[0], True)
         assert_equal(lowToHigh_end._mask[-1], False)
@@ -457,10 +472,8 @@ test_dates test suite.
 
         assert_equal(highToLow.ndim, 2)
         assert_equal(highToLow.shape[1], 23)
-        assert_equal(highToLow.start_date,
-                     Date(freq='b', year=2005, month=6, day=1).asfreq('M'))
-        assert_equal(highToLow.end_date,
-                     (Date(freq='b', year=2005, month=6, day=1) + 99).asfreq('M'))
+        assert_equal(highToLow.start_date, June2005B.asfreq('M'))
+        assert_equal(highToLow.end_date, (June2005B + 99).asfreq('M'))
 
         assert_array_equal(lowFreqSeries, lowFreqSeries.convert("M"))
 
@@ -529,33 +542,18 @@ test_dates test suite.
 
     def test__timeseriescompat_multiple(self):
         "Tests the compatibility of multiple time series."
-        seriesM_10 = time_series(
-                        np.arange(10),
-                        date_array(
-                            start_date=Date(freq='m', year=2005, month=1),
-                            length=10)
-                                )
-
-        seriesD_10 = time_series(
-                        np.arange(10),
-                        date_array(
-                            start_date=Date(freq='d', year=2005, month=1, day=1),
-                            length=10)
-                                )
-
-        seriesD_5 = time_series(
-                        np.arange(5),
-                        date_array(
-                            start_date=Date(freq='d', year=2005, month=1, day=1),
-                            length=5)
-                                )
-
-        seriesD_5_apr = time_series(
-                            np.arange(5),
-                            date_array(
-                                start_date=Date(freq='d', year=2005, month=4, day=1),
-                                length=5)
-                                )
+        newyearsday = Date('D', '2005-01-01')
+        aprilsfool = Date('D', '2005-04-01')
+        
+        seriesM_10 = time_series(np.arange(10),
+                                 date_array(start_date=newyearsday.asfreq('M'),
+                                            length=10))
+        seriesD_10 = time_series(np.arange(10),
+                                 date_array(start_date=newyearsday, length=10))
+        seriesD_5 = time_series(np.arange(5),
+                                date_array(start_date=newyearsday, length=5))
+        seriesD_5_apr = time_series(np.arange(5),
+                                    date_array(start_date=aprilsfool, length=5))
 
         assert(tseries._timeseriescompat_multiple(seriesM_10, seriesM_10, seriesM_10))
 
@@ -664,6 +662,9 @@ test_dates test suite.
         assert_equal(_pct[1], 1.0)
         assert_equal(_pct[2], 0.5)
 
+
+#------------------------------------------------------------------------------
+
 class TestMisc(TestCase):
     #
     def test_ma_ufuncs(self):
@@ -688,8 +689,53 @@ class TestMisc(TestCase):
         x.mask = nomask
         y = ts.empty_like(x)
         assert_equal(y.mask, nomask)
-        
-        
+    #
+    def test_compatibility_shape(self):
+        "Tests shape compatibility."
+        data = np.arange(2*3*4*5,)
+        dates = np.empty((2*3*4*5,))
+        assert_equal(get_varshape(data, dates), ())
+        #
+        dates.shape = (2,3,4,5)
+        assert_equal(get_varshape(data, dates), ())
+        #
+        dates = np.empty((2*3*4,))
+        try:
+            assert_equal(get_varshape(data, dates), None)
+        except TimeSeriesCompatibilityError:
+            pass
+        #
+        dates = np.empty((3*3*5,))
+        try:
+            assert_equal(get_varshape(data, dates), None)
+        except TimeSeriesCompatibilityError:
+            pass
+        #
+        data.shape = (2*3*4,5)
+        dates = np.empty((2*3*4,))
+        assert_equal(get_varshape(data, dates), (5,))
+        data.shape = (2*3, 4*5)
+        dates = np.empty((2*3*4,))
+        try:
+            assert_equal(get_varshape(data, dates), None)
+        except TimeSeriesCompatibilityError:
+            pass
+        dates = np.empty((2*3,4))
+        try:
+            assert_equal(get_varshape(data, dates), None)
+        except TimeSeriesCompatibilityError:
+            pass
+        data.shape = (2*3, 4, 5)
+        dates = np.empty((2,))
+        try:
+            assert_equal(get_varshape(data, dates), None)
+        except TimeSeriesCompatibilityError:
+            pass
+        dates = np.empty((2*3,))
+        assert_equal(get_varshape(data, dates), (4,5))
+
+
+
 ###############################################################################
 #------------------------------------------------------------------------------
 if __name__ == "__main__":

@@ -115,6 +115,7 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
         return _data
 
     def __array_finalize__(self,obj):
+        self._varshape = getattr(obj, '_varshape', ())
         _dates = getattr(obj,'_dates',DateArray([]))
         self.__dict__.update(_dates=_dates,
                              _observed=getattr(obj,'_observed',None),

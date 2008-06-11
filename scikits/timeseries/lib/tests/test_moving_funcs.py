@@ -10,6 +10,10 @@ __version__ = '1.0'
 __revision__ = "$Revision: 2819 $"
 __date__     = '$Date: 2007-03-03 18:00:20 -0500 (Sat, 03 Mar 2007) $'
 
+#!!!: Switch to the import numpy as np, numpy.ma as ma convention
+#!!!: Get rid of numpy.core.numeric
+#!!!: Use ma.array instead of MaskedArray
+
 import numpy as N
 import numpy.core.numeric as numeric
 
@@ -73,7 +77,8 @@ class TestCMovAverage(TestCase):
             k = (width-1)/2
             ravg = MF.cmov_average(data,width)
             assert(isinstance(ravg, MaskedArray))
-            assert_almost_equal(ravg[18].squeeze(), data[18-k:18+k+1].mean(0))
+            assert_almost_equal(ravg[18]._series.squeeze(), 
+                                data[18-k:18+k+1]._series.mean(0))
             m = N.zeros(data.shape, N.bool_)
             m[:k] = m[-k:] = m[10-k:10+k+1] = True
             assert_equal(ravg._mask, m)
