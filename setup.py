@@ -3,9 +3,7 @@ setuptools must be installed first. If you do not have setuptools installed
 please download and install it from http://pypi.python.org/pypi/setuptools
 """
 import setuptools
-
-subpackage = 'timeseries'
-version = '0.5'
+from scikits.timeseries.version import version
 
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
@@ -30,7 +28,7 @@ def setup_package():
     from numpy.distutils.core import setup
 
     setup(
-        name = 'scikits.' + subpackage,
+        name = 'scikits.timeseries',
         version = version,
         description = "Time series manipulation",
         configuration = configuration,
