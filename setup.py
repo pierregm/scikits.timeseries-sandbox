@@ -20,6 +20,7 @@ def configuration(parent_package='',top_path=None):
 
     config.add_subpackage('scikits.timeseries')
     config.add_data_files('scikits/__init__.py')
+    config.get_version('scikits/timeseries/version.py')
 
     return config
 
