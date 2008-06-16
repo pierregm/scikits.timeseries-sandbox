@@ -3,13 +3,13 @@ Auto/Cross-correlation/covariance functions for time series
 
 :author: Pierre GF Gerard-Marchant
 :contact: pierregm_at_uga_edu
-:date: $Date: 2006-12-20 03:24:40 -0500 (Wed, 20 Dec 2006) $
-:version: $Id: timeseries.py 55 2006-12-20 08:24:40Z backtopop $
+:date: $Date$
+:version: $Id$
 """
-__author__ = "Pierre GF Gerard-Marchant ($Author: backtopop $)"
+__author__ = "Pierre GF Gerard-Marchant ($Author$)"
 __version__ = '1.0'
-__revision__ = "$Revision: 55 $"
-__date__     = '$Date: 2006-12-20 03:24:40 -0500 (Wed, 20 Dec 2006) $'
+__revision__ = "$Revision$"
+__date__     = '$Date$'
 
 __all__ = ['acf','acf_std','avf',
            'ccf','cvf',

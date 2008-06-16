@@ -20,7 +20,7 @@ These two classes were liberally adapted from `MaskedArray` class.
 
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox"
 __version__ = '1.0'
-__revision__ = "$Revision: 3822 $"
+__revision__ = "$Revision$"
 
 import sys
 

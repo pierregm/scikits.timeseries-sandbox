@@ -3,13 +3,13 @@ Classes to plot TimeSeries w/ matplotlib.
 
 :author: Pierre GF Gerard-Marchant & Matt Knox
 :contact: pierregm_at_uga_dot_edu - mattknow_ca_at_hotmail_dot_com
-:date: $Date: 2007-12-26 14:34:43 -0500 (Wed, 26 Dec 2007) $
-:version: $Id: plotlib.py 3722 2007-12-26 19:34:43Z mattknox_ca $
+:date: $Date$
+:version: $Id$
 """
-__author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author: mattknox_ca $)"
-__version__ = '1.0'
-__revision__ = "$Revision: 3722 $"
-__date__     = '$Date: 2007-12-26 14:34:43 -0500 (Wed, 26 Dec 2007) $'
+__author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author$)"
+__version__ = '0.67'
+__revision__ = "$Revision$"
+__date__     = '$Date$'
 
 
 import matplotlib

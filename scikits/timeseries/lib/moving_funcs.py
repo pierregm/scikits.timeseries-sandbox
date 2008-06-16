@@ -4,12 +4,12 @@ A collection of moving functions for masked arrays and time series
 
 :author: Pierre GF Gerard-Marchant & Matt Knox
 :contact: pierregm_at_uga_dot_edu - mattknox_ca_at_hotmail_dot_com
-:version: $Id: filters.py 2819 2007-03-03 23:00:20Z pierregm $
+:version: $Id$
 """
-__author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author: pierregm $)"
-__version__ = '1.0'
-__revision__ = "$Revision: 2819 $"
-__date__     = '$Date: 2007-03-03 18:00:20 -0500 (Sat, 03 Mar 2007) $'
+__author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author$)"
+__version__ = '0.67'
+__revision__ = "$Revision$"
+__date__     = '$Date$'
 
 __all__ = ['mov_sum', 'mov_median', 'mov_min', 'mov_max',
            'mov_average', 'mov_mean', 'mov_average_expw',

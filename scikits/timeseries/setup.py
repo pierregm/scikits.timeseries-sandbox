@@ -1,7 +1,7 @@
 
-__version__ = '1.0'
-__revision__ = "$Revision: 3473 $"
-__date__     = '$Date: 2007-10-29 11:18:13 -0400 (Mon, 29 Oct 2007) $'
+__version__ = '0.67'
+__revision__ = "$Revision$"
+__date__     = '$Date$'
 
 import os
 from os.path import join
