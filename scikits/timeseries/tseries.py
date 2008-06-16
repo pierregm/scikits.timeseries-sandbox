@@ -38,7 +38,7 @@ from numpy.ma import MaskedArray, MAError, masked, nomask, \
 import tdates
 from tdates import \
     DateError, FrequencyDateError, InsufficientDateError, Date, DateArray, \
-    date_array, now, check_freq, check_freq_str
+    date_array, now, check_freq, check_freq_str, nodates
 
 import const as _c
 import cseries
@@ -114,6 +114,7 @@ class TimeSeriesError(Exception):
         return str(self.value)
     __repr__ = __str__
 
+
 class TimeSeriesCompatibilityError(TimeSeriesError):
     """Defines the exception raised when series are incompatible."""
     def __init__(self, mode, first, second):
@@ -127,6 +128,11 @@ class TimeSeriesCompatibilityError(TimeSeriesError):
             msg = "Incompatibility !  (%s <> %s)"
         msg = msg % (first, second)
         TimeSeriesError.__init__(self, msg)
+
+#???: Should we go crazy and add some new exceptions ?
+#???: TimeSeriesShapeCompatibilityError
+#???: TimeSeriesStepCompatibilityError
+
 
 def _timeseriescompat(a, b, raise_error=True):
     """Checks the date compatibility of two TimeSeries object.
@@ -268,7 +274,6 @@ frequencies.
     return common_freq
 
 
-nodates = DateArray([])
 
 ##### ------------------------------------------------------------------------
 ##--- ... Time Series ...
@@ -332,6 +337,7 @@ If `ondates` is False, the `_dates` part remains unchanged.
         func_series = getattr(super(TimeSeries, instance), _name)
         result = func_series(*args)
         if self._ondates:
+            newdate = getattr(instance._dates, _name)(*args)
             result._dates = getattr(instance._dates, _name)(*args)
         else:
             result._dates = instance._dates
@@ -425,129 +431,129 @@ A time series is here defined as the combination of two arrays:
             _data = _data[idx]
             _data._dates._unsorted = None
         return _data
-    #.........................................................................
+
+
     def __array_finalize__(self,obj):
         self._varshape = getattr(obj, '_varshape', ())
         self._dates = getattr(obj, '_dates', nodates)
         MaskedArray.__array_finalize__(self, obj)
         return
-    #.........................................................................
+
+
     def _update_from(self, obj):
         _dates = getattr(self, '_dates', nodates)
-        super(TimeSeries, self)._update_from(obj)
         newdates = getattr(obj, '_dates', nodates)
         # Only update the dates if we don't have any
         if not getattr(_dates, 'size', 0):
             self._dates = newdates
+        MaskedArray._update_from(self, obj)
         return
-    #.........................................................................
+
+
     def _get_series(self):
         "Returns the series as a regular masked array."
         if self._mask.ndim == 0 and self._mask:
             return masked
         return self.view(MaskedArray)
     _series = property(fget=_get_series)
-    #.........................................................................
-    def __checkindex(self, indx):
-        "Checks the validity of an index."
+
+
+    def _index_checker(self, indx):
         if isinstance(indx, int):
             return (indx, indx)
-        elif isinstance(indx, str):
-            # Is indx a named field ?
-            if indx in (self.dtype.names or []):
-                return (indx, None)
-            # Try to check whether it's a date...
+        _dates = self._dates
+        if isinstance(indx, basestring):
+            if indx in (self.dtype.names or ()):
+                return (indx, slice(None, None, None))
             try:
-                indx = self._dates.date_to_index(Date(self._dates.freq, 
-                                                      string=indx))
+                indx = _dates.date_to_index(Date(_dates.freq, string=indx))
             except IndexError:
                 # Trap the exception: we need the traceback
                 exc_info = sys.exc_info()
                 msg = "Invalid field or date '%s'" % indx
                 raise IndexError(msg), None, exc_info[2] 
             return (indx, indx)
-        elif isinstance(indx, Date):
+        if isinstance(indx, (Date, DateArray)):
             indx = self._dates.date_to_index(indx)
             return (indx, indx)
-        elif isinstance(indx, DateArray):
-            if indx.size == 1:
-                indx = self._dates.date_to_index(indx[0])
-                return (indx,indx)
-            else:
-                d2i = self._dates.date_to_index
-                tmp = np.fromiter((d2i(i) for i in indx),int_)
-                return (tmp,tmp)
-        elif isinstance(indx,slice):
-            def _check_indx(indx):
-                if indx is None or isinstance(indx, int):
-                    return indx
-                if isinstance(indx, str):
-                    indx = Date(self._dates.freq, string=indx)
-                if not isinstance(indx, Date):
-                    raise ValueError(
-                        "invalid object used in slice: %s" % repr(indx))
-                if indx.freq != self._dates.freq:
-                    raise FrequencyDateError(
-                        "Cannot perform slice", indx.freq, self._dates.freq)
-                return np.sum(self._dates < indx)
-
-            slice_start = _check_indx(indx.start)
-            slice_stop = _check_indx(indx.stop)
-
-            indx = slice(slice_start, slice_stop, indx.step)
-            return (indx,indx)
-        elif isinstance(indx, tuple):
-            if len(indx) > self.shape:
-                raise IndexError, "Too many indices"
-            if self._dates.size == self.size:
+        if isinstance(indx, slice):
+            indx = slice(self._slicebound_checker(indx.start),
+                         self._slicebound_checker(indx.stop),
+                         indx.step)
+            return (indx, indx)
+        if isinstance(indx, tuple):
+            if not self._varshape:
                 return (indx, indx)
-            return (indx,indx[0])
-        elif isinstance(indx, TimeSeries):
-            indx = indx._series
-        if getmask(indx) is not nomask:
-            msg = "Masked arrays must be filled before they can be used " + \
-                  "as indices!"
-            raise IndexError, msg
-        return (indx,indx)
+            else:
+                return (indx, indx[0])
+        return (indx, indx)
+
+    def _slicebound_checker(self, bound):
+        if isinstance(bound,int) or bound is None:
+            return bound
+        _dates = self._dates
+        if isinstance(bound, (Date, DateArray)):
+            if bound.freq != _dates.freq:
+                raise TimeSeriesCompatibilityError('freq', 
+                                                   _dates.freq, bound.freq)
+            return _dates.date_to_index(bound)
+        if isinstance(bound, basestring):
+            return _dates.date_to_index(Date(_dates.freq, string=bound))
+
 
     def __getitem__(self, indx):
         """x.__getitem__(y) <==> x[y]
 Returns the item described by i. Not a copy.
         """
-        #!!!: We don't need all that for returning a scalar only
-        #!!!: Jus try a regular setitem on ._series and _dates
-        #!!!: Don't reshape the result
-        (sindx, dindx) = self.__checkindex(indx)
-        newdata = np.array(self._series[sindx], copy=False, subok=True)
-        newdate = self._dates[dindx]
-        singlepoint = (len(np.shape(newdate))==0)
-#        varshape = self._varshape
-        if singlepoint:
-            newdate = DateArray(newdate)
-            if newdata is masked:
-                newdata = tsmasked
-                newdata._dates = newdate
-                return newdata
-            elif self.ndim > 1:
-                # CHECK: use reshape, or set shape ?
-#                varshape = list(newdata.shape)
-                newshape = (list((1,)) + list(newdata.shape))
-                newdata.shape = newshape
-        newdata = newdata.view(type(self))
-#        newdata._varshape = newdata.shape
-        newdata._dates = newdate
-        newdata._update_from(self)
-        return newdata
-    #........................
+        (sindx, dindx) = self._index_checker(indx)
+        _series = ndarray.__getattribute__(self, '_series')
+        _dates = ndarray.__getattribute__(self, '_dates')
+        try:
+            newseries = _series.__getitem__(sindx)
+        except IndexError:
+            # Couldn't recognize the index: let's try w/ a DateArray
+            try:
+                indx = _dates.date_to_index(indx)
+            except (IndexError, ValueError):
+                # Mmh, is it a list of dates as strings ?
+                try:
+                    indx = _dates.date_to_index(date_array(indx,
+                                                           freq=self.freq))
+                except (IndexError, ValueError):
+                    exc_info = sys.exc_info()
+                    msg = "Invalid index or date '%s'" % indx
+                    raise IndexError(msg), None, exc_info[2] 
+                else:
+                    newseries = _series.__getitem__(indx)
+                    dindx = indx
+            else:
+                newseries = _series.__getitem__(indx)
+                dindx = indx
+        # Don't find the date if it's not needed......
+        if np.isscalar(newseries) or (newseries is masked):
+            return newseries
+        # Get the date................................
+        newdates = _dates.__getitem__(dindx)
+        # In fact, that's a scalar
+        if not getattr(newdates, 'shape', 0):
+            return newseries
+        newseries = newseries.view(type(self))
+        newseries._dates = newdates
+        newseries._update_from(self)
+        return newseries
+
+
+
     def __setitem__(self, indx, value):
         """x.__setitem__(i, y) <==> x[i]=y
 Sets item described by index. If value is masked, masks those locations.
 """
         if self is masked:
             raise MAError, 'Cannot alter the masked element.'
-        (sindx, _) = self.__checkindex(indx)
-        super(TimeSeries, self).__setitem__(sindx, value)
-    #........................
+        (sindx, _) = self._index_checker(indx)
+        MaskedArray.__setitem__(self, sindx, value)
+
+
     def __setattr__(self, attr, value):
         if attr in ['_dates','dates']:
             # Make sure it's a DateArray
@@ -555,18 +561,61 @@ Sets item described by index. If value is masked, masks those locations.
                 err_msg = "The input dates should be a valid Date or "\
                           "DateArray object (got %s instead)" % type(value)
                 raise TypeError(err_msg)
+            # Skip if dates is nodates (or empty)\
+            if value is nodates or not getattr(value,'size',0):
+                return MaskedArray.__setattr__(self, attr, value)
             # Make sure it has the proper size
             tsize = getattr(value, 'size', 1)
+            # Check the _varshape
             varshape = self._varshape
             if not varshape:
+                # We may be using the default: retry
                 varshape = self._varshape = get_varshape(self, value)
+            # Get the data length (independently of the nb of variables)
             dsize = self.size // int(np.prod(varshape))
-            if tsize and tsize != dsize:
+            if tsize != dsize:
                 raise TimeSeriesCompatibilityError("size",
                                                    "data: %s" % dsize,
                                                    "dates: %s" % tsize)
-        return super(TimeSeries, self).__setattr__(attr, value)
+            elif not varshape:
+                # The data is 1D
+                value.shape = self.shape
+        elif attr == 'shape':
+            if self._varshape:
+                err_msg = "Reshaping a nV/nD series is not implemented yet !"
+                raise NotImplementedError(err_msg)
+        return ndarray.__setattr__(self, attr, value)
 
+
+    def __setdates__(self, value):
+        # Make sure it's a DateArray
+        if not isinstance(value, (Date, DateArray)):
+            err_msg = "The input dates should be a valid Date or "\
+                      "DateArray object (got %s instead)" % type(value)
+            raise TypeError(err_msg)
+        # Skip if dates is nodates (or empty)\
+        if value is nodates or not getattr(value,'size',0):
+            return super(TimeSeries, self).__setattr__('_dates', value)
+        # Make sure it has the proper size
+        tsize = getattr(value, 'size', 1)
+        # Check the _varshape
+        varshape = self._varshape
+        if not varshape:
+            # We may be using the default: retry
+            varshape = self._varshape = get_varshape(self, value)
+        # Get the data length (independently of the nb of variables)
+        dsize = self.size // int(np.prod(varshape))
+        if tsize != dsize:
+            raise TimeSeriesCompatibilityError("size",
+                                               "data: %s" % dsize,
+                                               "dates: %s" % tsize)
+        elif not varshape:
+            # The data is 1D
+            value.shape = self.shape
+        return super(TimeSeries, self).__setattr__('_dates', value)
+
+    dates = property(fget=lambda self:self._dates,
+                     fset=__setdates__)
 
     #......................................................
     def __str__(self):
@@ -621,7 +670,6 @@ timeseries(%(data)s,
     __gt__ = _tsmathmethod('__gt__')
     __ge__ = _tsmathmethod('__ge__')
 
-    reshape = _tsarraymethod('reshape', ondates=True)
     copy = _tsarraymethod('copy', ondates=True)
     compress = _tsarraymethod('compress', ondates=True)
     ravel = _tsarraymethod('ravel', ondates=True)
@@ -638,6 +686,43 @@ timeseries(%(data)s,
     stdu = _tsaxismethod('stdu')
     all = _tsaxismethod('all')
     any = _tsaxismethod('any')
+
+
+    def reshape(self, newshape):
+        """a.reshape(shape, order='C')
+
+    Returns a time series containing the data of a, but with a new shape.
+
+    The result is a view to the original array; if this is not possible,
+    a ValueError is raised.
+
+    Parameters
+    ----------
+    shape : shape tuple or int
+       The new shape should be compatible with the original shape. If an
+       integer, then the result will be a 1D array of that length.
+    order : {'C', 'F'}, optional
+        Determines whether the array data should be viewed as in C
+        (row-major) order or FORTRAN (column-major) order.
+
+    Returns
+    -------
+    reshaped_array : array
+        A new view to the timeseries.
+        
+        """
+        # 1D series : reshape the dates as well
+        if not self._varshape:
+            result = MaskedArray.reshape(self, newshape)
+            result._dates = self._dates.reshape(newshape)
+        # nV/nD series: raise an exception for now (
+        else:
+            err_msg = "Reshaping a nV/nD series is not implemented yet !"
+            raise NotImplementedError(err_msg)
+            #!!!: We could also not do anything...
+            #result._dates = self._dates
+        return result
+
     #.........................................................................
     def ids (self):
         """Return the ids of the data, dates and mask areas"""
@@ -647,10 +732,6 @@ timeseries(%(data)s,
     def series(self):
         """Returns the series."""
         return self._series
-    @property
-    def dates(self):
-        """Returns the dates"""
-        return self._dates
     @property
     def freq(self):
         """Returns the corresponding frequency (as an integer)."""
@@ -795,14 +876,14 @@ original series (unlike the `convert` method).
     the axes are permuted.
 """
         if self._dates.size == self.size:
-            result = super(TimeSeries, self).transpose(*axes)
+            result = MaskedArray.transpose(self, *axes)
             result._dates = self._dates.transpose(*axes)
         else:
             errmsg = "Operation not permitted on multi-variable series"
             if (len(axes)==0) or axes[0] != 0:
                 raise TimeSeriesError, errmsg
             else:
-                result = super(TimeSeries, self).transpose(*axes)
+                result = MaskedArray.transpose(self, *axes)
                 result._dates = self._dates
         return result
 
@@ -868,7 +949,7 @@ a list of standard python objects (eg. datetime, int, etc...)."""
         - a binary string for the mask.
         """
         (ver, shp, typ, isf, raw, msk, flv, dsh, dtm, frq) = state
-        super(TimeSeries, self).__setstate__((ver, shp, typ, isf, raw, msk, flv))
+        MaskedArray.__setstate__(self, (ver, shp, typ, isf, raw, msk, flv))
         _dates = self._dates
         _dates.__setstate__((dsh, dtype(int_), isf, dtm))
         _dates.freq = frq

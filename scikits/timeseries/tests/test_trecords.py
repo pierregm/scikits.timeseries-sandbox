@@ -104,10 +104,8 @@ class TestTimeSeriesRecords(TestCase):
     def test_set_field_mask(self):
         "Tests setting fields/attributes."
         [d, m, mrec, dlist, dates, mts, rts] = self.data
-        print "RTS:",rts
         rts.f0[1] = ma.masked
         assert_equal(rts.f0._mask, [1,1,0,1,1])
-        print "RTS:",rts
 
     def test_setslices(self):
         "Tests setting slices."

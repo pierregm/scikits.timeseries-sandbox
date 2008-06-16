@@ -50,7 +50,7 @@ __all__ = ['ArithmeticDateError',
            'get_freq_group',
            'hour',
            'minute', 'month',
-           'now',
+           'nodates', 'now',
            'period_break', 'prevbusday',
            'quarter',
            'second',
@@ -175,6 +175,8 @@ is returned.
                                       freq=freq)
         else:
             return method(other_val, *args)
+
+
 
 class DateArray(ndarray):
     """Defines a ndarray of dates, as ordinals.
@@ -461,18 +463,24 @@ For non-quarterly dates, this simply returns the year of the date."""
             raise IndexError, "Date out of bounds!"
         return c
 
-    def date_to_index(self, date):
+    def date_to_index(self, dates):
         "Returns the index corresponding to one given date, as an integer."
+        vals = self.tovalue()
+        dates = DateArray(dates, freq=self.freq)
         if self.isvalid():
-            index = date.value - self[0].value
-            if index < 0 or index > self.size:
-                raise IndexError, "Date out of bounds!"
-            return index
-        else:
-            index_asarray = (self == date.value).nonzero()
-            if np.size(index_asarray) == 0:
-                raise IndexError, "Date out of bounds!"
-            return index_asarray[0][0]
+            indx = (dates.tovalue() - vals[0])
+            err_cond = (indx < 0) | (indx > self.size)
+            if err_cond.any():
+                err_indx = np.compress(err_cond, dates)[0]
+                err_msg = "Date '%s' is out of bounds '%s' <= date <= '%s'"
+                raise IndexError(err_msg % (err_indx, self[0], self[-1]))
+            if indx.size == 1:
+                return indx.item()
+            return indx.tolist()
+        indx = [vals.tolist().index(d) for d in dates.tovalue()]
+        if len(indx) == 1:
+            return indx[0]
+        return indx
     #......................................................
     def get_steps(self):
         """Returns the time steps between consecutive dates.
@@ -531,6 +539,7 @@ For non-quarterly dates, this simply returns the year of the date."""
 
 #............................
 
+nodates = DateArray([])
 
 #####---------------------------------------------------------------------------
 #---- --- DateArray functions ---

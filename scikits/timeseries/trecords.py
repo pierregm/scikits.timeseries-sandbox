@@ -32,7 +32,8 @@ from numpy.ma.mrecords import _checknames, \
      _guessvartypes, openfile, MaskedRecords, mrecarray, addfield, \
      fromrecords as mrecfromrecords, fromarrays as mrecfromarrays
 
-from tseries import TimeSeries, time_series, _getdatalength
+from tseries import TimeSeries, TimeSeriesCompatibilityError, \
+    time_series, _getdatalength, nodates, get_varshape
 from tdates import Date, DateArray, date_array
 
 _byteorderconv = numpy.core.records._byteorderconv
@@ -115,14 +116,14 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
         return _data
 
     def __array_finalize__(self,obj):
-        self._varshape = getattr(obj, '_varshape', ())
-        _dates = getattr(obj,'_dates',DateArray([]))
-        self.__dict__.update(_dates=_dates,
+        self.__dict__.update(_varshape = getattr(obj, '_varshape', ()), 
+                             _dates=getattr(obj,'_dates',DateArray([])),
                              _observed=getattr(obj,'_observed',None),
                              _names = self.dtype.names)
         MaskedRecords.__array_finalize__(self, obj)
         return
-    #......................................................
+
+
     def _getdata(self):
         "Returns the data as a recarray."
         return self.view(recarray)
@@ -132,7 +133,8 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
         "Returns the data as a MaskedRecord array."
         return self.view(mrecarray)
     _series = property(fget=_getseries)
-    #......................................................
+
+
     def __getattribute__(self, attr):
         getattribute = MaskedRecords.__getattribute__
         _dict = getattribute(self,'__dict__')
@@ -141,6 +143,39 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
             obj._dates = _dict['_dates']
             return obj
         return getattribute(self,attr)
+
+
+    def __setattr__(self, attr, value):
+        if attr in ['_dates','dates']:
+            # Make sure it's a DateArray
+            if not isinstance(value, (Date, DateArray)):
+                err_msg = "The input dates should be a valid Date or "\
+                          "DateArray object (got %s instead)" % type(value)
+                raise TypeError(err_msg)
+            # Skip if dates is nodates (or empty)\
+            if value is nodates or not getattr(value,'size',0):
+                return MaskedArray.__setattr__(self, attr, value)
+            # Make sure it has the proper size
+            tsize = getattr(value, 'size', 1)
+            # Check the _varshape
+            varshape = self._varshape
+            if not varshape:
+                # We may be using the default: retry
+                varshape = self._varshape = get_varshape(self, value)
+            # Get the data length (independently of the nb of variables)
+            dsize = self.size // int(np.prod(varshape))
+            if tsize != dsize:
+                raise TimeSeriesCompatibilityError("size",
+                                                   "data: %s" % dsize,
+                                                   "dates: %s" % tsize)
+            elif not varshape:
+                # The data is 1D
+                value.shape = self.shape
+        elif attr == 'shape':
+            if self._varshape:
+                err_msg = "Reshaping a nV/nD series is not implemented yet !"
+                raise NotImplementedError(err_msg)
+        return MaskedRecords.__setattr__(self, attr, value)
 
     #......................................................
     def __getitem__(self, indx):
@@ -154,22 +189,13 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
             obj._mask = make_mask(_localdict['_fieldmask'][indx])
             return obj
         # We want some elements ..
-        (sindx, dindx) = self._TimeSeries__checkindex(indx)
+        (sindx, dindx) = self._index_checker(indx)
         obj = np.array(self._data[sindx], copy=False, subok=True).view(type(self))
         obj.__dict__.update(_dates=_localdict['_dates'][dindx],
                             _fill_value=_localdict['_fill_value'])
         obj._fieldmask = np.array(_localdict['_fieldmask'][sindx]).view(recarray)
         return obj
 
-    def __getslice__(self, i, j):
-        """Returns the slice described by [i,j]."""
-        _localdict = self.__dict__
-        (si, di) = super(TimeSeriesRecords, self)._TimeSeries__checkindex(i)
-        (sj, dj) = super(TimeSeriesRecords, self)._TimeSeries__checkindex(j)
-        newdata = self._data[si:sj].view(type(self))
-        newdata.__dict__.update(_dates=_localdict['_dates'][di:dj],
-                                _fieldmask=_localdict['_fieldmask'][si:sj])
-        return newdata
 
     def __setslice__(self, i, j, value):
         """Sets the slice described by [i,j] to `value`."""
@@ -184,11 +210,13 @@ Otherwise, fills with fill value.
         """
         if self.size > 1:
             mstr = ["(%s)" % ",".join([str(i) for i in s])
-                    for s in zip(*[getattr(self,f) for f in self.dtype.names])]
+                    for s in zip(*[getattr(self,f)._series 
+                                   for f in self.dtype.names])]
             return "[%s]" % ", ".join(mstr)
         else:
             mstr = ["%s" % ",".join([str(i) for i in s])
-                    for s in zip([getattr(self,f) for f in self.dtype.names])]
+                    for s in zip([getattr(self,f)._series 
+                                  for f in self.dtype.names])]
             return "(%s)" % ", ".join(mstr)
 
     def __repr__(self):
@@ -266,7 +294,8 @@ trecarray = TimeSeriesRecords
 
 def time_records(mrecord, dates=None):
     trecords = np.array(mrecord, subok=True).view(trecarray)
-    trecords._dates = dates
+    if dates is not None:
+        trecords._dates = dates
     return trecords
 
 #!!!: * The docstrings of the following functions need some serious work ;)
@@ -391,9 +420,9 @@ def fromtextfile(fname, delimitor=None, commentchar='#', missingchar='',
     #!!!: is seriously FUBAR right now.
     #!!!: Anyway, we need to use numpy.io first, shouldn't we ?
     #!!!: Using the kind of autodetermination of dtypes, or all-as-object
-    err_msg = "trecords.fromtextfile is temporarily out of service.\n"\
-              "Please accept our apologies for any inconvenience."
-    raise NotImplementedError(err_msg)
+#    err_msg = "trecords.fromtextfile is temporarily out of service.\n"\
+#              "Please accept our apologies for any inconvenience."
+#    raise NotImplementedError(err_msg)
     
     # Declare the pattern for the dates column
     import re
@@ -407,21 +436,21 @@ def fromtextfile(fname, delimitor=None, commentchar='#', missingchar='',
         _varnames = firstline.split(delimitor)
         if len(_varnames) > 1:
             break
-    if varnames is None:
-        varnames = _varnames
     # Get the data ..............................
     _variables = ma.asarray([line.strip().split(delimitor) for line in f
                              if line[0] != commentchar and len(line) > 1])
     (nvars, nfields) = _variables.shape
     # Check if we need to get the dates..........
     if dates_column is None:
-        dates_column = [i for (i,n) in enumerate(list(varnames))
+        dates_column = [i for (i,n) in enumerate(list(_varnames))
                             if datescolpattern.search(n) is not None]
     elif isinstance(dates_column,(int,float)):
         if dates_column > nfields:
             raise ValueError,\
                   "Invalid column number: %i > %i" % (dates_column, nfields)
         dates_column = [dates_column,]
+    if varnames is None:
+        varnames = _varnames
     if len(dates_column) > 0:
         cols = range(nfields)
         [cols.remove(i) for i in dates_column]
@@ -451,13 +480,14 @@ def fromtextfile(fname, delimitor=None, commentchar='#', missingchar='',
     _mask = (_variables.T == missingchar)
     _datalist = [ma.array(a,mask=m,dtype=t,fill_value=f)
                  for (a,m,t,f) in zip(_variables.T, _mask, vartypes, mfillv)]
-    #
     newdates = _getdates(dates=dates, newdates=newdates, length=nvars,
                          freq=None, start_date=None)
-
     # Sort the datalist according to newdates._unsorted
     idx = newdates._unsorted
-    _sorted_datalist = [a[idx] for a in _datalist]
+    if idx is not None:
+        _sorted_datalist = [a[idx].squeeze() for a in _datalist]
+    else:
+        _sorted_datalist = _datalist
     return fromarrays(_sorted_datalist, dates=newdates, dtype=mdescr)
 
 
