@@ -19,6 +19,8 @@ from tseries import *
 import trecords
 from trecords import *
 
+from scikits.timeseries.version import version
+
 __all__ = ['const', 'tdates','tseries','trecords']
 __all__ += tdates.__all__
 __all__ += tseries.__all__
