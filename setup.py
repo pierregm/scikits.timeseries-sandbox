@@ -4,7 +4,7 @@ please download and install it from http://pypi.python.org/pypi/setuptools
 """
 
 
-classifiers = ['Development Status :: 4 - Beta',
+classifiers = ['Development Status :: 0.67.0 - Beta',
                'Intended Audience :: Science/Research',
                'Intended Audience :: Developers',
                'Programming Language :: C',
@@ -15,7 +15,9 @@ classifiers = ['Development Status :: 4 - Beta',
                'Operating System :: POSIX',
                'Operating System :: Unix',
                'Operating System :: MacOS']
+               
 version = '0.67.0'
+distname = 'scikits.timeseries'
 
 import os
 import sys
@@ -34,9 +36,9 @@ def configuration(parent_package='',top_path=None):
                 quiet=True,
     )
 
-    config.add_subpackage('scikits.timeseries')
+    config.add_subpackage('scikits')
+    config.add_subpackage(distname)
     config.add_data_files('scikits/__init__.py')
-    config.get_version('scikits/timeseries/version.py')
 
     return config
 
@@ -52,14 +54,18 @@ def setup_package():
 #    from version import version
 
     setup(
-        name = 'scikits.timeseries',
-        version = version,
-        description = "Time series manipulation",
-        author = "Pierre GF GERARD-MARCHANT & Matt KNOX",
-        author_email = "pgmdevlist_AT_gmail_DOT_com & ",
-        classifiers = classifiers, 
-        platforms = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
-        configuration = configuration,
+          install_requires='numpy'
+          name = 'scikits.timeseries',
+          version = version,
+          description = "Time series manipulation",
+          author = "Pierre GF GERARD-MARCHANT & Matt KNOX",
+          author_email = "pgmdevlist_AT_gmail_DOT_com & "\
+                         "mattknox_ca_at_hotmail_dot_com",
+          url = "http://scipy.org/scipy/scikits/wiki/TimeSeries",
+          classifiers = classifiers, 
+          platforms = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
+          configuration = configuration,
+          test_suite = 'nose.collector',
     )
 
     return
