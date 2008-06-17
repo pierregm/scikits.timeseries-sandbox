@@ -905,11 +905,16 @@ class TestMethods(TestCase):
             pass
         else:
             raise IndexError("An invalid indexed has been accepted !")
+
+        # test behaviour of date_to_index on DateArray of length 1
+        chosen = dates.date_to_index(choices[0:1])
+        assert_equal(chosen, [2])
+
     #
     def test_date_to_index_invalid(self):
         "Tests date_to_index"
         dates_invalid = date_array(['2007-01-%02i' % i for i in range(1, 11)] + \
-                                   ['2007-01-%02i' % i for i in range(15,20)], 
+                                   ['2007-01-%02i' % i for i in range(15,20)],
                                    freq='D')
         choices = date_array(['2007-01-03', '2007-01-05', '2007-01-07',]+\
                              ['2007-01-09', '2007-02-01'], freq='D')
@@ -923,7 +928,7 @@ class TestMethods(TestCase):
         assert(isinstance(chosen, list))
         #
         try:
-            assert_equal(dates_invalid.date_to_index(choices), 
+            assert_equal(dates_invalid.date_to_index(choices),
                          [2, 4, 6, 8, -99])
         except (IndexError, ValueError):
             pass

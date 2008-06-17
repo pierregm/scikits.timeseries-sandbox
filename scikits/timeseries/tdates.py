@@ -466,19 +466,27 @@ For non-quarterly dates, this simply returns the year of the date."""
     def date_to_index(self, dates):
         "Returns the index corresponding to one given date, as an integer."
         vals = self.tovalue()
-        dates = DateArray(dates, freq=self.freq)
+        _dates = DateArray(dates, freq=self.freq)
+
+        if _dates.size == 1 and np.array(dates, dtype=int_).ndim == 0:
+            scalar = True
+        else:
+            scalar = False
+
         if self.isvalid():
-            indx = (dates.tovalue() - vals[0])
+            indx = (_dates.tovalue() - vals[0])
             err_cond = (indx < 0) | (indx > self.size)
             if err_cond.any():
-                err_indx = np.compress(err_cond, dates)[0]
+                err_indx = np.compress(err_cond, _dates)[0]
                 err_msg = "Date '%s' is out of bounds '%s' <= date <= '%s'"
                 raise IndexError(err_msg % (err_indx, self[0], self[-1]))
-            if indx.size == 1:
+            if scalar:
                 return indx.item()
             return indx.tolist()
-        indx = [vals.tolist().index(d) for d in dates.tovalue()]
-        if len(indx) == 1:
+        indx = [vals.tolist().index(d) for d in _dates.tovalue()]
+
+        if scalar:
+            # dates was a single date, so do scalar indexing
             return indx[0]
         return indx
     #......................................................
