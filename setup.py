@@ -54,8 +54,11 @@ def setup_package():
 #    from version import version
 
     setup(
-          install_requires='numpy'
-          name = 'scikits.timeseries',
+          install_requires='numpy',
+          namespace_packages=['scikits'],
+          packages=setuptools.find_packages(),
+          test_suite = 'nose.collector',
+          name = 'timeseries',
           version = version,
           description = "Time series manipulation",
           author = "Pierre GF GERARD-MARCHANT & Matt KNOX",
@@ -65,7 +68,6 @@ def setup_package():
           classifiers = classifiers, 
           platforms = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
           configuration = configuration,
-          test_suite = 'nose.collector',
     )
 
     return
