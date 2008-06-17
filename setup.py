@@ -3,6 +3,7 @@ setuptools must be installed first. If you do not have setuptools installed
 please download and install it from http://pypi.python.org/pypi/setuptools
 """
 
+version = '0.67.0'
 
 classifiers = ['Development Status :: 0.67.0 - Beta',
                'Intended Audience :: Science/Research',
@@ -16,12 +17,13 @@ classifiers = ['Development Status :: 0.67.0 - Beta',
                'Operating System :: Unix',
                'Operating System :: MacOS']
                
-version = '0.67.0'
 distname = 'scikits.timeseries'
 
 import os
 import sys
 import setuptools
+from numpy.distutils.core import setup, Extension
+
 
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
@@ -42,23 +44,16 @@ def configuration(parent_package='',top_path=None):
 
     return config
 
+
+
 def setup_package():
-
-    from numpy.distutils.core import setup
-
-#    old_path = os.getcwd()
-#    local_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-#    os.chdir(local_path)
-#    sys.path.insert(0,local_path)
-#    sys.path.insert(0,os.path.join(local_path,'scikits')) # to retrive version    
-#    from version import version
 
     setup(
           install_requires='numpy',
           namespace_packages=['scikits'],
           packages=setuptools.find_packages(),
           test_suite = 'nose.collector',
-          name = 'timeseries',
+          name = distname,
           version = version,
           description = "Time series manipulation",
           author = "Pierre GF GERARD-MARCHANT & Matt KNOX",
