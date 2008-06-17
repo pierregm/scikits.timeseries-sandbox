@@ -55,7 +55,7 @@ __all__ = ['TimeSeries','TimeSeriesCompatibilityError','TimeSeriesError',
            'pct',
            'quarter',
            'second','split','stack',
-           'time_series','tofile','tshift','tsmasked',
+           'time_series','tofile','tshift','masked',
            'week','weekday',
            'year',
            ]
@@ -177,7 +177,7 @@ def _timeseriescompat_multiple(*series):
     defsteps = series[0]._dates.get_steps()
 
     (freqs, start_dates, steps, shapes) = \
-                                zip(*[(s.freq, 
+                                zip(*[(s.freq,
                                        s.start_date,
                                        (s._dates.get_steps() != defsteps).any(),
                                        s.shape) for s in series])
@@ -210,7 +210,7 @@ def _timeseriescompat_multiple(*series):
 
 def get_varshape(data, dates):
     """Checks the compatibility of dates and data.
-    
+
     Parameters
     ----------
     data : array-like
@@ -222,7 +222,7 @@ def get_varshape(data, dates):
     -------
     varshape : tuple
         A tuple indicating the shape of the data at any date.
-        
+
     Raises
     ------
         A TimeSeriesCompatibilityError exception is raised if something goes
@@ -410,7 +410,7 @@ A time series is here defined as the combination of two arrays:
                 fill_value=None, subok=True, keep_mask=True, hard_mask=False,
                 **options):
 
-        maparms = dict(copy=copy, dtype=dtype, fill_value=fill_value, 
+        maparms = dict(copy=copy, dtype=dtype, fill_value=fill_value,
                        subok=subok, keep_mask=keep_mask, hard_mask=hard_mask)
         _data = MaskedArray(data, mask=mask, **maparms)
 
@@ -471,7 +471,7 @@ A time series is here defined as the combination of two arrays:
                 # Trap the exception: we need the traceback
                 exc_info = sys.exc_info()
                 msg = "Invalid field or date '%s'" % indx
-                raise IndexError(msg), None, exc_info[2] 
+                raise IndexError(msg), None, exc_info[2]
             return (indx, indx)
         if isinstance(indx, (Date, DateArray)):
             indx = self._dates.date_to_index(indx)
@@ -494,7 +494,7 @@ A time series is here defined as the combination of two arrays:
         _dates = self._dates
         if isinstance(bound, (Date, DateArray)):
             if bound.freq != _dates.freq:
-                raise TimeSeriesCompatibilityError('freq', 
+                raise TimeSeriesCompatibilityError('freq',
                                                    _dates.freq, bound.freq)
             return _dates.date_to_index(bound)
         if isinstance(bound, basestring):
@@ -522,7 +522,7 @@ Returns the item described by i. Not a copy.
                 except (IndexError, ValueError):
                     exc_info = sys.exc_info()
                     msg = "Invalid index or date '%s'" % indx
-                    raise IndexError(msg), None, exc_info[2] 
+                    raise IndexError(msg), None, exc_info[2]
                 else:
                     newseries = _series.__getitem__(indx)
                     dindx = indx
@@ -709,7 +709,7 @@ timeseries(%(data)s,
     -------
     reshaped_array : array
         A new view to the timeseries.
-        
+
         """
         # 1D series : reshape the dates as well
         if not self._varshape:
@@ -905,7 +905,7 @@ filled with `fill_value`. Subclassing is preserved.
     Parameters
     ----------
     fill_value : {None, singleton of type self.dtype}, optional
-        The value to fill in masked values with. 
+        The value to fill in masked values with.
         If `fill_value` is None, uses self.fill_value.
 """
         result = self._series.filled(fill_value=fill_value).view(type(self))
@@ -1272,8 +1272,6 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
                       fill_value=fill_value, keep_mask=keep_mask,
                       hard_mask=hard_mask,)
 
-tsmasked = TimeSeries(masked,dates=DateArray(Date('D',1)))
-
 ##### --------------------------------------------------------------------------
 #---- ... Additional functions ...
 ##### --------------------------------------------------------------------------
@@ -1445,7 +1443,7 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
     if not series.isvalid():
         err_msg = "Cannot adjust a series with missing or duplicated dates."
         raise TimeSeriesError(err_msg)
-            
+
     # Check the position parameter..........
     if position.upper() not in ('END','START'):
         err_msg = "Invalid value for position argument: (%s). "\
@@ -1477,15 +1475,15 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
             newvarshape = ()
     elif tmpdata.ndim == 1:
         newvarshape = ()
-    
-    newdates = date_array(start_date=start_date, 
+
+    newdates = date_array(start_date=start_date,
                           length=len(tmpdata),
                           freq=to_freq)
 #    assert(get_varshape(tmpdata, newdates), newvarshape)
 
     newseries = tmpdata.view(type(series))
     newseries._varshape = newvarshape
-    newseries._dates = date_array(start_date=start_date, 
+    newseries._dates = date_array(start_date=start_date,
                                   length=len(newseries),
                                   freq=to_freq)
     newseries._update_from(series)
@@ -1522,11 +1520,11 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
     **kwargs : {extra keyword arguments for func parameter}, optional
         if a func is specified that requires additional keyword parameters,
         specify them here.
-    
+
     """
     #!!!: Raise some kind of proper exception if the underlying dtype will mess things up
     #!!!: For example, mean on string array...
-    
+
     if series.ndim > 2 or series.ndim == 0:
         raise ValueError(
             "only series with ndim == 1 or ndim == 2 may be converted")

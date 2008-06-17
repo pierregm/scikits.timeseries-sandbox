@@ -25,7 +25,7 @@ from scikits.timeseries import \
     TimeSeries, TimeSeriesError, TimeSeriesCompatibilityError, \
     tseries, Date, date_array, now, time_series, \
     adjust_endpoints, align_series, align_with, \
-    concatenate, fill_missing_dates, split, stack, tsmasked
+    concatenate, fill_missing_dates, split, stack
 
 get_varshape = tseries.get_varshape
 _timeseriescompat_multiple = tseries._timeseriescompat_multiple
@@ -163,7 +163,7 @@ class TestCreation(TestCase):
         test_series._dates = test_dates
         assert_equal(test_series._dates, reference._dates)
         assert_equal(test_series._dates.shape, test_series.shape)
-        
+
         test_dates = np.array(dates, copy=False, subok=True, ndmin=2)
         test_series._dates = test_dates
         assert_equal(test_series._dates, reference._dates)
@@ -262,9 +262,6 @@ class TestArithmetics(TestCase):
     def test_ismasked(self):
         "Checks checks on masked"
         (series, data) =self.d
-        #!!!: Used to be tsmasked, now is only masked...
-#        assert(series[0] is tsmasked)
-        assert(tsmasked._series is masked)
         assert(series._series[0] is masked)
         #!!!:... and of course, masked doesn't have a _series attribute
 #        assert(series[0]._series is masked)
@@ -294,12 +291,12 @@ class TestGetitem(TestCase):
     def setUp(self):
         dates = date_array(['2007-01-%02i' % i for i in range(1,16)], freq='D')
         data1D = ma.array(np.arange(15), mask=[1,0,0,0,0]*3, dtype=float_)
-        data3V = ma.array([[10,11,12],[20,21,22],[30,31,32]], 
+        data3V = ma.array([[10,11,12],[20,21,22],[30,31,32]],
                           mask=[[1,0,0,],[0,0,0],[0,0,1]])
         data2D = ma.array(np.random.rand(60).reshape(3,4,5))
         for i in range(3):
             data2D[i,i,i] = masked
-        
+
         series1D = time_series(data1D, dates, freq='D')
         series3V = time_series(data3V, dates[:len(data3V)], freq='D')
         series2D = time_series(data2D, dates[:len(data2D)], freq='D')
@@ -379,7 +376,7 @@ class TestGetitem(TestCase):
         assert(isinstance(test,TimeSeries))
         assert_equal(test, series2D._data[:,:,0])
         assert_equal(test._dates, series2D._dates)
-        
+
 
     def test_with_list(self):
         "Tests __getitem__ w/ list."
@@ -432,7 +429,7 @@ class TestGetitem(TestCase):
 
 
     def test_with_dates_as_str(self):
-        
+
         def _wdates(series, data):
             date = self.dates[0].strfmt("%Y-%m-%d")
             # Single date
@@ -523,7 +520,7 @@ class TestTimeSeriesMethods(TestCase):
     def setUp(self):
         dates = date_array(['2007-01-%02i' % i for i in (1,2,3)], freq='D')
         data1D = ma.array([1,2,3], mask=[1,0,0,])
-        data3V = ma.array([[10,11,12],[20,21,22],[30,31,32]], 
+        data3V = ma.array([[10,11,12],[20,21,22],[30,31,32]],
                           mask=[[1,0,0,],[0,0,0],[0,0,1]])
         data2D = np.random.rand(60).reshape(3,4,5)
         series1D = time_series(data1D, dates, freq='D')
@@ -659,7 +656,7 @@ test_dates test suite.
         """
         June2005M = Date(freq='M', year=2005, month=6)
         June2005B = Date(freq='b', year=2005, month=6, day=1)
-        
+
         lowFreqSeries = time_series(np.arange(10), start_date=June2005M)
         highFreqSeries = time_series(np.arange(100), start_date=June2005B)
         ndseries = time_series(np.arange(124).reshape(62,2),
@@ -762,7 +759,7 @@ test_dates test suite.
         "Tests the compatibility of multiple time series."
         newyearsday = Date('D', '2005-01-01')
         aprilsfool = Date('D', '2005-04-01')
-        
+
         seriesM_10 = time_series(np.arange(10),
                                  date_array(start_date=newyearsday.asfreq('M'),
                                             length=10))
@@ -879,8 +876,6 @@ test_dates test suite.
         assert_equal(_pct.dtype, np.dtype('d'))
         assert_equal(series.start_date, _pct.start_date)
         assert_equal(series.end_date, _pct.end_date)
-        #!!!: Used to be tsmasked, now is only masked...
-#        assert(_pct[0] is tsmasked)
         assert(_pct[0] is masked)
         assert_equal(_pct[1], 1.0)
         assert_equal(_pct[2], 0.5)
@@ -905,7 +900,7 @@ class TestMisc(TestCase):
         assert_equal(x.dtype, y.dtype)
         assert_equal(x.shape, y.shape)
         #
-        y.flat = 0        
+        y.flat = 0
         assert_equal(x.mask, [1,0,0,0,0])
         assert_equal(y.mask, nomask)
         #
@@ -960,11 +955,11 @@ class TestMisc(TestCase):
         series = time_series(np.arange(60), start_date=ts.now('M'))
         assert_equal(series._varshape, ())
         # 2D (multi 1D series)
-        series = time_series(np.arange(60).reshape(20,3), 
+        series = time_series(np.arange(60).reshape(20,3),
                              start_date=ts.now('M'))
         assert_equal(series._varshape, (3,))
         # 3D (2D series)
-        series = time_series(np.arange(60).reshape(5,4,3), 
+        series = time_series(np.arange(60).reshape(5,4,3),
                              start_date=ts.now('M'))
         assert_equal(series._varshape, (4,3))
 
