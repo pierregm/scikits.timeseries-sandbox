@@ -1653,7 +1653,7 @@ DateObject_asfreq(DateObject *self, PyObject *args, PyObject *kwds)
     if (toFreq == self->freq) {
         result->freq = self->freq;
         result->value = self->value;
-        return result;
+        return (PyObject*)result;
     }
 
     get_asfreq_info(self->freq, toFreq, &af_info);
