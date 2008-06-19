@@ -1747,6 +1747,7 @@ corresponding to the initially missing dates are masked, or filled to
     _data = newdata.view(datat)
     _data._dates = newdates
     return _data
+TimeSeries.fill_missing_dates = fill_missing_dates
 #..............................................................................
 def stack(*series):
     """Performs a column_stack on the data from each series, and the
