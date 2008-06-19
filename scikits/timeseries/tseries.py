@@ -19,8 +19,8 @@ These two classes were liberally adapted from `MaskedArray` class.
 #!!!: * Adapt reshaping to preserve the first dimension: that goes for squeeze
 
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox"
-__version__ = '1.0'
 __revision__ = "$Revision$"
+__date__     = '$Date$'
 
 import sys
 
@@ -720,7 +720,6 @@ timeseries(%(data)s,
             err_msg = "Reshaping a nV/nD series is not implemented yet !"
             raise NotImplementedError(err_msg)
             #!!!: We could also not do anything...
-            #result._dates = self._dates
         return result
 
     #.........................................................................
@@ -1062,9 +1061,8 @@ class _tsblockedmethods(object):
     #
     def __call__ (self, *args, **params):
         raise NotImplementedError
-#TimeSeries.transpose = _tsarraymethod('transpose', ondates=True)
-TimeSeries.swapaxes = _tsarraymethod('swapaxes', ondates=True)
 
+TimeSeries.swapaxes = _tsarraymethod('swapaxes', ondates=True)
 
 #####---------------------------------------------------------------------------
 #---- --- Definition of functions from the corresponding methods ---
@@ -1479,7 +1477,6 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
     newdates = date_array(start_date=start_date,
                           length=len(tmpdata),
                           freq=to_freq)
-#    assert(get_varshape(tmpdata, newdates), newvarshape)
 
     newseries = tmpdata.view(type(series))
     newseries._varshape = newvarshape
@@ -1706,8 +1703,6 @@ corresponding to the initially missing dates are masked, or filled to
         elif dflat.size != len(datad):
             err_msg = "fill_missing_dates is not yet implemented for nD series!"
             raise NotImplementedError(err_msg)
-#    if dates.ndim > 1 and dates.ndim == datad.ndim:
-#        datad.shape = -1
     # ...and now, fill it ! ......
     (tstart, tend) = dflat[[0,-1]]
     newdates = date_array(start_date=tstart, end_date=tend)

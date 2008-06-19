@@ -7,7 +7,6 @@ Support for multi-variable time series, through masked recarrays.
 :version: $Id$
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author$)"
-__version__ = '1.0'
 __revision__ = "$Revision$"
 __date__     = '$Date$'
 
@@ -116,7 +115,7 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
         return _data
 
     def __array_finalize__(self,obj):
-        self.__dict__.update(_varshape = getattr(obj, '_varshape', ()), 
+        self.__dict__.update(_varshape = getattr(obj, '_varshape', ()),
                              _dates=getattr(obj,'_dates',DateArray([])),
                              _observed=getattr(obj,'_observed',None),
                              _names = self.dtype.names)
@@ -210,12 +209,12 @@ Otherwise, fills with fill value.
         """
         if self.size > 1:
             mstr = ["(%s)" % ",".join([str(i) for i in s])
-                    for s in zip(*[getattr(self,f)._series 
+                    for s in zip(*[getattr(self,f)._series
                                    for f in self.dtype.names])]
             return "[%s]" % ", ".join(mstr)
         else:
             mstr = ["%s" % ",".join([str(i) for i in s])
-                    for s in zip([getattr(self,f)._series 
+                    for s in zip([getattr(self,f)._series
                                   for f in self.dtype.names])]
             return "(%s)" % ", ".join(mstr)
 
@@ -275,12 +274,12 @@ Otherwise fill with fill value.
     **kwargs : {extra keyword arguments for func parameter}, optional
         if a func is specified that requires additional keyword parameters,
         specify them here.
-    
+
         """
         kwargs.update(func=func, position=position)
         field_names = self.dtype.names
         by_field = [self[f].convert(freq,**kwargs) for f in field_names]
-        output = fromarrays(by_field, 
+        output = fromarrays(by_field,
                             dates=by_field[0].dates,
                             names=field_names)
         output.fill_value = self.fill_value
@@ -420,10 +419,7 @@ def fromtextfile(fname, delimitor=None, commentchar='#', missingchar='',
     #!!!: is seriously FUBAR right now.
     #!!!: Anyway, we need to use numpy.io first, shouldn't we ?
     #!!!: Using the kind of autodetermination of dtypes, or all-as-object
-#    err_msg = "trecords.fromtextfile is temporarily out of service.\n"\
-#              "Please accept our apologies for any inconvenience."
-#    raise NotImplementedError(err_msg)
-    
+
     # Declare the pattern for the dates column
     import re
     datescolpattern = re.compile("'?_?dates?'?", re.IGNORECASE)

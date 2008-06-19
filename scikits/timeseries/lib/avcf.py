@@ -7,7 +7,6 @@ Auto/Cross-correlation/covariance functions for time series
 :version: $Id$
 """
 __author__ = "Pierre GF Gerard-Marchant ($Author$)"
-__version__ = '1.0'
 __revision__ = "$Revision$"
 __date__     = '$Date$'
 
@@ -38,12 +37,12 @@ Consider two series $x$ and $y$, both of size $n$.
 The autocorrelation is defined as: $\gamma_{xy}[j] = \sum_{i}{x[i] y[i+j]}$,
 where $j$ is the lag.
 Positive lags:
-N.correlate(y,x)[n//2+j] = N.correlate(x,y)[n//2-j] = gamma[j] 
+N.correlate(y,x)[n//2+j] = N.correlate(x,y)[n//2-j] = gamma[j]
 """
 
 def lags(x, y=None):
     """Returns the lags at which a cross-correlation is computed.
-    
+
 :Parameters:
     `x` : Sequence
         First time series.
@@ -62,7 +61,7 @@ def lags(x, y=None):
         L = np.concatenate([ np.arange(n), np.arange(-(nx+ny-n)+1,0) ])
     return L
 
-    
+
 #...............................................................................
 
 def cvf(x,y,periodogram=True):
@@ -73,7 +72,7 @@ values filled with 0.
 If x and y are valid TimeSeries object, they are aligned so that their starting
 and ending point match.
 
-    The crosscovariance at lag k, $\hat{R_{x,y}}(k)$, of 2 series {x_1,...,x_n} 
+    The crosscovariance at lag k, $\hat{R_{x,y}}(k)$, of 2 series {x_1,...,x_n}
 and {y_1,...,y_n} with mean 0 is defined as:
 \hat{R_{x,y}(k) = \sum_{t=1}^{n-k}{x_t y_{t+k}} / \sum_{t=1}^{n-k}{a_t b_{t+k}}
 where x_k (y_k) is set to 0 if x_k (y_k) is initially masked, where a_k = 1 if
@@ -82,23 +81,23 @@ b_k = 0 if y_k is masked.
 
 If the optional parameter `periodogram` is True, the denominator of the previous
 expression is $\sum_{t=1}^{n-k}{a_t a_{t+k}} + k$.
- 
+
 Parameters
 ----------
     x : sequence
-        Input data. 
+        Input data.
     y : sequence
-        Input data. 
+        Input data.
         If y is longer than x, it is truncated to match the length of x.
         If y is shorter than x, x is truncated.
     periodogram : {True, False} optional
         Whether to return a periodogram or a standard estimate of the autocovariance.
-        
+
 Returns
 -------
     cvf : ma.array
         Cross-covariance at lags [0,1,...,n,n-1,...,-1]
-    
+
     """
     #
     x = ma.array(x, copy=False, subok=True, dtype=float)
@@ -133,25 +132,25 @@ Returns
     return ma.fix_invalid(np.concatenate([cvf_[n-1:],cvf_[:n-1]]))
 
 
-def ccf(x, y, periodogram=True):    
+def ccf(x, y, periodogram=True):
     """Computes the auto-correlation of the series x and y at different lags.
 The computations are performed on anomalies (deviations from average).
 Gaps in the series are filled first, anomalies are then computed and missing
 values filled with 0.
 If x and y are valid TimeSeries object, they are aligned so that their starting
 and ending point match.
- 
+
 Parameters
 ----------
     x : sequence
-        Input data. 
+        Input data.
     y : sequence
-        Input data. 
+        Input data.
         If y is longer than x, it is truncated to match the length of x.
         If y is shorter than x, x is truncated.
     periodogram : {True, False} optional
         Whether to return a periodogram or a standard estimate of the autocovariance.
-        
+
 Returns
 -------
     cvf : ma.array
@@ -175,19 +174,19 @@ where $y_k = x_k$ if $x_k$ is not masked and $y_k = 0$ if $x_k$ is masked, and
 where $a_k = 1$ if $x_k$ is not masked and $a_k = 0$ of $x_k$ is masked.
 If the optional parameter `periodogram` is True, the denominator of the previous
 expression is $\sum_{t=1}^{n-k}{a_t a_{t+k}} + k$.
- 
+
 Parameters
 ----------
     x : sequence
         Input data. If x is a TimeSeries object, it is filled first.
     mode : {True, False} optional
         Whether to return a periodogram or a standard estimate of the autocovariance.
-        
+
 Returns
 -------
     avf : ma.array
         Autocovariance at lags [0,1,...,n,n-1,...,-1]
-        
+
     """
     x = ma.array(x, copy=False, subok=True, dtype=float)
     if x.ndim > 1:
@@ -214,15 +213,15 @@ def acf(x, periodogram=True):
 The computations are performed on anomalies (deviations from average).
 Gaps in the series are filled first, anomalies are then computed and missing
 values filled with 0.
- 
- 
+
+
 Parameters
 ----------
     x : sequence
         Input data. If x is a TimeSeries object, it is filled first.
     mode : {True, False} optional
         Whether to return a periodogram or a standard estimate of the autocorrelation.
-        
+
 Returns
 -------
     acf : ma.array
@@ -238,7 +237,7 @@ def _acf(x, mode):
 Note that the computations are performed on anomalies (deviations from average).
 Gaps in the series are filled first, the anomalies are then computed and the missing
 values filled with 0.
- 
+
 :Parameters:
     `x` : TimeSeries
         Time series.
@@ -258,40 +257,40 @@ values filled with 0.
     _avf = np.correlate(x,x,'full')[n-1:]
     if mode:
         dnm_ = np.fromiter((np.sum(x[k:]*x[:-k])/np.sum(m[k:]*xx[:-k])
-                            for k in range(1,n)), 
+                            for k in range(1,n)),
                             dtype=float)
     else:
         dnm_ = np.fromiter((np.sum(x[k:]*x[:-k])/\
                             np.sqrt((m[k:]*xx[:-k]).sum() * (m[:-k]*xx[k:]).sum())
-                            for k in range(1,n)), 
+                            for k in range(1,n)),
                            dtype=float)
     poslags = _avf[1:]/dnm_
-    return ma.fix_invalid(np.concatenate([np.array([1.]), 
-                                          poslags, 
+    return ma.fix_invalid(np.concatenate([np.array([1.]),
+                                          poslags,
                                           poslags[::-1]]))
 
-##..............................................................................    
+##..............................................................................
 def acf_std(x, maxlag=None, periodogram=True,
             confidence=0.6826895, simplified=True, acf_cached=None):
-    """Computes the approximate standard deviation of the autocorrelation 
+    """Computes the approximate standard deviation of the autocorrelation
 coefficients.
 
 
 Parameters
 ----------
-    x : ndarray 
+    x : ndarray
         Input data.
     maxlag : {None, int} optional
         Maximum lag beyond which the ACF coefficient can be considered as null.
     periodogram : {True, False}
         Whether to use a periodogram-like estimate of the ACF or not.
-    confidence : {0.6826895, float} optional 
+    confidence : {0.6826895, float} optional
         Confidence level. The default value returns the standard deviation.
     simplified : {True, False} optional
         Whether to use a simplified or more complex approximation.
     acf_cached : {ndarray} optional
         Pre-computed acf coefficients.
-        
+
 Notes
 -----
     When simplified is True, the standard error is computed as:
@@ -301,13 +300,13 @@ var[r_k] &\appr   \frac{1}{N} \left\{ 1 + 2 \sum_{j=1}^{+q}{ r_{j}^2 } \right\
     Otherwise, it is computed as:
 \begin{equation}
 \begin{split}
-var[r_k] &\approx 
+var[r_k] &\approx
     \frac{1}{N} \sum_{j=-\infty}^{+\infty}{ \left\{
         r_{j}^2 + r_{j+k} r_{j-k} - 4 r_{k} r_{j} r_{j-k} + 2 r_{j}^2 r_{k}^2
         \right\} \\
     \frac{1}{N} \sum_{j=-\infty}^{+\infty}{ \left\{
         r_{j}^2 [ 1 + 2 r_{k}^2] + r_{j+k} r_{j-k} - 4 r_{k} r_{j} r_{j-k}
-        \right\} 
+        \right\}
 \end{split}
 \end{equation}
 
@@ -347,18 +346,18 @@ References
 
 ##..............................................................................
 def pacf(x, periodogram=True, lagmax=None):
-    """Computes the partial autocorrelation function of series `x` along 
+    """Computes the partial autocorrelation function of series `x` along
     the given axis.
 
 :Parameters:
     x : 1D array
         Time series.
     periodogram : {True, False} optional
-        Whether to use a periodogram-like estimate of the ACF or not.        
+        Whether to use a periodogram-like estimate of the ACF or not.
     lagmax : {None, int} optional
         Maximum lag. If None, the maximum lag is set to n/4+1, with n the series
-        length.        
-    """    
+        length.
+    """
     acfx = acf(x, periodogram)[:,None]
     #
     if lagmax is None:

@@ -6,7 +6,6 @@
 :version: $Id: test_trecords.py 3836 2008-01-15 13:09:03Z matthew.brett@gmail.com $
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author: matthew.brett@gmail.com $)"
-__version__ = '1.0'
 __revision__ = "$Revision: 3836 $"
 __date__     = '$Date: 2008-01-15 08:09:03 -0500 (Tue, 15 Jan 2008) $'
 
@@ -213,13 +212,13 @@ class TestTimeSeriesRecords_Functions(TestCase):
         self.setup()
     #
     def setup(self):
-        a = time_series(np.random.rand(24), 
+        a = time_series(np.random.rand(24),
                         start_date=ts.now('M'))
-        b = time_series(np.random.rand(24)*100, dtype=int, 
+        b = time_series(np.random.rand(24)*100, dtype=int,
                         start_date=ts.now('M'),)
-#        c = time_series(["%02i" % _ for _ in np.arange(24)], 
+#        c = time_series(["%02i" % _ for _ in np.arange(24)],
 #                         start_date=ts.now('M'))
-        c = time_series(np.arange(24), 
+        c = time_series(np.arange(24),
                          start_date=ts.now('M'))
         trec = fromarrays([a,b,c], dates=a.dates, names='a,b,c')
         self.info = (a,b,c,trec)
@@ -234,7 +233,7 @@ class TestTimeSeriesRecords_Functions(TestCase):
         assert_equal(a_trec.dtype.names, trec.dtype.names)
         for key in ('a','b','c'):
             assert_equal(a_trec[key], base[key].convert('A', ma.mean))
-        
+
 
 ###############################################################################
 #------------------------------------------------------------------------------

@@ -1,5 +1,4 @@
 
-__version__ = '0.67'
 __revision__ = "$Revision$"
 __date__     = '$Date$'
 

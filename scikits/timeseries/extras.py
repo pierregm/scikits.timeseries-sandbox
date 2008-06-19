@@ -6,7 +6,6 @@ Extras functions for time series.
 :version: $Id$
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author$)"
-__version__ = '0.67'
 __revision__ = "$Revision$"
 __date__     = '$Date$'
 
@@ -142,7 +141,7 @@ Returns a frequency code.
         elif getattr(res, 'seconds', 0) >= 60*60:
             fcode = _c.FR_HR
         elif getattr(res, 'day', 0) >= 1:
-            fcode = _c.FR_DAY           
+            fcode = _c.FR_DAY
         elif getattr(res, 'day', 0) >= 7:
             fcode = _c.FR_WK
         elif getattr(res, 'month', 0) >= 1:

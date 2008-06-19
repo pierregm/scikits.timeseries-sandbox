@@ -6,7 +6,6 @@ A collection of intperolation tools for timeseries
 :version: $Id$
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author$)"
-__version__ = '1.0'
 __revision__ = "$Revision$"
 __date__     = '$Date$'
 

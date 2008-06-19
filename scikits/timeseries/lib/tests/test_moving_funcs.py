@@ -6,7 +6,6 @@
 :version: $Id: test_filters.py 2819 2007-03-03 23:00:20Z pierregm $
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author: pierregm $)"
-__version__ = '1.0'
 __revision__ = "$Revision: 2819 $"
 __date__     = '$Date: 2007-03-03 18:00:20 -0500 (Sat, 03 Mar 2007) $'
 
@@ -76,9 +75,9 @@ class TestCMovAverage(TestCase):
             ravg = mf.cmov_average(data,width)
             assert(isinstance(ravg, MaskedArray))
             #!!!: __getitem__[int] used to return a TimeSeries, now returns an array
-#            assert_almost_equal(ravg[18]._series.squeeze(), 
+#            assert_almost_equal(ravg[18]._series.squeeze(),
 #                                data[18-k:18+k+1]._series.mean(0))
-            assert_almost_equal(ravg[18].squeeze(), 
+            assert_almost_equal(ravg[18].squeeze(),
                                 data[18-k:18+k+1]._series.mean(0))
             m = np.zeros(data.shape, bool)
             m[:k] = m[-k:] = m[10-k:10+k+1] = True

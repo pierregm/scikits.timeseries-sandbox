@@ -4,7 +4,6 @@
 :version: $Id: test_interpolate.py 3836 2008-01-15 13:09:03Z matthew.brett@gmail.com $
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author: matthew.brett@gmail.com $)"
-__version__ = '1.0'
 __revision__ = "$Revision: 3836 $"
 __date__     = '$Date: 2008-01-15 08:09:03 -0500 (Tue, 15 Jan 2008) $'
 

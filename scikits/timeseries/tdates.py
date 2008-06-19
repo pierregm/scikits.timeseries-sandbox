@@ -9,17 +9,14 @@ Classes definition for the support of individual dates and array of dates.
 #!!!: Implement DateArray in C (Cython ?)
 
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox"
-__version__ = '1.0'
 __revision__ = "$Revision$"
 __date__     = '$Date$'
-
 
 import datetime as dt
 
 import itertools
 import warnings
 import types
-
 
 import numpy as np
 from numpy import bool_, float_, int_, object_, ndarray
@@ -376,8 +373,6 @@ For non-quarterly dates, this simply returns the year of the date."""
         """Returns a hierarchical python list of standard datetime objects."""
         _result = np.empty(self.shape, dtype=np.object_)
         _result.flat = [d.datetime for d in self.ravel()]
-#        for idx, val in numpy.ndenumerate(self):
-#            operator.setitem(_result, idx, Date(freq=self.freq, value=val).datetime)
         return _result.tolist()
     #
     def tostring(self):
@@ -545,8 +540,6 @@ For non-quarterly dates, this simply returns the year of the date."""
             return self[-1]
         return None
 
-#............................
-
 nodates = DateArray([])
 
 #####---------------------------------------------------------------------------
@@ -643,7 +636,6 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
     # Check if we have an end_date
     if end_date is None:
         if length is None:
-#            raise ValueError,"No length precised!"
             length = 1
     else:
         if not isinstance(end_date, Date):

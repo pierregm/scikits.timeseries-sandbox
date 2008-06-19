@@ -7,7 +7,6 @@ Test suite for the ACVF module
 :version: $Id: timeseries.py 55 2006-12-20 08:24:40Z backtopop $
 """
 __author__ = "Pierre GF Gerard-Marchant ($Author: backtopop $)"
-__version__ = '1.0'
 __revision__ = "$Revision: 55 $"
 __date__     = '$Date: 2006-12-20 03:24:40 -0500 (Wed, 20 Dec 2006) $'
 
@@ -43,14 +42,14 @@ class TestCorrel(TestCase):
                         1056, 975, 940,1081,1294,1341]
         self.fdeaths = [901, 689, 827, 677, 522, 406, 441, 393, 387, 582, 578,
                         666, 830, 752, 785, 664, 467, 438, 421, 412, 343, 440,
-                        531, 771, 767,1141, 896, 532, 447, 420, 376, 330, 357, 
-                        445, 546, 764, 862, 660, 663, 643, 502, 392, 411, 348, 
-                        387, 385, 411, 638, 796, 853, 737, 546, 530, 446, 431, 
-                        362, 387, 430, 425, 679, 821, 785, 727, 612, 478, 429, 
+                        531, 771, 767,1141, 896, 532, 447, 420, 376, 330, 357,
+                        445, 546, 764, 862, 660, 663, 643, 502, 392, 411, 348,
+                        387, 385, 411, 638, 796, 853, 737, 546, 530, 446, 431,
+                        362, 387, 430, 425, 679, 821, 785, 727, 612, 478, 429,
                         405, 379, 393, 411, 487, 574]
         self.mdeaths = ma.asarray(self.mdeaths)
         self.fdeaths = ma.asarray(self.fdeaths)
-    
+
     #
     def test_avf_nomasked(self):
         "Tests avf - no masked values"
@@ -86,7 +85,7 @@ class TestCorrel(TestCase):
         mz = (~pz.mask).astype(int)
         assert_almost_equal(avfp[:21],
                             np.r_[[pz.var()],
-                                  [(pz[k:]*pz[:-k]).sum()/(mz[k:]*mz[:-k]).sum() 
+                                  [(pz[k:]*pz[:-k]).sum()/(mz[k:]*mz[:-k]).sum()
                                    for k in range(1,21)]])
     #......................................................
     def test_cvf_nomasked(self):
@@ -96,17 +95,17 @@ class TestCorrel(TestCase):
         cvfmf = cvf(mdeaths,fdeaths)
         assert_almost_equal(cvfmf[:16].round(),
                             [ 74941, 56473, 27961, -820,-29395,-47777,-52855,
-                             -46871,-29427, -1390, 30090, 50403,55378, 49061, 
+                             -46871,-29427, -1390, 30090, 50403,55378, 49061,
                              27739,-260])
         assert_almost_equal(cvfmf[-15:].round(),
                             [  1156, 28067, 47243, 54365, 47740, 26100, -1883,
-                             -29299,-46964,-52031,-46368,-26827,  1517, 31105, 
+                             -29299,-46964,-52031,-46368,-26827,  1517, 31105,
                               57137,])
     #......................................................
     def test_cvf_masked(self):
         (mdeaths, fdeaths) = (self.mdeaths, self.fdeaths)
         (mdeaths_, fdeaths_) = (mdeaths.copy(), fdeaths.copy())
-        mdeaths_[0] = fdeaths_[-1] = ma.masked        
+        mdeaths_[0] = fdeaths_[-1] = ma.masked
         cvfmf = cvf(mdeaths_,fdeaths_)
         assert_almost_equal(cvfmf[:16].round(4),
                             [ 73964.4731, 56471.7150, 27967.4713,  -795.2985,
@@ -127,7 +126,7 @@ class TestCorrel(TestCase):
                              -0.108, 0.045, 0.226, 0.332, 0.085, 0.034, 0.138,
                              -0.046,-0.059, 0.068, 0.148, 0.061])
         mdeaths_ = mdeaths.copy()
-        mdeaths_[0] = ma.masked        
+        mdeaths_[0] = ma.masked
         pacfm = pacf(mdeaths_)
         assert_almost_equal(pacfm[:19].round(3),
                             [ 0.000, 0.763,-0.445,-0.229,-0.359,-0.183,-0.132,
