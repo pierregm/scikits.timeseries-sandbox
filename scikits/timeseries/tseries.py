@@ -55,7 +55,7 @@ __all__ = ['TimeSeries','TimeSeriesCompatibilityError','TimeSeriesError',
            'pct',
            'quarter',
            'second','split','stack',
-           'time_series','tofile','tshift','masked',
+           'time_series','tofile','tshift','masked','nomask',
            'week','weekday',
            'year',
            ]
