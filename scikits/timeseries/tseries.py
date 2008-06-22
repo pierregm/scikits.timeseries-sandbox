@@ -1375,7 +1375,9 @@ def adjust_endpoints(a, start_date=None, end_date=None):
 #.....................................................
 def align_series(*series, **kwargs):
     """Aligns several TimeSeries, so that their starting and ending dates match.
-    Series are resized and filled with mased values accordingly.
+    Series are resized and filled with masked values accordingly. The resulting
+    series have no missing dates (ie. series.isvalid() == True for each of the
+    resulting series).
 
     The function accepts two extras parameters:
     - `start_date` forces the series to start at that given date,
@@ -1387,23 +1389,27 @@ def align_series(*series, **kwargs):
         return series
     unique_freqs = np.unique([x.freqstr for x in series])
     common_freq = _compare_frequencies(*series)
-    valid_states = [x.isvalid() for x in series]
-    if not np.all(valid_states):
-        raise TimeSeriesError, \
-            "Cannot adjust a series with missing or duplicated dates."
+
+    # if any of the series have missing dates, fill them in first
+    filled_series = []
+    for ser in series:
+        if ser.isvalid():
+            filled_series.append(ser)
+        else:
+            filled_series.append(ser.fill_missing_dates())
 
     start_date = kwargs.pop('start_date',
-                            min([x.start_date for x in series
+                            min([x.start_date for x in filled_series
                                      if x.start_date is not None]))
     if isinstance(start_date,str):
         start_date = Date(common_freq, string=start_date)
     end_date = kwargs.pop('end_date',
-                          max([x.end_date for x in series
+                          max([x.end_date for x in filled_series
                                    if x.end_date is not None]))
     if isinstance(end_date,str):
         end_date = Date(common_freq, string=end_date)
 
-    return [adjust_endpoints(x, start_date, end_date) for x in series]
+    return [adjust_endpoints(x, start_date, end_date) for x in filled_series]
 aligned = align_series
 
 #.....................................................
