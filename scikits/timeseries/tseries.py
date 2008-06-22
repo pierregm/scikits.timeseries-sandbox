@@ -519,7 +519,7 @@ Returns the item described by i. Not a copy.
                 try:
                     indx = _dates.date_to_index(date_array(indx,
                                                            freq=self.freq))
-                except (IndexError, ValueError):
+                except (IndexError, ValueError, DateError):
                     exc_info = sys.exc_info()
                     msg = "Invalid index or date '%s'" % indx
                     raise IndexError(msg), None, exc_info[2]

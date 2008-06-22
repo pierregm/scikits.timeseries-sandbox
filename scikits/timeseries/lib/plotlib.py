@@ -46,8 +46,9 @@ def add_generic_subplot(figure_instance, *args, **kwargs):
 The specific Subplot object class to add is given through the keywords
 `SubplotClass` or `class`.
 
-*:Parameters*:
-    figure_instance : {Figure object}
+    Parameters
+    ----------
+    figure_instance : Figure object
         Figure to which the generic subplot should be attached.
     args : {var}
         Miscellaneous arguments to the subplot.
