@@ -280,12 +280,6 @@ incompatible dates"""
 
 class TestGetitem(TestCase):
     "Some getitem tests"
-    def __init__(self, *args, **kwds):
-        TestCase.__init__(self, *args, **kwds)
-        dlist = ['2007-01-%02i' % i for i in range(1,16)]
-        dates = date_array(dlist, freq='D')
-        data = ma.array(np.arange(15), mask=[1,0,0,0,0]*3, dtype=float_)
-        self.d = (time_series(data, dates), data, dates)
 
     def setUp(self):
         dates = date_array(['2007-01-%02i' % i for i in range(1,16)], freq='D')
@@ -468,37 +462,16 @@ class TestGetitem(TestCase):
         #
     def test_wtimeseries(self):
         "Tests getitem w/ TimeSeries as index"
-        (series, data, dates) = self.d
+        series1D = self.series1D
         # Testing a basic condition on data
-        cond = (series<8).filled(False)
-        dseries = series[cond]
+        cond = (series1D < 8).filled(False)
+        dseries = series1D[cond]
         assert_equal(dseries._data, [1,2,3,4,6,7])
-        assert_equal(dseries._dates, series._dates[[1,2,3,4,6,7]])
+        assert_equal(dseries._dates, series1D._dates[[1,2,3,4,6,7]])
         assert_equal(dseries._mask, nomask)
         # Testing a basic condition on dates
-        series[series._dates < Date('D',string='2007-01-06')] = masked
-        assert_equal(series[:5]._series._mask, [1,1,1,1,1])
-
-    def test_wslices(self):
-        "Test get/set items."
-        (series, data, dates) = self.d
-        # Basic slices
-#        assert_equal(series[3:7]._series._data, data[3:7]._data)
-#        assert_equal(series[3:7]._series._mask, data[3:7]._mask)
-#        assert_equal(series[3:7]._dates, dates[3:7])
-#        # Ditto
-#        assert_equal(series[:5]._series._data, data[:5]._data)
-#        assert_equal(series[:5]._series._mask, data[:5]._mask)
-#        assert_equal(series[:5]._dates, dates[:5])
-        # With set
-        series[:5] = 0
-        assert_equal(series[:5]._series, [0,0,0,0,0])
-        dseries = np.log(series)
-        series[-5:] = dseries[-5:]
-        assert_equal(series[-5:], dseries[-5:])
-        # Now, using dates !
-        dseries = series[series.dates[3]:series.dates[7]]
-        assert_equal(dseries, series[3:7])
+        series1D[series1D._dates < Date('D',string='2007-01-06')] = masked
+        assert_equal(series1D[:5]._series._mask, [1,1,1,1,1])
 
     def test_on2d(self):
         "Tests getitem on a 2D series"
@@ -510,7 +483,60 @@ class TestGetitem(TestCase):
         assert_equal(ser_x[:,:], ser_x)
 
 
-
+class TestSetItem(TestCase):
+    #
+    def setUp(self):
+        dlist = ['2007-01-%02i' % i for i in range(1,6)]
+        dates = date_array(dlist, freq='D')
+        data = ma.array(np.arange(5), mask=[1,0,0,0,0], dtype=float)
+        self.series = time_series(data, dates)
+        self.dates = dates
+    #
+    def test_with_integers(self):
+        "Tests setitem with integers"
+        series = self.series
+        series[0] = 1
+        assert_equal(series._data, [1,1,2,3,4])
+        assert_equal(series._mask, [0,0,0,0,0])
+        series[0] = masked
+        assert_equal(series._data, [1,1,2,3,4])
+        assert_equal(series._mask, [1,0,0,0,0])
+        try:
+            series[10] = -999
+        except IndexError:
+            pass
+    #
+    def test_with_dates(self):
+        "Test setitem w/ dates"
+        (series, dates) = (self.series, self.dates)
+        #
+        last_date = dates[-1]
+        series[last_date] = 5
+        assert_equal(series._data, [0,1,2,3,5])
+        assert_equal(series._mask, [1,0,0,0,0])
+        #
+        last_date += 10
+        try:
+            series[last_date] = -999
+        except IndexError:
+            pass
+        # With dates as string
+        series['2007-01-01'] = 5
+        assert_equal(series._data, [5,1,2,3,5])
+        assert_equal(series._mask, [0,0,0,0,0])
+        
+    #
+    def test_with_datearray(self):
+        "Test setitem w/ a date_array"
+        (series, dates) = (self.series, self.dates)
+        # Test with date array
+        series[dates[[0,-1]]] = 0
+        assert_equal(series._data, [0,1,2,3,0])
+        assert_equal(series._mask, [0,0,0,0,0])
+        # Test with date as list ofstring
+        series[['2007-01-01','2007-01-02']] = 10
+        assert_equal(series._data, [10,10,2,3,0])
+        assert_equal(series._mask, [0,0,0,0,0])
 
 #------------------------------------------------------------------------------
 

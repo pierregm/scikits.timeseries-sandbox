@@ -188,7 +188,7 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
             obj._mask = make_mask(_localdict['_fieldmask'][indx])
             return obj
         # We want some elements ..
-        (sindx, dindx) = self._index_checker(indx)
+        (sindx, dindx, recheck) = self._index_checker(indx)
         obj = np.array(self._data[sindx], copy=False, subok=True).view(type(self))
         obj.__dict__.update(_dates=_localdict['_dates'][dindx],
                             _fill_value=_localdict['_fill_value'])

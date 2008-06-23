@@ -16,8 +16,9 @@ import numpy.ma as ma
 
 from scikits.timeseries.lib.avcf import avf, acf, cvf, ccf, pacf
 
-from scipy.testing import TestCase, nose
+from scipy.testing import *
 from numpy.ma.testutils import assert_almost_equal
+
 
 
 class TestCorrel(TestCase):

@@ -460,11 +460,11 @@ A time series is here defined as the combination of two arrays:
 
     def _index_checker(self, indx):
         if isinstance(indx, int):
-            return (indx, indx)
+            return (indx, indx, False)
         _dates = self._dates
         if isinstance(indx, basestring):
             if indx in (self.dtype.names or ()):
-                return (indx, slice(None, None, None))
+                return (indx, slice(None, None, None), False)
             try:
                 indx = _dates.date_to_index(Date(_dates.freq, string=indx))
             except IndexError:
@@ -472,21 +472,21 @@ A time series is here defined as the combination of two arrays:
                 exc_info = sys.exc_info()
                 msg = "Invalid field or date '%s'" % indx
                 raise IndexError(msg), None, exc_info[2]
-            return (indx, indx)
+            return (indx, indx, False)
         if isinstance(indx, (Date, DateArray)):
             indx = self._dates.date_to_index(indx)
-            return (indx, indx)
+            return (indx, indx, False)
         if isinstance(indx, slice):
             indx = slice(self._slicebound_checker(indx.start),
                          self._slicebound_checker(indx.stop),
                          indx.step)
-            return (indx, indx)
+            return (indx, indx, False)
         if isinstance(indx, tuple):
             if not self._varshape:
-                return (indx, indx)
+                return (indx, indx, False)
             else:
-                return (indx, indx[0])
-        return (indx, indx)
+                return (indx, indx[0], False)
+        return (indx, indx, True)
 
     def _slicebound_checker(self, bound):
         if isinstance(bound,int) or bound is None:
@@ -505,13 +505,16 @@ A time series is here defined as the combination of two arrays:
         """x.__getitem__(y) <==> x[y]
 Returns the item described by i. Not a copy.
         """
-        (sindx, dindx) = self._index_checker(indx)
+        (sindx, dindx, recheck) = self._index_checker(indx)
         _series = ndarray.__getattribute__(self, '_series')
         _dates = ndarray.__getattribute__(self, '_dates')
         try:
             newseries = _series.__getitem__(sindx)
         except IndexError:
-            # Couldn't recognize the index: let's try w/ a DateArray
+            # We don't need to recheck the index: just raise an exception
+            if not recheck:
+                raise
+            # Maybe the index is a list of Dates ?
             try:
                 indx = _dates.date_to_index(indx)
             except (IndexError, ValueError):
@@ -550,8 +553,39 @@ Sets item described by index. If value is masked, masks those locations.
 """
         if self is masked:
             raise MAError, 'Cannot alter the masked element.'
-        (sindx, _) = self._index_checker(indx)
-        MaskedArray.__setitem__(self, sindx, value)
+        try:
+            MaskedArray.__setitem__(self, indx, value)
+        except IndexError:
+            # Easy case: we're out of bounds...
+            if isinstance(indx, int):
+                raise
+            # Mmh, is the index a (list of) Date(s) ?
+            _dates = ndarray.__getattribute__(self, '_dates')
+            try:
+                indx = _dates.date_to_index(date_array(indx, freq=self.freq))
+            except:
+                raise
+            else:
+                MaskedArray.__setitem__(self, indx, value)
+        except ValueError:
+            # OK, that should be a slice, then...
+            if isinstance(indx, slice):
+                sindx = slice(self._slicebound_checker(indx.start),
+                              self._slicebound_checker(indx.stop),
+                              indx.step)
+            # Or maybe a field ?
+            elif isinstance(indx, basestring) and indx in self.dtype.names:
+                sindx = indx
+            # Or some kind of date...
+            else:
+                _dates = ndarray.__getattribute__(self, '_dates')
+                sindx = _dates.date_to_index(date_array(indx, freq=self.freq))
+            #
+            try:
+                MaskedArray.__setitem__(self, sindx, value)
+            except IndexError:
+                raise IndexError("Date '%s' out of bounds !" % indx)
+        return
 
 
     def __setattr__(self, attr, value):

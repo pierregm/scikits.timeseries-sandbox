@@ -9,13 +9,10 @@ __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author: pierregm $)"
 __revision__ = "$Revision: 2819 $"
 __date__     = '$Date: 2007-03-03 18:00:20 -0500 (Sat, 03 Mar 2007) $'
 
-#!!!: Switch to the import numpy as np, numpy.ma as ma convention
-#!!!: Get rid of numpy.core.numeric
-#!!!: Use ma.array instead of MaskedArray
 
 import numpy as np
 
-from scipy.testing import TestCase, nose
+from scipy.testing import *
 from numpy.ma.testutils import assert_equal, assert_almost_equal
 
 import numpy.ma as ma
@@ -23,15 +20,16 @@ from numpy.ma import MaskedArray, masked
 
 import scikits.timeseries as ts
 from scikits.timeseries import time_series, now
-
 from scikits.timeseries.lib import moving_funcs as mf
+
+
 
 class TestCMovAverage(TestCase):
 
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
         self.data = np.arange(25)
-        self.maskeddata = MaskedArray(self.data)
+        self.maskeddata = ma.array(self.data)
         self.maskeddata[10] = masked
     #
     def test_onregulararray(self):
