@@ -573,9 +573,15 @@ Sets item described by index. If value is masked, masks those locations.
                 sindx = slice(self._slicebound_checker(indx.start),
                               self._slicebound_checker(indx.stop),
                               indx.step)
-            # Or maybe a field ?
-            elif isinstance(indx, basestring) and indx in self.dtype.names:
+            # Or maybe a field?
+            elif isinstance(indx, basestring) and \
+              self.dtype.names is not None and indx in self.dtype.names:
                 sindx = indx
+            # or string representation of a Date?
+            elif isinstance(indx, basestring):
+                _date = Date(freq=self.freq, string=indx)
+                _dates = ndarray.__getattribute__(self, '_dates')
+                sindx = _dates.date_to_index(_date)
             # Or some kind of date...
             else:
                 _dates = ndarray.__getattribute__(self, '_dates')
