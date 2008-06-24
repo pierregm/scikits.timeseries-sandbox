@@ -481,6 +481,7 @@ A time series is here defined as the combination of two arrays:
                          self._slicebound_checker(indx.stop),
                          indx.step)
             return (indx, indx, False)
+
         if isinstance(indx, tuple):
             if not self._varshape:
                 return (indx, indx, False)
@@ -489,17 +490,22 @@ A time series is here defined as the combination of two arrays:
         return (indx, indx, True)
 
     def _slicebound_checker(self, bound):
-        if isinstance(bound,int) or bound is None:
-            return bound
-        _dates = self._dates
-        if isinstance(bound, (Date, DateArray)):
-            if bound.freq != _dates.freq:
-                raise TimeSeriesCompatibilityError('freq',
-                                                   _dates.freq, bound.freq)
-            return _dates.date_to_index(bound)
-        if isinstance(bound, basestring):
-            return _dates.date_to_index(Date(_dates.freq, string=bound))
 
+        if bound is None or isinstance(bound, int):
+            return bound
+
+        _dates = self._dates
+        if isinstance(bound, str):
+            bound = Date(_dates.freq, string=bound)
+        if not isinstance(bound, Date):
+            raise ValueError(
+                "invalid object used in slice: %s" % repr(bound))
+        if bound.freq != _dates.freq:
+            raise TimeSeriesCompatibilityError('freq',
+                                               _dates.freq, bound.freq)
+        # this allows for slicing with dates outside the end points of the
+        # series and slicing on series with missing dates
+        return np.sum(self._dates < bound)
 
     def __getitem__(self, indx):
         """x.__getitem__(y) <==> x[y]

@@ -420,6 +420,24 @@ class TestGetitem(TestCase):
         (series2D, data2D) = (self.series2D, self.data2D)
         _wdates(series2D, data2D, dates[:3])
 
+    def test_slicing_with_dates(self):
+        "Tests __getitem__ w/ date based slices"
+        def _testslice(series):
+            sd, ed = series.start_date, series.end_date
+
+            # full range of series
+            assert_equal(series, series[sd:ed+1])
+            # exclude first and last point of series
+            assert_equal(series[1:-1], series[sd+1:ed])
+            # slice with dates beyond the start and end dates
+            assert_equal(series, series[sd-10:ed+10])
+
+        series = self.series1D
+        _testslice(series)
+
+        # now try slicing on a series with missing dates
+        series = series[::2]
+        _testslice(series)
 
     def test_with_dates_as_str(self):
 
@@ -524,7 +542,7 @@ class TestSetItem(TestCase):
         series['2007-01-01'] = 5
         assert_equal(series._data, [5,1,2,3,5])
         assert_equal(series._mask, [0,0,0,0,0])
-        
+
     #
     def test_with_datearray(self):
         "Test setitem w/ a date_array"
