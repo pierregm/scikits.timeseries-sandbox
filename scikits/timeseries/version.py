@@ -4,6 +4,12 @@ try:
     __version__ = require('scikits.timeseries')[0].version
 except DistributionNotFound:
     # package hasn't actually been installed. Importing directly from source
-    # folder. Assign a dummy value for __version__ .
+    # folder. Explicitly import setup.py to extract version number
     # This should only happen for developers of the package
-    __version__ = '0.0.0 - dev'
+    import imp
+    import os
+    _parent_dir = os.path.split(os.path.dirname(__file__))[0]
+    _setup_dir = os.path.split(_parent_dir)[0]
+
+    _setup = imp.load_source("setup", os.path.join(_setup_dir, "setup.py"))
+    __version__ = _setup.version
