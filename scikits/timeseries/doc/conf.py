@@ -17,14 +17,14 @@ from scikits.timeseries.version import __version__
 # If your extensions are in another directory, add it here. If the directory
 # is relative to the documentation root, use os.path.abspath to make it
 # absolute, like shown here.
-#sys.path.append(os.path.abspath('some/directory'))
+sys.path.append(os.path.abspath('sphinxext'))
 
 # General configuration
 # ---------------------
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-#extensions = []
+extensions = ['sphinx.ext.autodoc', 'only_directives']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -37,7 +37,7 @@ master_doc = 'index'
 
 # General substitutions.
 project = 'scikits.timeseries'
-copyright = '2008, Pierre GF GERARD-MARCHANT, Matt KNOX'
+copyright = '2008, Pierre GF Gerard-Marchant, Matt Knox'
 
 # The default replacements for |version| and |release|, also used in various
 # other places throughout the built documents.
@@ -137,7 +137,7 @@ html_last_updated_fmt = '%b %d, %Y'
 # If true, an OpenSearch description file will be output, and all pages will
 # contain a <link> tag referring to it.  The value of this option must be the
 # base URL from which the finished HTML is served.
-#html_use_opensearch = ''
+html_use_opensearch = 'False'
 
 # If nonempty, this is the file name suffix for HTML files (e.g. ".xhtml").
 #html_file_suffix = ''
@@ -150,30 +150,32 @@ htmlhelp_basename = 'scikitstimeseriesdoc'
 # ------------------------
 
 # The paper size ('letter' or 'a4').
-#latex_paper_size = 'letter'
+latex_paper_size = 'letter'
 
 # The font size ('10pt', '11pt' or '12pt').
-#latex_font_size = '10pt'
+latex_font_size = '11pt'
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, document class [howto/manual]).
 latex_documents = [
-  ('index', 'scikitstimeseries.tex', 'scikits.timeseries Documentation', 'Pierre GF GERARD-MARCHANT & Matt KNOX', 'manual'),
+  ('index', 'scikitstimeseries.tex', 'scikits.timeseries Documentation', 'Pierre GF Gerard-Marchant, Matt Knox', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-#latex_logo = None
-
-# For "manual" documents, if this is true, then toplevel headings are parts,
-# not chapters.
-#latex_use_parts = False
+latex_logo = None
 
 # Additional stuff for the LaTeX preamble.
-#latex_preamble = ''
+latex_preamble = ''
 
 # Documents to append as an appendix to all manuals.
-#latex_appendices = []
+latex_appendices = []
 
 # If false, no module index is generated.
-#latex_use_modindex = True
+latex_use_modindex = True
+
+#latex_use_parts = True
+
+# Show both class-level docstring and __init__ docstring in class
+# documentation
+autoclass_content = 'both'

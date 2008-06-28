@@ -1,11 +1,11 @@
-##################
-scikits.timeseries
-##################
+###################
+ scikits.timeseries
+###################
 
-:Release: |version|
-:Date: |today|
+.. htmlonly::
 
-Contents:
+    :Release: |version|
+    :Date: |today|
 
 .. toctree::
    :maxdepth: 2
@@ -13,9 +13,8 @@ Contents:
    intro.rst
    installing.rst
 
-Indices and tables
-==================
+.. htmlonly::
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+  * :ref:`genindex`
+  * :ref:`modindex`
+  * :ref:`search`
