@@ -3,6 +3,13 @@ http://www.opensource.org/licenses/bsd-license.php
 
 Also, please note the following:
 
+Parts of the documentation (scikits/timeseries/doc/) framework were borrowed
+from the matplotlib project. And as such, it is subject to the terms of the
+matplotlib license. Please see http://matplotlib.sourceforge.net/license.html
+for more details.
+
+=================================================================
+
 The timeseries scikit contains code borrowed from the EGENIX mx.DateTime
 package. It uses code from versions 2.0.6 and 3.0.0 of the mx.DateTime package
 and as such, is subject to versions 1.0.0 and 1.1.0 of the EGENIX.COM PUBLIC
@@ -111,7 +118,7 @@ ________________________________________________________________________
     using this software in source or binary form and its associated
     documentation ("the Software").
 
-2.  License 
+2.  License
 
     Subject to the terms and conditions of this eGenix.com Public
     License Agreement, eGenix.com hereby grants Licensee a
@@ -151,7 +158,7 @@ ________________________________________________________________________
     This License Agreement will automatically terminate upon a
     material breach of its terms and conditions.
 
-6.  Third Party Rights 
+6.  Third Party Rights
 
     Any software or documentation in source or binary form provided
     along with the Software that is associated with a separate license
