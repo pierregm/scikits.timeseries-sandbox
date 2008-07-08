@@ -56,6 +56,16 @@ class TestCreation(TestCase):
         assert_equal(dates, 24073 + np.arange(12))
         print "finished test_fromstrings"
 
+    def test_fromstrings_sorting_bug(self):
+        """regression test for previous bug with string dates getting sorted
+        incorrectly"""
+        dlist = ['5-jan-2005', '1-apr-2008', '3-may-2009']
+        dvals = [Date(freq='d', string=x).value for x in dlist]
+        dvals = np.array(dvals)
+        dates = date_array(dlist, freq='d')
+        assert_equal(dates, dvals)
+
+
     def test_fromstrings_wmissing(self):
         "Tests creation from list of strings w/ missing dates"
         print "starting test_fromstrings_wmissing..."
