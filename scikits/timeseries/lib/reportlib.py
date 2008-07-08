@@ -30,7 +30,7 @@ Ideas borrowed from:
     html_o = open('myfile.html', 'w')
 
     # report containing only numerical series, showing 2 decimal places
-    num_report = Report(series1, series2, fmtfunc=lambda x:'%.2f' % x)
+    num_report = Report(series1, series2, fmt_func=lambda x:'%.2f' % x)
 
     # report containing some string and numerical data
     mixed_report = Report(series1, series2, series3)
@@ -40,7 +40,7 @@ Ideas borrowed from:
 
     # format one column one with 2 decimal places, and column two with 4.
     # Add a sum footer. Write the output to txt_o
-    num_report(fmtfunc=[(lambda x:'%.2f' % x), (lambda x:'%.4f' % x)],
+    num_report(fmt_func=[(lambda x:'%.2f' % x), (lambda x:'%.4f' % x)],
                  footer_func=ma.sum, footer_label='sum', output=txt_o)
 
     # create an html table of the data over a specified range.
@@ -48,7 +48,7 @@ Ideas borrowed from:
     html_o.write("<table>")
     mixed_report(series1, series2, series3, dates=darray,
                delim="</td><td>", prefix="<tr><td>", postfix="</td></tr>",
-               wrapfunc=wrap_onspace(10, nls='<BR>'), output=html_o)
+               wrap_func=wrap_onspace(10, nls='<BR>'), output=html_o)
     html_o.write("</table>")
 
 """
@@ -65,18 +65,18 @@ __all__ = [
     'Report', 'wrap_onspace', 'wrap_onspace_strict',
     'wrap_always']
 
-class fmtfunc_wrapper:
+class fmt_func_wrapper:
     """wraps a formatting function such that it handles masked values
 
 :IVariables:
-    - `fmtfunc` : formatting function.
+    - `fmt_func` : formatting function.
     - `mask_rep` : string to use for masked values
     """
-    def __init__ (self, fmtfunc, mask_rep):
-        if fmtfunc is None:
+    def __init__ (self, fmt_func, mask_rep):
+        if fmt_func is None:
             self.f = str
         else:
-            self.f = fmtfunc
+            self.f = fmt_func
         self.mr = mask_rep
 
     def __call__ (self, item):
@@ -103,8 +103,8 @@ _default_options = {
     'postfix':'',
     'mask_rep':'--',
     'datefmt':None,
-    'fmtfunc':str,
-    'wrapfunc':lambda x:x,
+    'fmt_func':str,
+    'wrap_func':lambda x:x,
     'col_width':None,
     'nls':'\n',
     'output':sys.stdout,
@@ -175,16 +175,16 @@ to the instance.
         - `datefmt` (string, *[None]*) : Formatting string used for displaying the
           dates in the date column. If None, str() is simply called on the dates
 
-        - `fmtfunc` (List of functions or single function, *[None]*) : A function or
+        - `fmt_func` (List of functions or single function, *[None]*) : A function or
           list of functions for formatting each data column in the report. If not
           specified, str() is simply called on each item. If a list of functions is
           provided, there must be exactly one function for each column. Do not specify
           a function for the Date column, that is handled by the datefmt argument
 
-        - `wrapfunc` (List of functions or single function, *[lambda x:x]*): A function
+        - `wrap_func` (List of functions or single function, *[lambda x:x]*): A function
           f(text) for wrapping text; each element in the column is first wrapped by this
           function. Instances of  wrap_onspace, wrap_onspace_strict, and wrap_always
-          (which are part of this module) work well for this. Eg. wrapfunc=wrap_onspace(10)
+          (which are part of this module) work well for this. Eg. wrap_func=wrap_onspace(10)
           If a list is specified, each column will be wrapped according to the
           specification for that column in the list. Specifying a function for the Date
           column is optional
@@ -271,8 +271,8 @@ to the instance.
         postfix = option('postfix')
         mask_rep = option('mask_rep')
         datefmt = option('datefmt')
-        fmtfunc = option('fmtfunc')
-        wrapfunc = option('wrapfunc')
+        fmt_func = option('fmt_func')
+        wrap_func = option('wrap_func')
         col_width = option('col_width')
         nls=option('nls')
         output=option('output')
@@ -336,21 +336,21 @@ to the instance.
         else:
             tseries = ts.align_series(start_date=dates[0], end_date=dates[-1], *tseries)
 
-        if isinstance(fmtfunc, list):
-            fmtfunc = [fmtfunc_wrapper(f, mask_rep) for f in fmtfunc]
+        if isinstance(fmt_func, list):
+            fmt_func = [fmt_func_wrapper(f, mask_rep) for f in fmt_func]
         else:
-            fmtfunc = [fmtfunc_wrapper(fmtfunc, mask_rep)]*len(tseries)
+            fmt_func = [fmt_func_wrapper(fmt_func, mask_rep)]*len(tseries)
 
-        def wrapfunc_default(func):
+        def wrap_func_default(func):
             if func is None: return lambda x:x
             else: return func
 
-        if isinstance(wrapfunc, list):
-            if len(wrapfunc) == len(tseries):
-                wrapfunc = [lambda x: x] + wrapfunc
-            wrapfunc = [wrapfunc_default(func) for func in wrapfunc]
+        if isinstance(wrap_func, list):
+            if len(wrap_func) == len(tseries):
+                wrap_func = [lambda x: x] + wrap_func
+            wrap_func = [wrap_func_default(func) for func in wrap_func]
         else:
-            wrapfunc = [wrapfunc_default(wrapfunc) for x in range(len(tseries)+1)]
+            wrap_func = [wrap_func_default(wrap_func) for x in range(len(tseries)+1)]
 
 
         if isinstance(col_width, list):
@@ -362,7 +362,7 @@ to the instance.
         _sd = dates[0]
 
         for d in dates:
-            rows.append([datefmt_func(d)]+[fmtfunc[i](ser.series[d - _sd]) for i, ser in enumerate(tseries)])
+            rows.append([datefmt_func(d)]+[fmt_func[i](ser.series[d - _sd]) for i, ser in enumerate(tseries)])
 
         if footer_func is not None:
             has_footer=True
@@ -381,7 +381,7 @@ to the instance.
                 else:
                     if has_missing: _input = ser[dates]
                     else:           _input = ser.series
-                    footer_data.append(fmtfunc[i](footer_func[i](_input)))
+                    footer_data.append(fmt_func[i](footer_func[i](_input)))
 
             rows.append(footer_label + footer_data)
         else:
@@ -389,7 +389,7 @@ to the instance.
 
 
         def rowWrapper(row):
-            newRows = [wrapfunc[i](item).split('\n') for i, item in enumerate(row)]
+            newRows = [wrap_func[i](item).split('\n') for i, item in enumerate(row)]
             return [[(substr or '') for substr in item] for item in map(None,*newRows)]
         # break each logical row into one or more physical ones
         logicalRows = [rowWrapper(row) for row in rows]
