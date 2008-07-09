@@ -761,6 +761,13 @@ This command accepts the same keywords as matplotlib.plot."""
         self.legendlabels.append(kwargs.get('label',None))
         plotted = Subplot.plot(self, *parms,**kwargs)
         self.format_dateaxis()
+
+        # when adding a right axis (using add_yaxis), for some reason the
+        # x axis limits don't get properly set. This gets around the problem
+        if self.get_xlim().tolist() == [0., 1.]:
+            # if xlim still at default values, autoscale the axis
+            self.autoscale_view()
+
         return plotted
     #......................................................
     def format_dateaxis(self):
