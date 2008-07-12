@@ -97,6 +97,12 @@ class TestCreation(TestCase):
         dobj = [d.datetime for d in dates]
         odates = date_array(dobj, freq='D')
         assert_equal(dates,odates)
+
+        # check that frequency gets set when passing list of Date objects
+        dlist = [Date(freq='M', year=2001, month=2), Date(freq='M', year=2001, month=3)]
+        dates = date_array(dlist)
+        assert_equal(dates.freq, dlist[0].freq)
+
         #
         dates = date_array(['2006-01'], freq='M')
         assert_equal(dates[0], ts.Date(freq='M', year=2006, month=1))
