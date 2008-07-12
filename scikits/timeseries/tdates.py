@@ -546,42 +546,43 @@ nodates = DateArray([])
 #---- --- DateArray functions ---
 #####---------------------------------------------------------------------------
 def _listparser(dlist, freq=None):
-   "Constructs a DateArray from a list."
-   dlist = np.array(dlist, copy=False, ndmin=1)
+    "Constructs a DateArray from a list."
+    dlist = np.array(dlist, copy=False, ndmin=1)
 
-   # Case #1: dates as strings .................
-   if dlist.dtype.kind in 'SU':
-       #...construct a list of dates
-       dvals = [Date(freq, string=s).value for s in dlist]
-       dlist = np.array(dvals, copy=False, ndmin=1)
+    # Case #1: dates as strings .................
+    if dlist.dtype.kind in 'SU':
+        #...construct a list of dates
+        dvals = [Date(freq, string=s).value for s in dlist]
+        dlist = np.array(dvals, copy=False, ndmin=1)
 
-   # Make sure that the list is sorted (save the original order if needed)
-   idx = dlist.argsort()
-   if (idx[1:] - idx[:-1] < 0).any():
-       dlist = dlist[idx]
-   else:
-       idx = None
+    # Make sure that the list is sorted (save the original order if needed)
+    idx = dlist.argsort()
+    if (idx[1:] - idx[:-1] < 0).any():
+        dlist = dlist[idx]
+    else:
+        idx = None
 
-   # Case #2: dates as numbers .................
-   if dlist.dtype.kind in 'if':
-       #...hopefully, they are values
-       dates = dlist
-   # Case #3: dates as objects .................
-   elif dlist.dtype.kind == 'O':
-       template = dlist[0]
-       #...as Date objects
-       if isinstance(template, Date):
-           dates = np.fromiter((d.value for d in dlist), int_)
-       #...as mx.DateTime objects
-       elif hasattr(template,'absdays'):
-           dates = [Date(freq, datetime=m) for m in dlist]
-       #...as datetime objects
-       elif hasattr(template, 'toordinal'):
-           dates = [Date(freq, datetime=d) for d in dlist]
-   #
-   result = DateArray(dates, freq)
-   result._unsorted = idx
-   return result
+    # Case #2: dates as numbers .................
+    if dlist.dtype.kind in 'if':
+        #...hopefully, they are values
+        dates = dlist
+    # Case #3: dates as objects .................
+    elif dlist.dtype.kind == 'O':
+        template = dlist[0]
+        #...as Date objects
+        if isinstance(template, Date):
+            dates = np.fromiter((d.value for d in dlist), int_)
+            if freq in (_c.FR_UND, None): freq = template.freq
+        #...as mx.DateTime objects
+        elif hasattr(template,'absdays'):
+            dates = [Date(freq, datetime=m) for m in dlist]
+        #...as datetime objects
+        elif hasattr(template, 'toordinal'):
+            dates = [Date(freq, datetime=d) for d in dlist]
+    #
+    result = DateArray(dates, freq)
+    result._unsorted = idx
+    return result
 
 def date_array(dlist=None, start_date=None, end_date=None, length=None,
                freq=None):
