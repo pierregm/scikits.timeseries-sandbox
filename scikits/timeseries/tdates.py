@@ -268,6 +268,21 @@ accesses the array element by element. Therefore, `d` is a Date object.
     def __repr__(self):
         return ndarray.__repr__(self)[:-1] + \
                ",\n          freq='%s')" % self.freqstr
+
+
+    def __contains__(self, date):
+        """For checking if a single date (or equivalent integer value) is
+        contained in the DateArray.
+        """
+        if isinstance(date, Date) and date.freq != self.freq:
+            raise ValueError(
+                "expected date of frequency '%s' but got date of frequency "\
+                "'%s'" % (self.freqstr, date.freqstr))
+        datenum = np.array(date, dtype=self.dtype)
+        if datenum.ndim != 0:
+            raise ValueError("Cannot check containment of multiple dates")
+        return datenum in self.view(np.ndarray)
+
     #......................................................
     __add__ = _datearithmetics('__add__', asdates=True)
     __radd__ = _datearithmetics('__add__', asdates=True)
@@ -425,7 +440,6 @@ For non-quarterly dates, this simply returns the year of the date."""
         new = cseries.DA_asfreq(np.asarray(self), fromfreq, tofreq, relation[0])
         return DateArray(new, freq=freq)
 
-    #......................................................
     def find_dates(self, *dates):
         "Returns the indices corresponding to given dates, as an array."
 
@@ -484,7 +498,7 @@ For non-quarterly dates, this simply returns the year of the date."""
             # dates was a single date, so do scalar indexing
             return indx[0]
         return indx
-    #......................................................
+
     def get_steps(self):
         """Returns the time steps between consecutive dates.
     The timesteps have the same unit as the frequency of the series."""

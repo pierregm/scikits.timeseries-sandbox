@@ -925,6 +925,21 @@ class TestMethods(TestCase):
         chosen = dates.date_to_index(choices[0:1])
         assert_equal(chosen, [2])
 
+    def test_contains(self):
+        dt = ts.now('d')
+        darr = date_array(start_date=dt, length=5)
+        assert(dt in darr)
+        assert(dt-1 not in darr)
+        assert(dt.value in darr)
+        assert((dt-1).value not in darr)
+
+        try:
+            ts.now('b') in darr
+        except ValueError:
+            pass
+        else:
+            raise RuntimeError("containment of wrong frequency permitted")
+
     #
     def test_date_to_index_invalid(self):
         "Tests date_to_index"
