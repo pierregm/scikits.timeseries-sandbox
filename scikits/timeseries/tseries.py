@@ -432,13 +432,9 @@ A time series is here defined as the combination of two arrays:
             _data._dates._unsorted = None
         return _data
 
-
     def __array_finalize__(self,obj):
         self._varshape = getattr(obj, '_varshape', ())
-        self._dates = getattr(obj, '_dates', nodates)
         MaskedArray.__array_finalize__(self, obj)
-        return
-
 
     def _update_from(self, obj):
         _dates = getattr(self, '_dates', nodates)
@@ -447,8 +443,6 @@ A time series is here defined as the combination of two arrays:
         if not getattr(_dates, 'size', 0):
             self._dates = newdates
         MaskedArray._update_from(self, obj)
-        return
-
 
     def _get_series(self):
         "Returns the series as a regular masked array."
@@ -456,7 +450,6 @@ A time series is here defined as the combination of two arrays:
             return masked
         return self.view(MaskedArray)
     _series = property(fget=_get_series)
-
 
     def _index_checker(self, indx):
         if isinstance(indx, int):
@@ -548,10 +541,7 @@ Returns the item described by i. Not a copy.
             return newseries
         newseries = newseries.view(type(self))
         newseries._dates = newdates
-        newseries._update_from(self)
         return newseries
-
-
 
     def __setitem__(self, indx, value):
         """x.__setitem__(i, y) <==> x[i]=y
@@ -597,8 +587,6 @@ Sets item described by index. If value is masked, masks those locations.
                 MaskedArray.__setitem__(self, sindx, value)
             except IndexError:
                 raise IndexError("Date '%s' out of bounds !" % indx)
-        return
-
 
     def __setattr__(self, attr, value):
         if attr in ['_dates','dates']:

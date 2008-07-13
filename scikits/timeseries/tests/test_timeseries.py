@@ -431,6 +431,8 @@ class TestGetitem(TestCase):
             assert_equal(series[1:-1], series[sd+1:ed])
             # slice with dates beyond the start and end dates
             assert_equal(series, series[sd-10:ed+10])
+            # slice with dates before the series start date
+            assert_equal(series[0:0], series[sd-10:sd-5])
 
         series = self.series1D
         _testslice(series)
