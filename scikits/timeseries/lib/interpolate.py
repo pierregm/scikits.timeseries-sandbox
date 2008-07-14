@@ -41,20 +41,18 @@ values.
     #
     currGap = 0
     if maxgap is not None:
-        for i in range(1, marr.size):
-            if marr._mask[i]:
-                currGap += 1
-                if currGap <= maxgap and not marr._mask[i-1]:
-                    marr._data[i] = marr._data[i-1]
-                    marr._mask[i] = False
-                elif currGap == maxgap + 1:
-                    marr._mask[i-maxgap:i] = True
-            else:
-                currGap = 0
+        previdx = -999
+        for i in np.where(marr._mask)[0]:
+            if i != previdx + 1: currGap = 0
+            currGap += 1
+            if currGap <= maxgap and not marr._mask[i-1]:
+                marr._data[i] = marr._data[i-1]
+                marr._mask[i] = False
+            elif currGap == maxgap + 1:
+                marr._mask[i-maxgap:i] = True
     else:
-        for i in range(1, marr.size):
-            # CHECK: We should probable be able to speed things up here
-            if marr._mask[i] and not marr._mask[i-1]:
+        for i in np.where(marr._mask)[0]:
+            if not marr._mask[i-1]:
                 marr._data[i] = marr._data[i-1]
                 marr._mask[i] = False
     return marr
