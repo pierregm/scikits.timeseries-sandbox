@@ -348,7 +348,7 @@ param_doc['bias'] = \
         by N."""
 
 param_doc['ddof'] = \
-"""bias : {0, integer}, optional
+"""ddof : {0, integer}, optional
         Means Delta Degrees of Freedom.  The divisor used in calculations
         is N-ddof."""
 
