@@ -505,11 +505,16 @@ A time series is here defined as the combination of two arrays:
 Returns the item described by i. Not a copy.
         """
         (sindx, dindx, recheck) = self._index_checker(indx)
-        _series = ndarray.__getattribute__(self, '_series')
+        _class = self.__class__
         _dates = ndarray.__getattribute__(self, '_dates')
         try:
-            newseries = _series.__getitem__(sindx)
+            # temporarily change class to MaskedArray for indexing. MUCH
+            # faster than using a view due to complexity of __array_finalize__
+            # for MaskedArray class
+            self.__class__ = MaskedArray
+            newseries = self.__getitem__(sindx)
         except IndexError:
+
             # We don't need to recheck the index: just raise an exception
             if not recheck:
                 raise
@@ -520,17 +525,20 @@ Returns the item described by i. Not a copy.
                 # Mmh, is it a list of dates as strings ?
                 try:
                     indx = _dates.date_to_index(date_array(indx,
-                                                           freq=self.freq))
+                                                           freq=_dates.freq))
                 except (IndexError, ValueError, DateError):
                     exc_info = sys.exc_info()
                     msg = "Invalid index or date '%s'" % indx
                     raise IndexError(msg), None, exc_info[2]
                 else:
-                    newseries = _series.__getitem__(indx)
+                    newseries = self.__getitem__(indx)
                     dindx = indx
             else:
-                newseries = _series.__getitem__(indx)
+                newseries = self.__getitem__(indx)
                 dindx = indx
+        finally:
+            self.__class__ = _class
+
         # Don't find the date if it's not needed......
         if np.isscalar(newseries) or (newseries is masked):
             return newseries
