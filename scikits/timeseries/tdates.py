@@ -554,6 +554,41 @@ For non-quarterly dates, this simply returns the year of the date."""
             return self[-1]
         return None
 
+def fill_missing_dates(dates, freq=None):
+    """Finds and fills the missing dates in a DateArray.
+
+    Parameters
+    ----------
+    dates : {DateArray}
+        Initial array of dates.
+    freq : {freq_spec}, optional
+        Frequency of result. If not specified, the initial frequency is used.
+    """
+    # Check the frequency ........
+    orig_freq = freq
+    freq = check_freq(freq)
+    if orig_freq is not None and freq == _c.FR_UND:
+        freqstr = check_freq_str(freq)
+        raise ValueError,\
+              "Unable to define a proper date resolution (found %s)." % freqstr
+    # Check the dates .............
+    if not isinstance(dates, DateArray):
+        raise ValueError("expected DateArray, got %s" % type(dates))
+
+    if freq != dates.freq:
+        dates = dates.asfreq(freq)
+
+    if dates.ndim != 1:
+        dates = dates.ravel()
+    if not dates.has_missing_dates():
+        return dates
+
+    # ...and now, fill it ! ......
+    (tstart, tend) = dates[[0,-1]]
+    return date_array(start_date=tstart, end_date=tend)
+
+DateArray.fill_missing_dates = fill_missing_dates
+
 nodates = DateArray([])
 
 #####---------------------------------------------------------------------------
