@@ -223,11 +223,14 @@ accesses the array element by element. Therefore, `d` is a Date object.
         if isinstance(indx, Date):
             indx = self.find_dates(indx)
             reset_full = False
+        elif isinstance(indx, slice):
+            pass
         elif np.asarray(indx).dtype.kind == 'O':
             try:
                 indx = self.find_dates(indx)
             except AttributeError:
                 pass
+
         # Select the data
         r = ndarray.__getitem__(self, indx)
         # Select the corresponding unsorted indices (if needed)
@@ -245,6 +248,7 @@ accesses the array element by element. Therefore, `d` is a Date object.
             return Date(self.freq, value=r.item())
         else:
             if hasattr(r, '_cachedinfo'):
+
                 _cache = r._cachedinfo
                 _cache.update(dict([(k,_cache[k][indx])
                                     for k in ('toobj', 'tostr', 'toord')
@@ -254,16 +258,6 @@ accesses the array element by element. Therefore, `d` is a Date object.
                     _cache['full'] = None
                     _cache['hasdups'] = None
             return r
-
-    def __getslice__(self, i, j):
-        r = ndarray.__getslice__(self, i, j)
-        if hasattr(r, '_cachedinfo'):
-            _cache = r._cachedinfo
-            _cache.update(dict([(k,_cache[k][i:j])
-                                for k in ('toobj', 'tostr', 'toord')
-                                if _cache[k] is not None]))
-            _cache['steps'] = None
-        return r
 
     def __repr__(self):
         return ndarray.__repr__(self)[:-1] + \
@@ -474,29 +468,28 @@ For non-quarterly dates, this simply returns the year of the date."""
 
     def date_to_index(self, dates):
         "Returns the index corresponding to one given date, as an integer."
-        vals = self.tovalue()
+        vals = self.view(ndarray)
+        if isinstance(dates, Date):
+            _val = dates.value
+            if _val not in vals:
+                raise IndexError("Date '%s' is out of bounds" % dates)
+            if self.isvalid():
+                return _val - vals[0]
+            else:
+                return np.where(vals == _val)[0][0]
+
         _dates = DateArray(dates, freq=self.freq)
-
-        if _dates.size == 1 and np.array(dates, dtype=int_).ndim == 0:
-            scalar = True
-        else:
-            scalar = False
-
         if self.isvalid():
-            indx = (_dates.tovalue() - vals[0])
+            indx = (_dates.view(ndarray) - vals[0])
             err_cond = (indx < 0) | (indx > self.size)
             if err_cond.any():
                 err_indx = np.compress(err_cond, _dates)[0]
                 err_msg = "Date '%s' is out of bounds '%s' <= date <= '%s'"
                 raise IndexError(err_msg % (err_indx, self[0], self[-1]))
-            if scalar:
-                return indx.item()
-            return indx.tolist()
-        indx = [vals.tolist().index(d) for d in _dates.tovalue()]
+            return indx
+        vals = vals.tolist()
+        indx = np.array([vals.index(d) for d in _dates.view(ndarray)])
 
-        if scalar:
-            # dates was a single date, so do scalar indexing
-            return indx[0]
         return indx
 
     def get_steps(self):

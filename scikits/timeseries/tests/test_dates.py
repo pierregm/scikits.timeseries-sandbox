@@ -912,7 +912,7 @@ class TestMethods(TestCase):
         #
         chosen = dates.date_to_index(choices[:-1])
         assert_equal(chosen, [2, 4, 6, 8])
-        assert(isinstance(chosen, list))
+        assert(isinstance(chosen, np.ndarray))
         #
         try:
             assert_equal(dates.date_to_index(choices), [2, 4, 6, 8, -99])
@@ -955,7 +955,7 @@ class TestMethods(TestCase):
         #
         chosen = dates_invalid.date_to_index(choices[:-1])
         assert_equal(chosen, [2, 4, 6, 8])
-        assert(isinstance(chosen, list))
+        assert(isinstance(chosen, np.ndarray))
         #
         try:
             assert_equal(dates_invalid.date_to_index(choices),
