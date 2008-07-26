@@ -1585,15 +1585,34 @@ DateObject_toordinal(DateObject* self)
 }
 
 static char DateObject_asfreq_doc[] =
-"Returns a date converted to a specified frequency.\n\n"
-"*Parameters*:\n"
-"    freq : {freq_spec}\n"
-"        Frequency to convert the Date to. Accepts any valid frequency\n"
-"        specification (string or integer)\n"
-"    relation : {'END', 'START'} (optional)\n"
-"        Applies only when converting a lower frequency Date to a higher\n"
-"        frequency Date, or when converting a weekend Date to a business\n"
-"        frequency Date. Valid values are 'START' and 'END'.";
+"   asfreq(freq, relation='END')\n"
+"\n"
+"   Returns a date converted to a specified frequency.\n"
+"\n"
+"   Parameters\n"
+"   ----------\n"
+"   freq : {freq_spec}\n"
+"      Frequency to convert the Date to. Accepts any valid frequency\n"
+"      specification (string or integer)\n"
+"\n"
+"   relation : {'END', 'START'} (optional)\n"
+"      Applies only when converting a lower frequency Date to a higher\n"
+"      frequency Date, or when converting a weekend Date to a business\n"
+"      frequency Date. Valid values are 'START' and 'END'. For example, if you\n"
+"      converting a monthly date to daily frequency, relation='START' will\n"
+"      give you the first day of the month while relation='END' will give\n"
+"      you the last day of the month.\n"
+"\n"
+"   Examples\n"
+"   --------\n"
+"   >>> D = ts.Date('D', year=2007, month=12, day=31)\n"
+"   >>> D.asfreq('M')\n"
+"   <M: Dec-2006>\n"
+"   >>> D.asfreq('M').asfreq('D', relation='START')\n"
+"   <D: 01-Dec-2006>\n"
+"   >>> D.asfreq('M').asfreq('D', relation='END')\n"
+"   <D: 31-Dec-2006>\n";
+
 static PyObject *
 DateObject_asfreq(DateObject *self, PyObject *args, PyObject *kwds)
 {
