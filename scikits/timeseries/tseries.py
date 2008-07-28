@@ -505,18 +505,14 @@ A time series is here defined as the combination of two arrays:
 Returns the item described by i. Not a copy.
         """
         (sindx, dindx, recheck) = self._index_checker(indx)
-        _class = self.__class__
+        _data = ndarray.__getattribute__(self, '_data')
+        _mask = ndarray.__getattribute__(self, '_mask')
         _dates = ndarray.__getattribute__(self, '_dates')
         try:
-            # temporarily change class to MaskedArray for indexing. MUCH
-            # faster than using a view due to complexity of __array_finalize__
-            # for MaskedArray class
-            self.__class__ = MaskedArray
-            newseries = self.__getitem__(sindx)
+            output = _data.__getitem__(sindx)
         except IndexError:
             # We don't need to recheck the index: just raise an exception
             if not recheck:
-                self.__class__ = _class
                 raise
             # Maybe the index is a list of Dates ?
             try:
@@ -529,27 +525,38 @@ Returns the item described by i. Not a copy.
                 except (IndexError, ValueError, DateError):
                     exc_info = sys.exc_info()
                     msg = "Invalid index or date '%s'" % indx
-                    self.__class__ = _class
                     raise IndexError(msg), None, exc_info[2]
                 else:
-                    newseries = self.__getitem__(indx)
-                    dindx = indx
-                self.__class__ = _class
+                    output = _data.__getitem__(indx)
+                    sindx = dindx = indx
             else:
-                newseries = self.__getitem__(indx)
-                dindx = indx
-                self.__class__ = _class
-        self.__class__ = _class
+                output = _data.__getitem__(indx)
+                sindx = dindx = indx
         # Don't find the date if it's not needed......
-        if np.isscalar(newseries) or (newseries is masked):
-            return newseries
+        if not getattr(output,'ndim', False):
+            if _mask is not nomask and _mask[sindx]:
+                return masked
+            return output
         # Get the date................................
         newdates = _dates.__getitem__(dindx)
-        # In fact, that's a scalar
         if not getattr(newdates, 'shape', 0):
-            return newseries
-        newseries = newseries.view(type(self))
-        newseries._dates = newdates
+            # No dates ? Output a MaskedArray
+            newseries = output.view(MaskedArray)
+        else:
+            # Some dates: output a TimeSeries
+            newseries = output.view(type(self))
+            newseries._dates = newdates
+        # Update some info from self (fill_value, _basedict...)
+        MaskedArray._update_from(newseries, self)
+        # Fix the fill_value if we were accessing a field of a flexible array
+        if isinstance(indx, basestring):
+            if self._fill_value is not None:
+                 newseries._fill_value = self._fill_value[indx]
+            newseries._isfield = True
+        # Fix the mask
+        if _mask is not nomask:
+            newseries._mask = _mask[sindx]
+            newseries._sharedmask = True
         return newseries
 
     def __setitem__(self, indx, value):

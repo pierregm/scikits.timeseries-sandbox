@@ -504,6 +504,15 @@ class TestGetitem(TestCase):
         assert_equal(ser_x[:,:], ser_x)
 
 
+    def test_slicing_and_keeping_additional_attributes(self):
+        series1D = self.series1D
+        series1D.fill_value = -9999
+        series1D._basedict['info'] = '???'
+        piece = series1D[:5]
+        assert_equal(piece._fill_value, -9999)
+        assert_equal(piece[:5]._basedict['info'], '???')
+        
+
 class TestSetItem(TestCase):
     #
     def setUp(self):
