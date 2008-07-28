@@ -18,7 +18,7 @@ from numpy.ma import nomask
 import numpy.ma.mrecords as mr
 from numpy.ma.mrecords import addfield
 
-from scipy.testing import *
+from numpy.testing import *
 from numpy.ma.testutils import assert_equal, assert_array_equal, assert_equal_records
 
 import scikits.timeseries as ts
@@ -238,4 +238,5 @@ class TestTimeSeriesRecords_Functions(TestCase):
 ###############################################################################
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
-    nose.run(argv=['', __file__])
+    run_module_suite()
+

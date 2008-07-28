@@ -12,7 +12,7 @@ __date__     = '$Date: 2008-01-15 08:09:03 -0500 (Tue, 15 Jan 2008) $'
 
 import numpy as np
 from numpy import bool_, complex_, float_, int_, object_
-from scipy.testing import *
+from numpy.testing import *
 
 import numpy.ma as ma
 from numpy.ma import masked, nomask
@@ -331,6 +331,7 @@ class TestGetitem(TestCase):
             assert_equal(test.freq, dates.freq)
             #
             test = series[:3]
+            assert(isinstance(test, TimeSeries))
             test_series = test._series
             assert_equal(test_series._data, data[:3]._data)
             assert_equal(test_series._mask, data[:3]._mask)
@@ -1011,4 +1012,5 @@ class TestMisc(TestCase):
 ###############################################################################
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
-    nose.run(argv=['', __file__])
+    run_module_suite()
+

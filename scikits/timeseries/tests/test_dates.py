@@ -13,7 +13,7 @@ import types
 import datetime
 
 import numpy as np
-from scipy.testing import *
+from numpy.testing import *
 
 from numpy import ma
 from numpy.ma.testutils import assert_equal, assert_array_equal
@@ -969,4 +969,5 @@ class TestMethods(TestCase):
 ###############################################################################
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
-    nose.run(argv=['', __file__])
+    run_module_suite()
+

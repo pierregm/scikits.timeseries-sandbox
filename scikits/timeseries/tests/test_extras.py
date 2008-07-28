@@ -11,7 +11,7 @@ __revision__ = "$Revision: 3836 $"
 __date__     = '$Date: 2008-01-15 08:09:03 -0500 (Tue, 15 Jan 2008) $'
 
 import numpy as np
-from scipy.testing import *
+from numpy.testing import *
 from numpy.ma import masked
 from numpy.ma.testutils import assert_equal, assert_almost_equal
 
@@ -77,4 +77,5 @@ class TestCountmissing(TestCase):
 ###############################################################################
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
-    nose.run(argv=['', __file__])
+    run_module_suite()
+
