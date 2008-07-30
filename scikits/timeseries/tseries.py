@@ -738,11 +738,10 @@ timeseries(%(data)s,
     any = _tsaxismethod('any')
 
 
-    def reshape(self, newshape):
-        """a.reshape(shape, order='C')
+    def reshape(self, *newshape, **kwargs):
+        """
 
     Returns a time series containing the data of a, but with a new shape.
-
     The result is a view to the original array; if this is not possible,
     a ValueError is raised.
 
@@ -760,11 +759,16 @@ timeseries(%(data)s,
     reshaped_array : array
         A new view to the timeseries.
 
+    Warnings
+    --------
+    The `._dates` part is reshaped, but the order is NOT ensured.
+
         """
         # 1D series : reshape the dates as well
         if not self._varshape:
-            result = MaskedArray.reshape(self, newshape)
-            result._dates = self._dates.reshape(newshape)
+            kwargs.update(order=kwargs.get('order','C'))
+            result = MaskedArray.reshape(self, *newshape, **kwargs)
+            result._dates = ndarray.reshape(self._dates, *newshape, **kwargs)
         # nV/nD series: raise an exception for now (
         else:
             err_msg = "Reshaping a nV/nD series is not implemented yet !"

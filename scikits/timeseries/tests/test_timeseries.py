@@ -599,6 +599,10 @@ class TestTimeSeriesMethods(TestCase):
         assert_equal(test1D.shape, newshape)
         assert_equal(test1D._series.shape, newshape)
         assert_equal(test1D._dates.shape, newshape)
+        # Using multiple args
+        test1D = series1D.reshape(*newshape)
+        assert_equal(test1D.shape, newshape)
+        
     #
     def test_reshaping_2D(self):
         "Tests the reshaping of a nV/nD series."
