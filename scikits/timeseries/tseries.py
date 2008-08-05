@@ -285,7 +285,7 @@ of the method applied on the original series. The `_dates` part remains
 unchanged.
 """
     def __init__ (self, methodname):
-        self._name = methodname
+        self._name = self.__name__ = methodname
         self.obj = None
 
     def __get__(self, obj, objtype=None):
@@ -322,7 +322,7 @@ If `ondates` is False, the `_dates` part remains unchanged.
         """abfunc(fillx, filly) must be defined.
            abinop(x, filly) = x for all x to enable reduce.
         """
-        self._name = methodname
+        self._name = self.__name__ = methodname
         self._ondates = ondates
         self.obj = None
 
@@ -354,7 +354,7 @@ series.
         """abfunc(fillx, filly) must be defined.
            abinop(x, filly) = x for all x to enable reduce.
         """
-        self._name = methodname
+        self._name = self.__name__ = methodname
         self.obj = None
 
     def __get__(self, obj, objtype=None):
@@ -384,12 +384,11 @@ series.
 class TimeSeries(MaskedArray, object):
     """Base class for the definition of time series.
 
-A time series is here defined as the combination of two arrays:
-
-    series : {MaskedArray}
+    A time series is here defined as the combination of two arrays:
+    * series : {MaskedArray}
         Data part
-    dates : {DateArray}
-        Date part
+    * dates : {DateArray}
+         Date part
 
 *Construction*:
     data : {array_like}
@@ -1264,16 +1263,19 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
                 hard_mask=False):
     """Creates a TimeSeries object
 
-*Parameters*:
-    data : {array_like}
-        data portion of the array. Any data that is valid for constructing a
-        MaskedArray can be used here. May also be a TimeSeries object
-    dates : {DateArray}, optional
-        Date part.
-    freq : {freq_spec}, optional
-        a valid frequency specification
+    Parameters
+    ----------
+    data : array_like
+        Data portion of the array. Any data that is valid for constructing a
+        MaskedArray can be used here. May also be a TimeSeries object.
+    dates : {None, DateArray}, optional
+        A sequence of dates corresponding to each entry.
+        If None, the dates will be constructed as a DateArray with the same
+        length as `data`, starting at `start_date` with frequency `freq`.
     start_date : {Date}, optional
-        date corresponding to index 0 in the data
+        Date corresponding to the first entry of the data (index 0)
+    freq : {freq_spec}, optional
+        A valid frequency specification
 
 *Other Parameters*:
     All other parameters that are accepted by the *array* function in the
