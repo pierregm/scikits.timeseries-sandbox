@@ -549,8 +549,9 @@ Returns the item described by i. Not a copy.
         MaskedArray._update_from(newseries, self)
         # Fix the fill_value if we were accessing a field of a flexible array
         if isinstance(indx, basestring):
-            if self._fill_value is not None:
-                 newseries._fill_value = self._fill_value[indx]
+            _fv = self._fill_value
+            if _fv is not None and not np.isscalar(_fv):
+                 newseries._fill_value = _fv[indx]
             newseries._isfield = True
         # Fix the mask
         if _mask is not nomask:
