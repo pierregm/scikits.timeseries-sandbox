@@ -97,7 +97,8 @@ class ArithmeticDateError(DateError):
 #####---------------------------------------------------------------------------
 
 def prevbusday(day_end_hour=18, day_end_min=0):
-    """Returns the previous business day (Monday-Friday) at business frequency.
+    """
+    Returns the previous business day (Monday-Friday) at business frequency.
 
     Parameters
     ----------
@@ -110,7 +111,8 @@ def prevbusday(day_end_hour=18, day_end_min=0):
     returned. If it is later than the specified day_end_hour and day_end_min,
     now('Business') will be returned. Otherwise, now('Business')-1 will be
     returned.
-"""
+
+    """
     tempDate = dt.datetime.now()
     dateNum = tempDate.hour + float(tempDate.minute)/60
     checkNum = day_end_hour + float(day_end_min)/60
@@ -176,16 +178,17 @@ is returned.
 
 
 class DateArray(ndarray):
-    """Defines a ndarray of dates, as ordinals.
+    """
+    Defines a ndarray of dates, as ordinals.
 
-When viewed globally (array-wise), DateArray is an array of integers.
-When viewed element-wise, DateArray is a sequence of dates.
-For example, a test such as :
->>> DateArray(...) = value
-will be valid only if value is an integer, not a Date
-However, a loop such as :
->>> for d in DateArray(...):
-accesses the array element by element. Therefore, `d` is a Date object.
+    When viewed globally (array-wise), DateArray is an array of integers.
+    When viewed element-wise, DateArray is a sequence of dates.
+    For example, a test such as :
+    >>> DateArray(...) = value
+    will be valid only if value is an integer, not a Date
+    However, a loop such as :
+    >>> for d in DateArray(...):
+    accesses the array element by element. Therefore, `d` is a Date object.
     """
     def __new__(cls, dates=None, freq=None, copy=False):
         # Get the frequency ......
@@ -319,11 +322,14 @@ accesses the array element by element. Therefore, `d` is a Date object.
         return self.__getdateinfo__('Y')
     @property
     def qyear(self):
-        """For quarterly frequency dates, returns the year corresponding to the
-year end (start) month. When using QTR or QTR-E based quarterly
-frequencies, this is the fiscal year in a financial context.
+        """
+    For quarterly frequency dates, returns the year corresponding to the
+    year end (start) month. When using QTR or QTR-E based quarterly
+    frequencies, this is the fiscal year in a financial context.
 
-For non-quarterly dates, this simply returns the year of the date."""
+    For non-quarterly dates, this simply returns the year of the date.
+
+    """
 
         return self.__getdateinfo__('F')
     @property
@@ -399,9 +405,12 @@ For non-quarterly dates, this simply returns the year of the date."""
         return self._cachedinfo['tostr']
     #
     def asfreq(self, freq=None, relation="END"):
-        """Converts the dates to another frequency.
+        """
+    
+    Converts the dates to another frequency.
 
-*Parameters*:
+    Parameters
+    ----------
     freq : {freq_spec}
         Frequency to convert the DateArray to. Accepts any valid frequency
         specification (string or integer)
@@ -413,7 +422,8 @@ For non-quarterly dates, this simply returns the year of the date."""
 
         For example, if converting a monthly date to a daily date, specifying
         'START' ('END') would result in the first (last) day in the month.
-"""
+
+    """
         # Note: As we define a new object, we don't need caching
         if freq is None or freq == _c.FR_UND:
             return self

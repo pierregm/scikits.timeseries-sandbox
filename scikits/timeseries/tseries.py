@@ -878,16 +878,19 @@ timeseries(%(data)s,
 The resulting TimeSeries will have the same shape and dimensions as the
 original series (unlike the `convert` method).
 
-*Parameters*:
+    Parameters
+    ----------
     freq : {freq_spec}
     relation : {'END', 'START'} (optional)
 
-*Returns*:
-    a new TimeSeries with the .dates DateArray at the specified frequency (the
-    .asfreq method of the .dates property will be called). The data in the
+    Returns
+    -------
+    A new TimeSeries with the .dates DateArray at the specified frequency (the
+    `.asfreq` method of the .dates property will be called). The data in the
     resulting series will be a VIEW of the original series.
 
-*Notes*:
+    Notes
+    -----
     The parameters are the exact same as for DateArray.asfreq , please see the
     __doc__ string for that method for details on the parameters and how the
     actual conversion is performed.
@@ -898,16 +901,20 @@ original series (unlike the `convert` method).
                           dates=self._dates.asfreq(freq, relation=relation))
     #.....................................................
     def transpose(self, *axes):
-        """Returns a view of the series with axes transposed
+        """
+    Returns a view of the series with axes transposed
 
-*Parameters*:
-    *axes : {integers}
-        the axes to swap
+    Parameters
+    ----------
+    axes : {integers}
+        The axes to swap
 
-*Returns*:
-    a VIEW of the series with axes for both the data and dates transposed
+    Returns
+    -------
+    A VIEW of the series with axes for both the data and dates transposed
 
-*Notes*:
+    Notes
+    -----
     If no axes are given, the order of the axes are switches. For a 2-d array,
     this is the usual matrix transpose. If axes are given, they describe how
     the axes are permuted.
@@ -936,8 +943,10 @@ original series (unlike the `convert` method).
                                    **_attrib_dict(self)) for a in arr]
 
     def filled(self, fill_value=None):
-        """Returns an array of the same class as `_data`,  with masked values
-filled with `fill_value`. Subclassing is preserved.
+        """
+
+    Returns an array of the same class as `_data`,  with masked values
+    filled with `fill_value`. Subclassing is preserved.
 
     Parameters
     ----------
@@ -950,8 +959,11 @@ filled with `fill_value`. Subclassing is preserved.
         return result
 
     def tolist(self):
-        """Returns the dates and data portion of the TimeSeries "zipped" up in
-a list of standard python objects (eg. datetime, int, etc...)."""
+        """
+    Returns the dates and data portion of the TimeSeries "zipped" up in
+    a list of standard python objects (eg. datetime, int, etc...).
+    
+        """
         if self.ndim > 0:
             return zip(self.dates.tolist(), self.series.tolist())
         else:
@@ -960,7 +972,10 @@ a list of standard python objects (eg. datetime, int, etc...)."""
     #......................................................
     # Pickling
     def __getstate__(self):
-        "Returns the internal state of the TimeSeries, for pickling purposes."
+        """
+    
+    Returns the internal state of the TimeSeries, for pickling purposes.
+        """
     #    raise NotImplementedError,"Please use timeseries.archive/unarchive instead."""
         state = (1,
                  self.shape,
@@ -976,7 +991,9 @@ a list of standard python objects (eg. datetime, int, etc...)."""
         return state
     #
     def __setstate__(self, state):
-        """Restores the internal state of the TimeSeries, for pickling purposes.
+        """
+    
+    Restores the internal state of the TimeSeries, for pickling purposes.
     `state` is typically the output of the ``__getstate__`` output, and is a 5-tuple:
 
         - class name
@@ -1599,31 +1616,35 @@ TimeSeries.convert = convert
 
 #...............................................................................
 def tshift(series, nper, copy=True):
-    """Returns a series of the same size as `series`, with the same
-start_date and end_date, but values shifted by `nper`.
+    """
+    Returns a series of the same size as `series`, with the same `start_date`
+    and `end_date`, but values shifted by `nper`.
 
-*Parameters*:
-    series : {TimeSeries}
+    Parameters
+    ----------
+    series : TimeSeries
         TimeSeries object to shift. Ignore this parameter if calling this as a
         method.
-    nper : {int}
+    nper : int
         number of periods to shift. Negative numbers shift values to the
         right, positive to the left
-    copy : {True, False} (optional)
+    copy : {True, False}, optional
         copies the data if True, returns a view if False.
 
-*Example*:
->>> series = time_series([0,1,2,3], start_date=Date(freq='A', year=2005))
->>> series
-timeseries(data  = [0 1 2 3],
-           dates = [2005 ... 2008],
-           freq  = A-DEC)
->>> tshift(series, -1)
-timeseries(data  = [-- 0 1 2],
-           dates = [2005 ... 2008],
-           freq  = A-DEC)
->>> pct_change = 100 * (series/series.tshift(-1, copy=False) - 1)
-"""
+    Example
+    -------
+    >>> series = time_series([0,1,2,3], start_date=Date(freq='A', year=2005))
+    >>> series
+    timeseries(data  = [0 1 2 3],
+               dates = [2005 ... 2008],
+               freq  = A-DEC)
+    >>> tshift(series, -1)
+    timeseries(data  = [-- 0 1 2],
+               dates = [2005 ... 2008],
+               freq  = A-DEC)
+    >>> pct_change = 100 * (series/series.tshift(-1, copy=False) - 1)
+
+    """
     newdata = masked_array(np.empty(series.shape, dtype=series.dtype),
                            mask=True)
     if copy:
@@ -1653,30 +1674,35 @@ in pct function. Adapted from function of the same name in the c source code.
     return dtype
 #...............................................................................
 def pct(series, nper=1):
-    """Returns the rolling percentage change of the series.
+    """
+    Returns the rolling percentage change of the series.
 
-*Parameters*:
+    Parameters
+    ----------
     series : {TimeSeries}
         TimeSeries object to to calculate percentage chage for. Ignore this
         parameter if calling this as a method.
     nper : {int}
         number of periods for percentage change
 
-*Notes*:
-    series of integer types will be upcast
+    Notes
+    -----
+    Series of integer types will be upcast
     1.0 == 100% in result
 
-*Example*:
->>> series = time_series([2.,1.,2.,3.], start_date=Date(freq='A', year=2005))
->>> series.pct()
-timeseries([-- -0.5 1.0 0.5],
-           dates = [2005 ... 2008],
-           freq  = A-DEC)
->>> series.pct(2)
-timeseries([-- -- 0.0 2.0],
-           dates = [2005 ... 2008],
-           freq  = A-DEC)
-"""
+    Examples
+    --------
+    >>> series = time_series([2.,1.,2.,3.], start_date=Date(freq='A', year=2005))
+    >>> series.pct()
+    timeseries([-- -0.5 1.0 0.5],
+               dates = [2005 ... 2008],
+               freq  = A-DEC)
+    >>> series.pct(2)
+    timeseries([-- -- 0.0 2.0],
+               dates = [2005 ... 2008],
+               freq  = A-DEC)
+
+    """
     _dtype = _get_type_num_double(series.dtype)
     if _dtype != series.dtype:
         series = series.astype(_dtype)
@@ -1691,11 +1717,13 @@ timeseries([-- -- 0.0 2.0],
 TimeSeries.pct = pct
 #...............................................................................
 def fill_missing_dates(data, dates=None, freq=None, fill_value=None):
-    """Finds and fills the missing dates in a time series. The data
-corresponding to the initially missing dates are masked, or filled to
-`fill_value`.
+    """
+    Finds and fills the missing dates in a time series. The data
+    corresponding to the initially missing dates are masked, or filled to
+    `fill_value`.
 
-*Parameters*:
+    Parameters
+    ----------
     data : {TimeSeries, ndarray}
         Initial array of data.
     dates : {DateArray} (optional)
@@ -1706,7 +1734,8 @@ corresponding to the initially missing dates are masked, or filled to
     fill_value : {scalar of type data.dtype} (optional)
         Default value for missing data. If Not specified, the data are just
         masked.
-"""
+
+    """
     # Check the frequency ........
     orig_freq = freq
     freq = check_freq(freq)
