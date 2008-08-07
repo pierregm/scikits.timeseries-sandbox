@@ -511,7 +511,7 @@ class TestGetitem(TestCase):
         piece = series1D[:5]
         assert_equal(piece._fill_value, -9999)
         assert_equal(piece[:5]._basedict['info'], '???')
-        
+
 
 class TestSetItem(TestCase):
     #
@@ -554,6 +554,13 @@ class TestSetItem(TestCase):
         series['2007-01-01'] = 5
         assert_equal(series._data, [5,1,2,3,5])
         assert_equal(series._mask, [0,0,0,0,0])
+
+        # test for bug fixed in r1203
+        x, y = ts.now('b'), ts.now('b')+1
+        a = ts.time_series([1], start_date=x)
+        b = ts.time_series([4,5], start_date=x)
+        b[x:y] = a[x:y]
+        assert_equal(b[0], 1)
 
     #
     def test_with_datearray(self):
@@ -602,7 +609,7 @@ class TestTimeSeriesMethods(TestCase):
         # Using multiple args
         test1D = series1D.reshape(*newshape)
         assert_equal(test1D.shape, newshape)
-        
+
     #
     def test_reshaping_2D(self):
         "Tests the reshaping of a nV/nD series."

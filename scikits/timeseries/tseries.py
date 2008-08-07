@@ -563,46 +563,30 @@ Returns the item described by i. Not a copy.
         """x.__setitem__(i, y) <==> x[i]=y
 Sets item described by index. If value is masked, masks those locations.
 """
-        if self is masked:
-            raise MAError, 'Cannot alter the masked element.'
+        (sindx, dindx, recheck) = self._index_checker(indx)
+        _dates = ndarray.__getattribute__(self, '_dates')
         try:
-            MaskedArray.__setitem__(self, indx, value)
+            MaskedArray.__setitem__(self, sindx, value)
         except IndexError:
-            # Easy case: we're out of bounds...
-            if isinstance(indx, int):
+            # We don't need to recheck the index: just raise an exception
+            if not recheck:
                 raise
-            # Mmh, is the index a (list of) Date(s) ?
-            _dates = ndarray.__getattribute__(self, '_dates')
+            # Maybe the index is a list of Dates ?
             try:
-                indx = _dates.date_to_index(date_array(indx, freq=self.freq))
-            except:
-                raise
+                indx = _dates.date_to_index(indx)
+            except (IndexError, ValueError):
+                # Mmh, is it a list of dates as strings ?
+                try:
+                    indx = _dates.date_to_index(date_array(indx,
+                                                           freq=_dates.freq))
+                except (IndexError, ValueError, DateError):
+                    exc_info = sys.exc_info()
+                    msg = "Invalid index or date '%s'" % indx
+                    raise IndexError(msg), None, exc_info[2]
+                else:
+                    MaskedArray.__setitem__(self, indx, value)
             else:
                 MaskedArray.__setitem__(self, indx, value)
-        except ValueError:
-            # OK, that should be a slice, then...
-            if isinstance(indx, slice):
-                sindx = slice(self._slicebound_checker(indx.start),
-                              self._slicebound_checker(indx.stop),
-                              indx.step)
-            # Or maybe a field?
-            elif isinstance(indx, basestring) and \
-              self.dtype.names is not None and indx in self.dtype.names:
-                sindx = indx
-            # or string representation of a Date?
-            elif isinstance(indx, basestring):
-                _date = Date(freq=self.freq, string=indx)
-                _dates = ndarray.__getattribute__(self, '_dates')
-                sindx = _dates.date_to_index(_date)
-            # Or some kind of date...
-            else:
-                _dates = ndarray.__getattribute__(self, '_dates')
-                sindx = _dates.date_to_index(date_array(indx, freq=self.freq))
-            #
-            try:
-                MaskedArray.__setitem__(self, sindx, value)
-            except IndexError:
-                raise IndexError("Date '%s' out of bounds !" % indx)
 
     def __setattr__(self, attr, value):
         if attr in ['_dates','dates']:
