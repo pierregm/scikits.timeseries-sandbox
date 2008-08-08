@@ -108,9 +108,9 @@ def prevbusday(day_end_hour=18, day_end_min=0):
     Notes
     -----
     If it is currently Saturday or Sunday, then the preceding Friday will be
-    returned. If it is later than the specified day_end_hour and day_end_min,
-    now('Business') will be returned. Otherwise, now('Business')-1 will be
-    returned.
+    returned. If it is later than the specified ``day_end_hour`` and ``day_end_min``,
+    ``now('Business')`` will be returned. 
+    Otherwise, ``now('Business')-1`` will be returned.
 
     """
     tempDate = dt.datetime.now()
@@ -184,10 +184,14 @@ class DateArray(ndarray):
     When viewed globally (array-wise), DateArray is an array of integers.
     When viewed element-wise, DateArray is a sequence of dates.
     For example, a test such as :
+    
     >>> DateArray(...) = value
+    
     will be valid only if value is an integer, not a Date
     However, a loop such as :
+    
     >>> for d in DateArray(...):
+    
     accesses the array element by element. Therefore, `d` is a Date object.
     """
     def __new__(cls, dates=None, freq=None, copy=False):
@@ -642,23 +646,25 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
 
     Parameters
     ----------
-    dlist : {list of dates or DateArray} (optional)
-        may be a list of dates, integer representations of dates for a given
-        frequency, datetime objects, or an existing DateArray. If specifying
-        a list of dates, you must also specify the `freq` parameter.
-
-    start_date : {Date} (optional)
-        if you want a continuous DateArray, specify a start_date and either an
-        `end_date` or a `length`. Frequency of the resulting DateArray will be
-        automatically determined based on the frequency of this parameter.
-
+    dlist : {sequence, DateArray}, optional
+        A list of dates, integer representations of dates for a given
+        frequency, datetime objects, or an existing DateArray.
+        If `dlist` is a list of dates, the `freq` parameter must also be given.
+    start_date : {Date}, optional
+        First date of a continuous DateArray.
+        This parameter is used only if `dlist` is None. In that case, an ending
+        date (`end_date`) or the length of the array must be given.
+        The frequency of the output will be the frequency of this parameter.
     end_date : {Date} (optional)
-        last date in resulting DateArray. Specify this parameter or `length`
+        Last date of the output. Specify this parameter or `length`
         in combination with `start_date` for a continuous DateArray.
-
     length : {int} (optional)
-        the length of the resulting DateArray. Specify this parameter or
+        Length of the output. Specify this parameter or
         `end_date` in combination with `start_date` for a continuous DateArray.
+
+    Returns
+    -------
+    A :class:`DateArray` object
     """
     freq = check_freq(freq)
     # Case #1: we have a list ...................

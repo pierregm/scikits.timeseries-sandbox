@@ -1,11 +1,12 @@
 """
-The `TimeSeries` class provides  a base for the definition of time series.
+The :class:`TimeSeries` class provides  a base for the definition of time series.
 A time series is defined here as the combination of two arrays:
 
-    - an array storing the time information (as a `DateArray` instance);
-    - an array storing the data (as a `MaskedArray` instance.)
+- an array storing the time information (as a `DateArray` instance);
+- an array storing the data (as a `MaskedArray` instance.)
 
 These two classes were liberally adapted from `MaskedArray` class.
+
 
 :author: Pierre GF Gerard-Marchant & Matt Knox
 :contact: pierregm_at_uga_dot_edu - mattknox_ca_at_hotmail_dot_com
@@ -279,13 +280,15 @@ frequencies.
 ##--- ... Time Series ...
 ##### ------------------------------------------------------------------------
 class _tsmathmethod(object):
-    """Defines a wrapper for arithmetic array methods (add, mul...).
-When called, returns a new TimeSeries object, with the new series the result
-of the method applied on the original series. The `_dates` part remains
-unchanged.
-"""
+    """
+    Defines a wrapper for arithmetic array methods (add, mul...).
+    When called, returns a new TimeSeries object, with the new series the result
+    of the method applied on the original series. The `_dates` part remains
+    unchanged.
+    """
     def __init__ (self, methodname):
-        self._name = self.__name__ = methodname
+        self.__name__ = methodname
+        self.__doc__ = getattr(MaskedArray, methodname).__doc__
         self.obj = None
 
     def __get__(self, obj, objtype=None):
@@ -300,7 +303,7 @@ unchanged.
             compat = _timeseriescompat(instance, other, raise_error=False)
         else:
             compat = True
-        func = getattr(super(TimeSeries, instance), self._name)
+        func = getattr(super(TimeSeries, instance), self.__name__)
         if compat:
             result = np.array(func(other, *args), subok=True).view(type(instance))
             result._dates = instance._dates
@@ -319,10 +322,8 @@ If `ondates` is True, the same operation is performed on the `_dates`.
 If `ondates` is False, the `_dates` part remains unchanged.
 """
     def __init__ (self, methodname, ondates=False):
-        """abfunc(fillx, filly) must be defined.
-           abinop(x, filly) = x for all x to enable reduce.
-        """
-        self._name = self.__name__ = methodname
+        self.__name__ = methodname
+        self.__doc__ = getattr(MaskedArray, methodname).__doc__
         self._ondates = ondates
         self.obj = None
 
@@ -332,7 +333,7 @@ If `ondates` is False, the `_dates` part remains unchanged.
 
     def __call__ (self, *args):
         "Execute the call behavior."
-        _name = self._name
+        _name = self.__name__
         instance = self.obj
         func_series = getattr(super(TimeSeries, instance), _name)
         result = func_series(*args)
@@ -354,7 +355,8 @@ series.
         """abfunc(fillx, filly) must be defined.
            abinop(x, filly) = x for all x to enable reduce.
         """
-        self._name = self.__name__ = methodname
+        self.__name__ = methodname
+        self.__doc__ = getattr(MaskedArray, methodname).__doc__
         self.obj = None
 
     def __get__(self, obj, objtype=None):
@@ -364,7 +366,7 @@ series.
     def __call__ (self, *args, **params):
         "Execute the call behavior."
         (_dates, _series) = (self.obj._dates, self.obj._series)
-        func = getattr(_series, self._name)
+        func = getattr(_series, self.__name__)
         result = func(*args, **params)
         if _dates.size == _series.size:
             return result
@@ -382,29 +384,30 @@ series.
 
 
 class TimeSeries(MaskedArray, object):
-    """Base class for the definition of time series.
+    """
+    Base class for the definition of time series.
 
-    A time series is here defined as the combination of two arrays:
-    * series : {MaskedArray}
-        Data part
-    * dates : {DateArray}
-         Date part
 
-*Construction*:
+    Parameters
+    ----------
     data : {array_like}
-        data portion of the array. Any data that is valid for constructing a
-        MaskedArray can be used here.
+        Data portion of the array. 
+        Any data that is valid for constructing a MaskedArray can be used here.
     dates : {DateArray}
+        A :class:`DateArray` instance.
 
-*Other Parameters*:
-    all other parameters are the same as for MaskedArray. Please see the
-    documentation for the MaskedArray class in the numpy.ma module
-    for details.
+    Other Parameters
+    ----------------
+    All other parameters are the same as for MaskedArray. 
+    Please refer to the documentation for the :class:`MaskedArray` class in the 
+    :mod:`numpy.ma` module for details.
 
-*Notes*:
-    it is typically recommended to use the `time_series` function for
-    construction as it allows greater flexibility and convenience.
-"""
+    Notes
+    -----
+    It is recommended to use the `time_series` function for construction,
+    as it is more flexibile and convenient.
+
+    """
     def __new__(cls, data, dates, mask=nomask, dtype=None, copy=False,
                 fill_value=None, subok=True, keep_mask=True, hard_mask=False,
                 **options):
@@ -715,9 +718,7 @@ timeseries(%(data)s,
     prod = _tsaxismethod('prod')
     mean = _tsaxismethod('mean')
     var = _tsaxismethod('var')
-    varu = _tsaxismethod('varu')
     std = _tsaxismethod('std')
-    stdu = _tsaxismethod('stdu')
     all = _tsaxismethod('all')
     any = _tsaxismethod('any')
 
@@ -873,10 +874,11 @@ timeseries(%(data)s,
         return self._dates.date_to_index(date)
     #.....................................................
     def asfreq(self, freq, relation="END"):
-        """Converts the dates portion of the TimeSeries to another frequency.
+        """
+    Converts the dates portion of the TimeSeries to another frequency.
 
-The resulting TimeSeries will have the same shape and dimensions as the
-original series (unlike the `convert` method).
+    The resulting TimeSeries will have the same shape and dimensions as the
+    original series (unlike the `convert` method).
 
     Parameters
     ----------
@@ -885,16 +887,19 @@ original series (unlike the `convert` method).
 
     Returns
     -------
-    A new TimeSeries with the .dates DateArray at the specified frequency (the
-    `.asfreq` method of the .dates property will be called). The data in the
-    resulting series will be a VIEW of the original series.
+    TimeSeries:
+        A new TimeSeries with the :attr:`.dates` :class:`DateArray` at the 
+        specified frequency (the :meth`.asfreq` method of the :attr:`.dates` 
+        property will be called).
+        The data in the resulting series will be a VIEW of the original series.
 
     Notes
     -----
-    The parameters are the exact same as for DateArray.asfreq , please see the
-    __doc__ string for that method for details on the parameters and how the
-    actual conversion is performed.
-"""
+    The parameters are the exact same as for :meth:`DateArray.asfreq`, please 
+    see the `__doc__` string for that method for details on the parameters and 
+    how the actual conversion is performed.
+
+    """
         if freq is None: return self
 
         return TimeSeries(self._series,
@@ -944,7 +949,6 @@ original series (unlike the `convert` method).
 
     def filled(self, fill_value=None):
         """
-
     Returns an array of the same class as `_data`,  with masked values
     filled with `fill_value`. Subclassing is preserved.
 
@@ -953,7 +957,8 @@ original series (unlike the `convert` method).
     fill_value : {None, singleton of type self.dtype}, optional
         The value to fill in masked values with.
         If `fill_value` is None, uses self.fill_value.
-"""
+
+    """
         result = self._series.filled(fill_value=fill_value).view(type(self))
         result._dates = self._dates
         return result
@@ -962,8 +967,8 @@ original series (unlike the `convert` method).
         """
     Returns the dates and data portion of the TimeSeries "zipped" up in
     a list of standard python objects (eg. datetime, int, etc...).
-    
-        """
+
+    """
         if self.ndim > 0:
             return zip(self.dates.tolist(), self.series.tolist())
         else:
@@ -1127,27 +1132,27 @@ class _frommethod(object):
 :ivar _methodname (String): Name of the method to transform.
     """
     def __init__(self, methodname):
-        self._methodname = methodname
+        self.__name__ = methodname
         self.__doc__ = self.getdoc()
     def getdoc(self):
         "Returns the doc of the function (from the doc of the method)."
         try:
-            return getattr(TimeSeries, self._methodname).__doc__
+            return getattr(TimeSeries, self.__name__).__doc__
         except:
             return "???"
     #
     def __call__ (self, caller, *args, **params):
-        if hasattr(caller, self._methodname):
-            method = getattr(caller, self._methodname)
+        if hasattr(caller, self.__name__):
+            method = getattr(caller, self.__name__)
             # If method is not callable, it's a property, and don't call it
             if hasattr(method, '__call__'):
                 return method.__call__(*args, **params)
             return method
-        method = getattr(np.asarray(caller), self._methodname)
+        method = getattr(np.asarray(caller), self.__name__)
         try:
             return method(*args, **params)
         except SystemError:
-            return getattr(np,self._methodname).__call__(caller, *args, **params)
+            return getattr(np,self.__name__).__call__(caller, *args, **params)
 #............................
 weekday = _frommethod('weekday')
 day_of_year = _frommethod('day_of_year')
@@ -1166,30 +1171,34 @@ split = _frommethod('split')
 ##### ---------------------------------------------------------------------------
 #---- ... Additional methods ...
 ##### ---------------------------------------------------------------------------
-def tofile(self, fileobject, format=None,
+def tofile(series, fileobject, format=None,
            separator=" ", linesep='\n', precision=5,
            suppress_small=False, keep_open=False):
-    """Writes the TimeSeries to a file. The series should be 2D at most
+    """
+    Writes the TimeSeries to a file. The series should be 2D at most.
 
-*Parameters*:
+    Parameters
+    ----------
     series : {TimeSeries}
         The array to write.
-    fileobject:
+    fileobject
         An open file object or a string to a valid filename.
-    format : {string}
-        Format string for the date. If None, uses the default date format.
-    separator : {string}
+    format : {None, string}, optional
+        Format string for the date.
+        If None, uses the default date format.
+    separator : {string}, optional
         Separator to write between elements of the array.
-    linesep : {string}
+    linesep : {string}, optional
         Separator to write between rows of array.
-    precision : {integer}
+    precision : {integer}, optional
         Number of digits after the decimal place to write.
-    suppress_small : {boolean}
+    suppress_small : {boolean}, optional
         Whether on-zero to round small numbers down to 0.0
-    keep_open : {boolean}
+    keep_open : {boolean}, optional
         Whether to close the file or to return the open file.
 
-*Returns*:
+    Returns
+    -------
     file : {file object}
         The open file (if keep_open is non-zero)
     """
@@ -1199,7 +1208,7 @@ def tofile(self, fileobject, format=None,
     except ImportError:
         raise ImportError("scipy is required for the tofile function/method")
 
-    (_dates, _data) = (self._dates, self._series)
+    (_dates, _data) = (series._dates, series._series)
     optpars = dict(separator=separator,linesep=linesep,precision=precision,
                    suppress_small=suppress_small,keep_open=keep_open)
     if _dates.size == _data.size:
@@ -1224,9 +1233,12 @@ TimeSeries.tofile = tofile
 
 #............................................
 def asrecords(series):
-    """Returns the masked time series as a recarray.
-Fields are `_dates`, `_data` and _`mask`.
-        """
+    """
+    Returns the time series as a recarray.
+
+    Fields are ``_dates``, ``_data`` and ``_mask``.
+
+    """
     desctype = [('_dates',int_), ('_series',series.dtype), ('_mask', bool_)]
     flat = series.ravel()
     _dates = np.asarray(flat._dates)
@@ -1242,7 +1254,10 @@ Fields are `_dates`, `_data` and _`mask`.
 TimeSeries.asrecords = asrecords
 
 def flatten(series):
-    """Flattens a (multi-) time series to 1D series."""
+    """
+    Flattens a (multi-) time series to 1D series.
+
+    """
     shp_ini = series.shape
     # Already flat time series....
     if len(shp_ini) == 1:
@@ -1255,6 +1270,7 @@ def flatten(series):
         newshape = (np.asarray(shp_ini[:-1]).prod(), shp_ini[-1])
     newseries = series._series.reshape(newshape)
     return time_series(newseries, newdates)
+
 TimeSeries.flatten = flatten
 
 ##### -------------------------------------------------------------------------
@@ -1263,7 +1279,8 @@ TimeSeries.flatten = flatten
 def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
                 dtype=None, copy=False, fill_value=None, keep_mask=True,
                 hard_mask=False):
-    """Creates a TimeSeries object
+    """
+    Creates a TimeSeries object
 
     Parameters
     ----------
@@ -1279,19 +1296,22 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
     freq : {freq_spec}, optional
         A valid frequency specification
 
-*Other Parameters*:
-    All other parameters that are accepted by the *array* function in the
-    numpy.ma module are also accepted by this function.
+    Other Parameters
+    ----------------
+    All other parameters that are accepted by the :func:`numpy.ma.array` function 
+    in the :mod:`numpy.ma` module are also accepted by this function.
 
-*Notes*:
-    the date portion of the time series must be specified in one of the
+    Notes
+    -----
+    The date portion of the time series must be specified in one of the
     following ways:
-        - specify a TimeSeries object for the *data* parameter
-        - pass a DateArray for the *dates* parameter
+        - specify a TimeSeries object for the `data` parameter
+        - pass a DateArray for the `dates` parameter
         - specify a start_date (a continuous DateArray will be automatically
           constructed for the dates portion)
         - specify just a frequency (for TimeSeries of size zero)
-"""
+
+    """
     maparms = dict(copy=copy, dtype=dtype, fill_value=fill_value, subok=True,
                    keep_mask=keep_mask, hard_mask=hard_mask,)
     data = masked_array(data, mask=mask, **maparms)
@@ -1551,7 +1571,7 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
     return newseries
 
 def convert(series, freq, func=None, position='END', *args, **kwargs):
-    """Converts a series to a frequency. Private function called by convert
+    """Converts a series from one frequency to another.
 
     Parameters
     ----------
@@ -1562,9 +1582,9 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
         Frequency to convert the TimeSeries to. Accepts any valid frequency
         specification (string or integer)
     func : {None,function}, optional
-        When converting to a lower frequency, func is a function that acts on
-        one date's worth of data. func should handle masked values appropriately.
-        If func is None, then each data point in the resulting series will a
+        When converting to a lower frequency, `func` is a function that acts on
+        one date's worth of data. `func` should handle masked values appropriately.
+        If `func` is None, then each data point in the resulting series will a
         group of data points that fall into the date at the lower frequency.
 
         For example, if converting from monthly to daily and you wanted each
@@ -1838,20 +1858,13 @@ must be date compatible.
                        **_attrib_dict(series[0]))
 
 def concatenate(series, axis=0, remove_duplicates=True, fill_missing=False):
-    """Joins series together.
+    """
+    Joins series together.
 
-The series are joined in chronological order. Duplicated dates are handled with
-the `remove_duplicates` parameter. If remove_duplicate=False, duplicated dates are
-saved. Otherwise, only the first occurence of the date is conserved.
-
-Example
->>> a = time_series([1,2,3], start_date=now('D'))
->>> b = time_series([10,20,30], start_date=now('D')+1)
->>> c = concatenate((a,b))
->>> c._series
-masked_array(data = [ 1  2  3 30],
-      mask = False,
-      fill_value=999999)
+    The series are joined in chronological order.
+    Duplicated dates are handled with the `remove_duplicates` parameter. 
+    If `remove_duplicate` is False, duplicated dates are saved. 
+    Otherwise, only the first occurence of the date is conserved.
 
 
     Parameters
@@ -1864,6 +1877,17 @@ masked_array(data = [ 1  2  3 30],
         Whether to remove duplicated dates.
     fill_missing : {False, True}, optional
         Whether to fill the missing dates with missing values.
+
+    Example
+    -------
+    >>> a = time_series([1,2,3], start_date=now('D'))
+    >>> b = time_series([10,20,30], start_date=now('D')+1)
+    >>> c = concatenate((a,b))
+    >>> c._series
+    masked_array(data = [ 1  2  3 30],
+          mask = False,
+          fill_value=999999)
+
     """
     # Get the common frequency, raise an error if incompatibility
     common_f = _compare_frequencies(*series)

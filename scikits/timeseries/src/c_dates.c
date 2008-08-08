@@ -1694,20 +1694,21 @@ static char DateObject_strfmt_doc[] =
 
 static char DateObject_strftime_doc[] =
 "Returns string representation of Date object according to format specified.\n\n"
-"*Parameters*:\n"
-"   fmt : {str}\n"
-"       Formatting string. Uses the same directives as in the time.strftime\n"
-"       function in the standard Python time module. In addition, a few other\n"
-"       directives are supported:\n"
-"           %q -  the 'quarter' of the date\n"
-"           %f -  Year without century as a decimal number [00,99]. The\n"
-"                 'year' in this case is the year of the date determined by\n"
-"                 the year for the current quarter. This is the same as %y\n"
-"                 unless the Date is one of the 'qtr-s' frequencies\n"
-"           %F -  Year with century as a decimal number. The 'year' in this\n"
-"                 case is the year of the date determined by the year for\n"
-"                 the current quarter. This is the same as %Y unless the\n"
-"                 Date is one of the 'qtr-s' frequencies\n";
+"Parameters\n"
+"----------\n"
+"fmt : {str}\n"
+"   Formatting string. Uses the same directives as in the time.strftime\n"
+"   function in the standard Python time module. In addition, a few other\n"
+"   directives are supported:\n"
+"   '%q' - the 'quarter' of the date\n"
+"   '%f' - Year without century as a decimal number [00,99]. The\n"
+"          'year' in this case is the year of the date determined by\n"
+"          the year for the current quarter. This is the same as %y\n"
+"          unless the Date is one of the 'qtr-s' frequencies\n"
+"   '%F' - Year with century as a decimal number. The 'year' in this\n"
+"          case is the year of the date determined by the year for\n"
+"          the current quarter. This is the same as %Y unless the\n"
+"          Date is one of the 'qtr-s' frequencies\n";
 static PyObject *
 DateObject_strftime(DateObject *self, PyObject *args)
 {
