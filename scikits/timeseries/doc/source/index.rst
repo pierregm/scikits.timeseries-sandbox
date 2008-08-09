@@ -12,6 +12,7 @@
 
    intro
    installing
+   examples/index
    implementation/index
 
 .. htmlonly::

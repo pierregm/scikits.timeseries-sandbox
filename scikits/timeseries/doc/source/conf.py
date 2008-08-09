@@ -35,8 +35,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General substitutions.
-project = 'Climpy'
-copyright = '2008, Pierre GERARD-MARCHANT'
+project = 'TimeSeries'
+copyright = '2008, Pierre GERARD-MARCHANT & Matt KNOX'
 
 # The default replacements for |version| and |release|, also used in various
 # other places throughout the built documents.
@@ -128,7 +128,7 @@ html_use_modindex = False
 html_file_suffix = '.xhtml'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'ClimPydoc'
+htmlhelp_basename = 'TimeSeriesDoc'
 
 
 # Options for LaTeX output
@@ -143,8 +143,8 @@ htmlhelp_basename = 'ClimPydoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, document class [howto/manual]).
 latex_documents = [
-  ('index', 'ClimPy.tex', 'ClimPy Reference Guide',
-   'Written by the ClimPy community', 'manual'),
+  ('index', 'TimeSeries.tex', 'TimeSeries Reference Guide',
+   'Written by Pierre Gerard-marchant and Matt Knox', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

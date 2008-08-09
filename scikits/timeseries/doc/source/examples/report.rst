@@ -1,0 +1,285 @@
+.. sectionauthor:: Matt Knox <mattknox.ca@hotmail.com>
+.. currentmodule:: scikits.timeseries.lib.reportlib
+
+The :class:`Report` class
+=========================
+
+The :class:`Report` class allows you to generate tabular reports of 
+:class:`TimeSeries` objects with dates in the left most column.
+An instance of the :class:`Report` class is essentially a template for generating
+reports.
+All parameters to the :meth:`Report.__init__` method of the class are optional,
+any options you specify simply serve as the defaults for this instance.
+
+
+When you call your Report instance (by invoking the :meth:`__call__` method),
+you may specify any of the options that are valid for creation of the 
+:class:`Report` instance, and these options will affect only the current call, 
+they will not modify the defaults for that instance.
+
+
+Parameters
+----------
+Both the :meth:`__init__` and :meth:`__call__` methods accept all of the following 
+parameters:
+
+**tseries** : *time series objects*. 
+   Must all be at the same frequency, but do not need to be aligned.
+**dates** : *{None,* :class:`~scikits.timeseries.tdates.DateArray` *}*
+   Dates at which values of all the series will be output.
+   If not specified, data will be output from the minimum ``start_date`` to the 
+   maximum ``end_date`` of all the time series objects.
+**header_row** : *{None, list}*
+   List of column headers.
+   Specifying the header for the date column is optional.
+**header_char** : *{'-', str}*
+   Character used for the row separator line between the header and the first row of data.
+   None for no separator. This is ignored if ``header_row`` is None.
+**header_justify** : *{None, string or strings sequence}*
+   Determines how headers are justified.
+   If not specified, all headers are left justified.
+   If a string is specified, it must be one of `left`, `right`, or `center` and 
+   all headers will be justified the same way. 
+   If a list is specified, each header will be justified according to the 
+   specification for that header in the list. 
+   Specifying the justification for the date column is header is optional.
+**row_char** : *{None, str}*
+   Character to be used for the row separator line between each row of data. 
+   Use None for no separator.
+**footer_func** : *{None, function of sequence of functions}*
+   A function or list of functions for summarizing each data column in the report.
+   For example, :func:`ma.sum` to get the sum of the column.
+   If a list of functions is provided there must be exactly one function for each column.
+   Do not specify a function for the Date column.
+**footer_char** : *{'-', str}*
+   Character to be used for the row separator line between the last row of data
+   and the footer. 
+   Use None for no separator.
+   This parameter is ignored if ``footer_func`` is None.
+**footer_label** : *{None, str}*
+   Label for the footer row.
+   This goes at the end of the date column.
+   This is ignored if footer_func is None.
+**justify** : *{None, string or strings sequence}*
+   Determines how data are justified in their column.
+   If not specified, the date column and string columns are left justified,
+   and everything else is right justified.
+   If a string is specified, it must be one of 'left', 'right', or 'center' and
+   all columns will be justified the same way.
+   If a list is specified, each column will be justified according to the 
+   specification for that column in the list. 
+   Specifying the justification for the date column is optional.
+**prefix** : *{'', str}*
+   A string prepended to each printed row.
+**postfix** : *{'', str}*
+   A string appended to each printed row.
+**mask_rep** : *{'--', str}*
+   String used to represent masked values in output.
+**datefmt** : *{None, str}*
+   Formatting string used for displaying the dates in the date column.
+   If None, :func:`str()` is simply called on the dates.
+**fmt_func** : *{None, function of sequence of functions}*
+   A function or list of functions for formatting each data column in the report.
+   If not specified, :func:`str()` is simply called on each item.
+   If a list of functions is provided, there must be exactly one function for each column. 
+   Do not specify a function for the Date column, that is handled by the ``datefmt`` argument.
+**wrap_func** : *{* ``lambda x:x`` *, function of sequence of functions}*
+   A function f(text) for wrapping text; 
+   each element in the column is first wrapped by this function. 
+   Instances of ``wrap_onspace``, ``wrap_onspace_strict``, and ``wrap_always`` 
+   (which are part of this module) work well for this. 
+   Eg. ``wrap_func=wrap_onspace(10)`` .
+   If a list is specified, each column will be wrapped according to the
+   specification for that column in the list.
+   Specifying a function for the Date column is optional.
+**col_width** : *{None, int or list of ints}*
+   Use this to specify a width for all columns (single integer),
+   or each column individually (list of integers).
+   The column will be at least as wide as ``col_width``, but may be larger if
+   cell contents exceed col_width.
+   If specifying a list, you may optionally specify the width for the Date column as the first entry.
+**output** : *{buffer*, ``sys.stdout``}
+   `output` must have a write method.
+**fixed_width** : *{True, False}* 
+   If True, columns are fixed width (ie. cells will be padded with spaces to 
+   ensure all cells in a given column are the same width). 
+   If False, `col_width` will be ignored and cells will not be padded.
+
+
+Examples
+--------
+
+The following variables will be used throughout the examples
+
+   >>> import scikits.timeseries.lib.reportlib as rl
+   >>> ser1 = ts.time_series(np.random.uniform(-100,100,10),
+   ...                       start_date=ts.now('b')-5)
+   >>> ser2 = ts.time_series(np.random.uniform(-100,100,10),
+   ...                       start_date=ts.now('b'))
+   >>> strings = ['some string', 'another string', 
+   ...            'yet another, string', 'final string']
+   >>> ser3 = ts.time_series(strings, 
+   ...                       start_date=ts.now('b'),
+   ...                       dtype=np.string_)
+   >>> dArray = ts.date_array(start_date=ts.now('b'), length=3)
+
+
+Example 1: Basic report
+~~~~~~~~~~~~~~~~~~~~~~~
+
+   >>> basicReport = rl.Report(ser1, ser2, ser3)
+   >>> basicReport()
+   """
+   29-Jan-2007 | -95.4554568525 |             -- | --
+   30-Jan-2007 |  8.58356086571 |             -- | --
+   31-Jan-2007 |  41.6353000447 |             -- | --
+   01-Feb-2007 | -70.4674570816 |             -- | --
+   02-Feb-2007 |  2.98803489327 |             -- | --
+   05-Feb-2007 | -21.6474414786 |  -77.750560056 | some string
+   06-Feb-2007 |  84.3212422071 |  56.2238118715 | another string
+   07-Feb-2007 |  23.5664556686 |  64.2491772743 | yet another, string
+   08-Feb-2007 |  34.8778728662 | -39.4734173695 | final string
+   09-Feb-2007 | -64.0545308092 | -83.7175337221 | --
+   12-Feb-2007 |             -- |  52.4958419122 | --
+   13-Feb-2007 |             -- |   7.1396171176 | --
+   14-Feb-2007 |             -- | -57.7688749366 | --
+   15-Feb-2007 |             -- |  71.2844695721 | --
+   16-Feb-2007 |             -- |  87.1665936067 | --
+   """
+
+Example 2: csv report for excel
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   >>> mycsv = open('mycsv.csv', 'w')
+   >>> strfmt = lambda x: '"'+str(x)+'"'
+   >>> fmt_func = [None, None, strfmt]
+   >>> csvReport = rl.Report(ser1, ser2, ser3, fmt_func=fmt_func, 
+   ...                       mask_rep='#N/A', delim=',',
+   ...                       fixed_width=False)
+   >>> csvReport() # output to sys.stdout
+   """
+   29-Jan-2007,67.4086881661,#N/A,#N/A
+   30-Jan-2007,-78.8405461996,#N/A,#N/A
+   31-Jan-2007,10.0559754743,#N/A,#N/A
+   01-Feb-2007,-71.149716374,#N/A,#N/A
+   02-Feb-2007,-46.055865283,#N/A,#N/A
+   05-Feb-2007,35.9105419931,85.1744316431,"some string"
+   06-Feb-2007,2.93015788615,-87.0634270731,"another string"
+   07-Feb-2007,-49.0774248826,-91.4854233865,"yet another, string"
+   08-Feb-2007,94.8175754225,36.587114053,"final string"
+   09-Feb-2007,-88.9474880802,37.3563788938,#N/A
+   12-Feb-2007,#N/A,21.1325367724,#N/A
+   13-Feb-2007,#N/A,72.2437957896,#N/A
+   14-Feb-2007,#N/A,37.2619438419,#N/A
+   15-Feb-2007,#N/A,-87.1465826319,#N/A
+   16-Feb-2007,#N/A,63.5556895555,#N/A
+   """
+   >>> csvReport(output=mycsv) # output to file
+
+
+Example 3: HTML report
+~~~~~~~~~~~~~~~~~~~~~~
+
+   >>> numfmt = lambda x: '%.2f' % x
+   >>> fmt_func = [numfmt, numfmt, None]
+   >>> footer_func = [ma.sum, ma.sum, None]
+   >>> footer_label = "Total"
+   >>> htmlReport = rl.Report(ser1, ser2, ser3)
+   >>> htmlReport.set_options(prefix='<tr><td>',
+   ...                        delim='</td><td>',
+   ...                        postfix='</td></tr>')
+   >>> htmlReport.set_options(wrap_func=rl.wrap_onspace(10,nls='<BR>'))
+   >>> htmlReport.set_options(fmt_func=fmt_func)
+   >>> htmlReport.set_options(footer_label=footer_label,
+   ...                        footer_func=footer_func,
+   ...                        footer_char='')
+   >>> htmlReport.set_options(dates=dArray)
+   >>> htmlReport() # output to sys.stdout
+   """
+   <tr><td>05-Feb-2007</td><td> 91.66</td><td>-99.21</td><td>some<BR>string           </td></tr>
+   <tr><td>06-Feb-2007</td><td>-68.84</td><td> 30.50</td><td>another<BR>string        </td></tr>
+   <tr><td>07-Feb-2007</td><td> 93.53</td><td> 90.46</td><td>yet<BR>another,<BR>string</td></tr>
+   <tr><td>Total      </td><td>116.36</td><td> 21.75</td><td>                         </td></tr>
+   """
+
+
+Example 4: Extra Options
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+   >>> basicReport = rl.Report(ser1, ser2, ser3, dates=dArray)
+
+Output report with a header. 
+By default, a line of dashes will separate the header and the first row of data.
+Optionally, you can specify a label for the Date column as well (so a list with 
+four entries instead of three like this example), If you wish to get rid of the 
+separator line, or use a different character, specify: ``header_char=''``
+
+   >>> basicReport(header_row=['col 1', 'col 2', 'col 3'])
+   """
+               |          col 1 |          col 2 | col 3
+   ------------------------------------------------------------------
+   06-Feb-2007 |  2.59583929443 | -96.2110139217 | some string
+   07-Feb-2007 | -24.1064434097 |  86.0387977626 | another string
+   08-Feb-2007 | -21.6432010416 |  4.83754030508 | yet another, string
+   """
+   #.................................................................
+
+Change column justification for the report. 
+You can specify a single string (*'right'*, *'left'*, or *'center'*) and this 
+will impact all columns, or you can specify a list of strings 
+(optionally including the Date column, which is *'left'* by default)
+
+   >>> basicReport(justify=['left', 'left', 'right'])
+   """
+   06-Feb-2007 | 2.59583929443  | -96.2110139217 |         some string
+   07-Feb-2007 | -24.1064434097 | 86.0387977626  |      another string
+   08-Feb-2007 | -21.6432010416 | 4.83754030508  | yet another, string
+   """
+   #.................................................................
+
+Change formatting of Date column
+
+   >>> basicReport(datefmt='%d')
+   """
+   06 |  2.59583929443 | -96.2110139217 | some string
+   07 | -24.1064434097 |  86.0387977626 | another string
+   08 | -21.6432010416 |  4.83754030508 | yet another, string
+   """
+   #.................................................................
+
+Add a separater line between each row
+
+   >>> basicReport(row_char='-')
+   """
+   06-Feb-2007 |  2.59583929443 | -96.2110139217 | some string
+   -------------------------------------------------------------------
+   07-Feb-2007 | -24.1064434097 |  86.0387977626 | another string
+   -------------------------------------------------------------------
+   08-Feb-2007 | -21.6432010416 |  4.83754030508 | yet another, string
+   """
+   #.................................................................
+
+Report different series.
+Notice that the other options set remain intact (ie. dates=dArray)
+
+   >>> basicReport(ser1)
+   """
+   06-Feb-2007 |  2.59583929443
+   07-Feb-2007 | -24.1064434097
+   08-Feb-2007 | -21.6432010416
+   """
+   #.................................................................
+
+Specify column widths.
+Just as in the header and justify options, you can specify a single value to 
+affect all columns, or a list which optionally includes a specification for the 
+Date column. 
+Specify ``-1`` to auto-size a column
+
+   >>> basicReport(col_width=[20, 20, -1])
+   """
+   06-Feb-2007 |        2.59583929443 |       -96.2110139217 | some string
+   07-Feb-2007 |       -24.1064434097 |        86.0387977626 | another string
+   08-Feb-2007 |       -21.6432010416 |        4.83754030508 | yet another, string
+   """
+
