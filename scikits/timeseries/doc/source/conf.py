@@ -36,7 +36,7 @@ master_doc = 'index'
 
 # General substitutions.
 project = 'TimeSeries'
-copyright = '2008, Pierre GERARD-MARCHANT & Matt KNOX'
+copyright = '2008, Pierre GERARD-MARCHANT, Matt KNOX'
 
 # The default replacements for |version| and |release|, also used in various
 # other places throughout the built documents.
@@ -125,7 +125,7 @@ html_use_modindex = False
 #html_use_opensearch = ''
 
 # If nonempty, this is the file name suffix for HTML files (e.g. ".xhtml").
-html_file_suffix = '.xhtml'
+#html_file_suffix = '.xhtml'
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'TimeSeriesDoc'

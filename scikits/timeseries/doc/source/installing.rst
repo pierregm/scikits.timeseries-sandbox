@@ -10,7 +10,7 @@ Dependencies
 Requirements
 ------------
 
-In order to use the :mod:`scikits.timeseries` package, the following external 
+In order to use the :mod:`scikits.timeseries` package, the following external
 packages must be installed before hand:
 
 * `Python <http://www.python.org/download/>`_ 2.4 or later (but not Python 3).
@@ -24,12 +24,11 @@ packages must be installed before hand:
 Optional
 --------
 
-* `Scipy 0.7.0 or later<http://www.scipy.org/Download>`_:
-  Some of the lib sub-modules (:mod:`~scikits.timeseries.lib.interpolate`, 
+* `Scipy <http://www.scipy.org/Download>`_ 0.7.0 or later:
+  Some of the lib sub-modules (:mod:`~scikits.timeseries.lib.interpolate`,
   :mod:`~scikits.timeserires.lib.moving_funcs`) make use of Scipy functions.
 * `matplotlib <http://matplotlib.sourceforge.net>`_ 0.98.0 or later:
   matplotlib is required for time series plotting.
-
 
 
 Setup
@@ -55,11 +54,10 @@ To install the :mod:`scikits.timeseries` package, run the command
 
     python setup.py install
 
-in the directory you checked out the source code to. 
-If you are using Windows and are having trouble compiling the module, 
+in the directory you checked out the source code to.
+If you are using Windows and are having trouble compiling the module,
 please see the following page in the cookbook:
 `Compiling Extensions on Windows <http://www.scipy.org/Cookbook/CompilingExtensionsOnWindowsWithMinGW>`_
 
-The current plan is to begin doing official releases and distributing windows
-binaries once an official release of numpy has been made which includes the
-new version of masked array. In the mean time, please bear with us.
+We do plan to begin doing official releases and distributing windows binaries
+in the not too distant future. In the mean time, please bear with us.
