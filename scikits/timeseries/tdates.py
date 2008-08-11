@@ -109,14 +109,14 @@ def prevbusday(day_end_hour=18, day_end_min=0):
     -----
     If it is currently Saturday or Sunday, then the preceding Friday will be
     returned. If it is later than the specified ``day_end_hour`` and ``day_end_min``,
-    ``now('Business')`` will be returned. 
+    ``now('Business')`` will be returned.
     Otherwise, ``now('Business')-1`` will be returned.
 
     """
     tempDate = dt.datetime.now()
     dateNum = tempDate.hour + float(tempDate.minute)/60
     checkNum = day_end_hour + float(day_end_min)/60
-    if dateNum < checkNum:
+    if dateNum < checkNum and tempDate.weekday() < 5:
         return now(_c.FR_BUS) - 1
     else:
         return now(_c.FR_BUS)
@@ -184,14 +184,14 @@ class DateArray(ndarray):
     When viewed globally (array-wise), DateArray is an array of integers.
     When viewed element-wise, DateArray is a sequence of dates.
     For example, a test such as :
-    
+
     >>> DateArray(...) = value
-    
+
     will be valid only if value is an integer, not a Date
     However, a loop such as :
-    
+
     >>> for d in DateArray(...):
-    
+
     accesses the array element by element. Therefore, `d` is a Date object.
     """
     def __new__(cls, dates=None, freq=None, copy=False):
@@ -410,7 +410,7 @@ class DateArray(ndarray):
     #
     def asfreq(self, freq=None, relation="END"):
         """
-    
+
     Converts the dates to another frequency.
 
     Parameters
