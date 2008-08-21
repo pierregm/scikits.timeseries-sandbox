@@ -118,7 +118,8 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
         self.__dict__.update(_varshape = getattr(obj, '_varshape', ()),
                              _dates=getattr(obj,'_dates',DateArray([])),
                              _observed=getattr(obj,'_observed',None),
-                             _names = self.dtype.names)
+                             _names = self.dtype.names,
+                             _optinfo = getattr(obj,'_optinfo',{}))
         MaskedRecords.__array_finalize__(self, obj)
         return
 
