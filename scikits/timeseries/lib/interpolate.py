@@ -18,20 +18,26 @@ from scipy.interpolate import fitpack
 
 marray = ma.array
 
-__all__ = [
-    'forward_fill', 'backward_fill', 'interp_masked1d',
+__all__ = ['forward_fill', 'backward_fill', 'interp_masked1d',
           ]
 
 #####---------------------------------------------------------------------------
 #---- --- Functions for filling in masked values in a masked array ---
 #####---------------------------------------------------------------------------
 def forward_fill(marr, maxgap=None):
-    """forward_fill(marr, maxgap=None)
+    """
+    Forward fills masked values in a 1-d array when there are less ``maxgap``
+    consecutive masked values. 
 
-Forward fills masked values in a 1-d array when there are less maxgap
-consecutive masked values. If maxgap is None, then forward fill all masked
-values.
-"""
+    Parameters
+    ----------
+    marr : MaskedArray
+        Series to fill
+    maxgap : {None, int}, optional
+        Maximum gap between consecutive masked values.
+        If ``maxgap`` is None, all masked values are forward-filled.
+    
+    """
     # Initialization ..................
     if np.ndim(marr) > 1:
         raise ValueError,"The input array should be 1D only!"
@@ -56,22 +62,38 @@ values.
                 marr._data[i] = marr._data[i-1]
                 marr._mask[i] = False
     return marr
-#.............................................................................
+
+
 def backward_fill(marr, maxgap=None):
-    """backward_fill(marr, maxgap=None)
+    """
+    Backward fills masked values in a 1-d array when there are less than ``maxgap``
+    consecutive masked values. 
 
-Backward fills masked values in a 1-d array when there are less than maxgap
-consecutive masked values. If maxgap is None, then backward fills all
-masked values.
-"""
+
+    Parameters
+    ----------
+    marr : MaskedArray
+        Series to fill
+    maxgap : {None, int}, optional
+        Maximum gap between consecutive masked values.
+        If ``maxgap`` is None, all masked values are backward-filled.
+    """
     return forward_fill(marr[::-1], maxgap=maxgap)[::-1]
-#.............................................................................
-def interp_masked1d(marr, kind='linear'):
-    """interp_masked1d(marr, king='linear')
 
-Interpolates masked values in marr according to method kind.
-kind must be one of 'constant', 'linear', 'cubic', quintic'
-"""
+
+def interp_masked1d(marr, kind='linear'):
+    """
+
+    Interpolates masked values in an array according to the given method.
+
+    Parameters
+    ----------
+    marr : MaskedArray
+        Array to fill
+    kind : {'constant', 'linear', 'cubic', quintic'}, optional
+        Type of interpolation
+    
+    """
     if np.ndim(marr) > 1:
         raise ValueError("array must be 1 dimensional!")
     #

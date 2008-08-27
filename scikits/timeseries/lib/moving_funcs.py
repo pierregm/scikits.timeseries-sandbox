@@ -4,7 +4,7 @@ A collection of moving functions for masked arrays and time series
 
 :author: Pierre GF Gerard-Marchant & Matt Knox
 :contact: pierregm_at_uga_dot_edu - mattknox_ca_at_hotmail_dot_com
-:version: $Id$
+
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author$)"
 __revision__ = "$Revision$"
@@ -26,6 +26,7 @@ marray = ma.array
 
 from scikits.timeseries.cseries import \
     MA_mov_sum, MA_mov_median, MA_mov_min, MA_mov_max
+
 
 def _process_result_dict(orig_data, result_dict):
     "process the results from the c function"
@@ -78,23 +79,29 @@ determined in one of two ways. See C-code for more details."""
     return _moving_func(data, MA_mov_sum, kwargs)
 #...............................................................................
 def mov_sum(data, span, dtype=None):
-    """Calculates the moving sum of a series.
+    """
+    Calculates the moving sum of a series.
 
-*Parameters*:
-    $$data$$
-    $$span$$
-    $$dtype$$
+    Parameters
+    ----------
+        $$data$$
+        $$span$$
+        $$dtype$$
+
 """
 
     return _mov_sum(data, span, dtype=dtype)
 #...............................................................................
 def mov_median(data, span, dtype=None):
-    """Calculates the moving median of a series.
+    """
+    Calculates the moving median of a series.
 
-*Parameters*:
-    $$data$$
-    $$span$$
-    $$dtype$$
+    Parameters
+    ----------
+        $$data$$
+        $$span$$
+        $$dtype$$
+
 """
 
     kwargs = {'span':span}
@@ -104,12 +111,14 @@ def mov_median(data, span, dtype=None):
     return _moving_func(data, MA_mov_median, kwargs)
 #...............................................................................
 def mov_min(data, span, dtype=None):
-    """Calculates the moving minimum of a series.
+    """
+    Calculates the moving minimum of a series.
 
-*Parameters*:
-    $$data$$
-    $$span$$
-    $$dtype$$
+    Parameters
+    ----------
+        $$data$$
+        $$span$$
+        $$dtype$$
 """
 
     kwargs = {'span':span}
@@ -119,12 +128,15 @@ def mov_min(data, span, dtype=None):
     return _moving_func(data, MA_mov_min, kwargs)
 #...............................................................................
 def mov_max(data, span, dtype=None):
-    """Calculates the moving max of a series.
+    """
+    Calculates the moving max of a series.
 
-*Parameters*:
-    $$data$$
-    $$span$$
-    $$dtype$$
+    Parameters
+    ----------
+        $$data$$
+        $$span$$
+        $$dtype$$
+
 """
 
     kwargs = {'span':span}
@@ -136,33 +148,41 @@ def mov_max(data, span, dtype=None):
 def mov_average(data, span, dtype=None):
     """Calculates the moving average of a series.
 
-*Parameters*:
-    $$data$$
-    $$span$$
-    $$dtype$$
+    Parameters
+    ----------
+        $$data$$
+        $$span$$
+        $$dtype$$
+
 """
     return _mov_sum(data, span, dtype=dtype, type_num_double=True)/span
 mov_mean = mov_average
 #...............................................................................
 def mov_var(data, span, dtype=None, ddof=0):
-    """Calculates the moving variance of a 1-D array.
+    """
+    Calculates the moving variance of a 1-D array.
 
-*Parameters*:
-    $$data$$
-    $$span$$
-    $$dtype$$
-    $$ddof$$
+    Parameters
+    ----------
+        $$data$$
+        $$span$$
+        $$dtype$$
+        $$ddof$$
+
 """
     return _mov_cov(data, data, span, ddof, dtype=dtype)
 #...............................................................................
 def mov_std(data, span, dtype=None, ddof=0):
-    """Calculates the moving standard deviation of a 1-D array.
+    """
+    Calculates the moving standard deviation of a 1-D array.
 
-*Parameters*:
-    $$data$$
-    $$span$$
-    $$dtype$$
-    $$ddof$$
+    Parameters
+    ----------
+        $$x$$
+        $$y$$
+        $$span$$
+        $$dtype$$
+
 """
     return sqrt(mov_var(data, span, dtype=dtype, ddof=ddof))
 #...............................................................................
@@ -178,14 +198,16 @@ def _mov_cov(x, y, span, ddof, dtype=None):
     return sum_prod/denom - (sum_x * sum_y) / (span*denom)
 
 def mov_cov(x, y, span, bias=0, dtype=None):
-    """Calculates the moving covariance of two 1-D arrays.
+    """
+    Calculates the moving covariance of two 1-D arrays.
 
-*Parameters*:
-    $$x$$
-    $$y$$
-    $$span$$
-    $$bias$$
-    $$dtype$$
+    Parameters
+    ----------
+        $$x$$
+        $$y$$
+        $$span$$
+        $$dtype$$
+
 """
 
     if bias==0: ddof = 1
@@ -194,13 +216,16 @@ def mov_cov(x, y, span, bias=0, dtype=None):
     return _mov_cov(x, y, span, ddof, dtype=dtype)
 #...............................................................................
 def mov_corr(x, y, span, dtype=None):
-    """Calculates the moving correlation of two 1-D arrays.
+    """
+    Calculates the moving correlation of two 1-D arrays.
 
-*Parameters*:
-    $$x$$
-    $$y$$
-    $$span$$
-    $$dtype$$
+    Parameters
+    ----------
+        $$x$$
+        $$y$$
+        $$span$$
+        $$dtype$$
+
 """
 
     sum_x = _mov_sum(x, span, dtype=dtype, type_num_double=True)
@@ -218,15 +243,17 @@ def mov_corr(x, y, span, dtype=None):
     return _covar / (_stddev_x * _stddev_y)
 #...............................................................................
 def mov_average_expw(data, span, tol=1e-6):
-    """Calculates the exponentially weighted moving average of a series.
+    """
+    Calculates the exponentially weighted moving average of a series.
 
-*Parameters*:
+    Parameters
+    ----------
     $$data$$
     span : int
         Time periods. The smoothing factor is 2/(span + 1)
     tol : float, *[1e-6]*
         Tolerance for the definition of the mask. When data contains masked
-        values, this parameter determinea what points in the result shoud be
+        values, this parameter determines what points in the result should be
         masked. Values in the result that would not be "significantly"
         impacted (as determined by this parameter) by the masked values are
         left unmasked.
@@ -251,15 +278,12 @@ def mov_average_expw(data, span, tol=1e-6):
     return data
 #.............................................................................
 def cmov_window(data, span, window_type):
-    """Applies a centered moving window of type window_type and size span on
-the data.
+    """
+    Applies a centered moving window of type ``window_type`` and size ``span``
+    on the data.
 
-Returns a (subclass of) MaskedArray. The k first and k last data are always
-masked (with k=span//2). When data has a missing value at position i, the
-result has missing values in the interval [i-k:i+k+1].
-
-
-*Parameters*:
+    Parameters
+    ----------
     data : {ndarray}
         Data to process. The array should be at most 2D. On 2D arrays, the
         window is applied recursively on each column.
@@ -268,18 +292,43 @@ result has missing values in the interval [i-k:i+k+1].
     window_type : {string/tuple/float}
         Window type (see Notes)
 
-*Notes*:
+    Returns
+    -------
+    A (subclass of) MaskedArray. 
+    Noting ``k=span//2``, the ``k`` first and ``k`` last data are always masked.
+    If ``data`` has a missing value at position ``i``, then the result has
+    missing values in the interval ``[i-k:i+k+1]``.
 
-    The recognized window types are: boxcar, triang, blackman, hamming,
-    hanning, bartlett, parzen, bohman, blackmanharris, nuttall, barthann,
-    kaiser (needs beta), gaussian (needs std), general_gaussian (needs power,
-    width), slepian (needs width). If the window requires parameters, the
-    window_type argument should be a tuple with the first argument the string
-    name of the window, and the next arguments the needed parameters. If
-    window_type is a floating point number, it is interpreted as the beta
-    parameter of the kaiser window.
+    Notes
+    -----
+    The recognized window types are: 
+    
+    * ``boxcar``
+    * ``triang``
+    * ``blackman``
+    * ``hamming``
+    * ``bartlett``
+    * ``parzen``
+    * ``bohman``
+    * ``blackmanharris``
+    * ``nuttall``
+    * ``barthann``
+    * ``kaiser`` (needs beta)
+    * ``gaussian`` (needs std)
+    * ``general_gaussian`` (needs power, width)
+    * ``slepian`` (needs width).
+    
+    If the window requires special parameters, the ``window_type`` argument
+    should be a tuple with the first argument the string name of the window, 
+    and the next arguments the needed parameters.
+    If ``window_type`` is a floating point number, it is interpreted as the beta
+    parameter of the ``kaiser`` window.
 
-    Note also that only boxcar has been thoroughly tested.
+    Warnings
+    --------
+    Only ``boxcar`` has been thoroughly tested so far...
+
+
 """
     from scipy.signal import convolve, get_window
 
@@ -303,67 +352,81 @@ result has missing values in the interval [i-k:i+k+1].
     return data
 
 def cmov_average(data, span):
-    """Computes the centered moving average of size span on the data.
+    """
+    Computes the centered moving average of size ``span`` on the data.
 
-*Parameters*:
-    data : {ndarray}
+    Parameters
+    ----------
+    data : ndarray
         Data to process. The array should be at most 2D. On 2D arrays, the
         window is applied recursively on each column.
-    span : {int}
+    span : int
         The width of the window.
 
-*Returns*:
-    A (subclass of) MaskedArray. The k first and k last data are always masked
-    (with k=span//2). When data has a missing value at position i, the result
-    has missing values in the interval [i-k:i+k+1].
+    Returns
+    -------
+    A (subclass of) MaskedArray. 
+    Noting ``k=span//2``, the ``k`` first and ``k`` last data are always masked.
+    If ``data`` has a missing value at position ``i``, then the result has
+    missing values in the interval ``[i-k:i+k+1]``.
 """
     return cmov_window(data, span, 'boxcar')
 
 cmov_mean = cmov_average
 
 param_doc = {}
-param_doc['data'] = \
-"""data : {ndarray}
-        Data must be an ndarray (or subclass). In particular, note that
-        TimeSeries objects are valid here."""
-
-param_doc['x'] = \
-"""x : {ndarray}
-        First array to be included in the calculation. x must be an ndarray (or
-        subclass). In particular, note that TimeSeries objects are valid here."""
-
-param_doc['y'] = \
-"""y : {ndarray}
-        Second array to be included in the calculation. y must be an ndarray (or
-        subclass). In particular, note that TimeSeries objects are valid here."""
-
-param_doc['span'] = \
-"""span : {int }
-        Time periods to use for each calculation."""
-
-param_doc['bias'] = \
-"""bias : {0, 1}, optional
-        if bias is 0, normalization is by (N-1) where N is the number of
-        observations (unbiased estimate).  If bias is 1 then normalization is
-        by N."""
-
-param_doc['ddof'] = \
-"""ddof : {0, integer}, optional
-        Means Delta Degrees of Freedom.  The divisor used in calculations
-        is N-ddof."""
-
-param_doc['dtype'] = \
-"""dtype : {numpy data type specification}, optional
-        dtype for the result"""
-
-mov_result_doc = \
+param_doc['data'] = """
+    data : {ndarray}
+        data must be an ndarray or a subclass of ndarray.
+        :class:`~scikits.timesiers.core.TimeSeries` objects are also recognized.
 """
 
-*Returns*:
-    The result is always a masked array (preserves subclass attributes). The
-    result at index i uses values from [i-span:i+1], and will be masked for
-    the first `span` values. The result will also be masked at i if any of the
-    input values in the slice [i-span:i+1] are masked.
+param_doc['x'] = """
+    x : {ndarray}
+        First array to be included in the calculation.
+        x must be an ndarray or a subclass of ndarray.
+        :class:`~scikits.timesiers.core.TimeSeries` objects are also recognized.
+"""
+
+param_doc['y'] = """
+    y : {ndarray}
+        Second array to be included in the calculation.
+        y must be an ndarray or a subclass of ndarray.
+        :class:`~scikits.timesiers.core.TimeSeries` objects are also recognized.
+"""
+
+param_doc['span'] = """
+    span : {int }
+        Time periods to use for each calculation.
+"""
+
+param_doc['bias'] = """
+    bias : {0, 1}, optional
+        If ``bias`` is 0, the result is normalized by ``(N-1)`` where ``N`` is
+        the number of observations (unbiased estimate).
+        If ``bias`` is 1 then normalization is by N.
+"""
+
+param_doc['ddof'] = """
+    ddof : {0, integer}, optional
+        Means Delta Degrees of Freedom.  The divisor used in calculations
+        is N-ddof.
+"""
+
+param_doc['dtype'] = """
+    dtype : {numpy data type specification}, optional
+        dtype for the result
+"""
+
+mov_result_doc = """
+
+    Returns
+    -------
+    The result is always a masked array (preserves subclass attributes).
+    The result at index i uses values from [i-span:i+1], and will be masked for
+    the first ``span`` values.
+    The result will also be masked at i if any of the input values in the slice 
+    [i-span:i+1] are masked.
 """
 
 _g = globals()
