@@ -878,7 +878,7 @@ timeseries(%(data)s,
     Converts the dates portion of the TimeSeries to another frequency.
 
     The resulting TimeSeries will have the same shape and dimensions as the
-    original series (unlike the `convert` method).
+    original series (unlike the :meth:`convert` method).
 
     Parameters
     ----------
@@ -1571,20 +1571,21 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
     return newseries
 
 def convert(series, freq, func=None, position='END', *args, **kwargs):
-    """Converts a series from one frequency to another.
+    """
+    Converts a series from one frequency to another.
 
     Parameters
     ----------
-    series : TimeSeries
-        the series to convert. Skip this parameter if you are calling this as
+    series : :class:`TimeSeries`
+        Series to convert. Skip this parameter if you are calling this as
         a method of the TimeSeries object instead of the module function.
     freq : freq_spec
         Frequency to convert the TimeSeries to. Accepts any valid frequency
         specification (string or integer)
     func : {None,function}, optional
-        When converting to a lower frequency, `func` is a function that acts on
-        one date's worth of data. `func` should handle masked values appropriately.
-        If `func` is None, then each data point in the resulting series will a
+        When converting to a lower frequency, ``func`` is a function that acts on
+        one date's worth of data. ``func`` should handle masked values appropriately.
+        If ``func`` is None, then each data point in the resulting series will a
         group of data points that fall into the date at the lower frequency.
 
         For example, if converting from monthly to daily and you wanted each
