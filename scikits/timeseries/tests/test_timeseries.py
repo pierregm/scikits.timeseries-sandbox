@@ -1029,6 +1029,34 @@ class TestMisc(TestCase):
                              start_date=ts.now('M'))
         assert_equal(series._varshape, (4,3))
 
+
+class TestGenericMethods(TestCase):
+    #
+    class SubTimeSeries(TimeSeries):
+        pass
+    #
+    def setUp(self):
+        self.methodlist = ('cumsum','cumprod','ravel')
+        data = np.random.rand(10)
+        self.series = time_series(data, start_date=ts.now('D')-len(data))
+    #
+    def test_generic_methods(self):
+        #
+        series = self.series
+        for method in self.methodlist:
+            test = getattr(series, method).__call__()
+            assert(isinstance(test,ts.TimeSeries))
+            assert_equal(test, getattr(series._series, method).__call__())
+            assert_equal(test._dates, series._dates)
+        #
+    def test_generic_methods_w_subclassing(self):
+        subseries = self.series.view(self.SubTimeSeries)
+        for method in self.methodlist:
+            test = getattr(subseries, method).__call__()
+            assert(isinstance(test, self.SubTimeSeries))
+            assert_equal(test, getattr(subseries._series, method).__call__())
+            assert_equal(test._dates, subseries._dates)
+
 ###############################################################################
 #------------------------------------------------------------------------------
 if __name__ == "__main__":

@@ -331,17 +331,18 @@ If `ondates` is False, the `_dates` part remains unchanged.
         self.obj = obj
         return self
 
-    def __call__ (self, *args):
+    def __call__ (self, *args, **kwargs):
         "Execute the call behavior."
         _name = self.__name__
         instance = self.obj
-        func_series = getattr(super(TimeSeries, instance), _name)
-        result = func_series(*args)
+        _series = ndarray.__getattribute__(instance, '_series')
+        _dates = ndarray.__getattribute__(instance, '_dates')
+        func_series = getattr(_series, _name)
+        result = func_series(*args, **kwargs).view(type(instance))
         if self._ondates:
-            newdate = getattr(instance._dates, _name)(*args)
-            result._dates = getattr(instance._dates, _name)(*args)
+            result._dates = getattr(_dates, _name)(*args, **kwargs)
         else:
-            result._dates = instance._dates
+            result._dates = _dates
         return result
 
 
