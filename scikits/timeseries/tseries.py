@@ -1389,7 +1389,7 @@ def adjust_endpoints(a, start_date=None, end_date=None):
     if a.freq == 'U':
         raise TimeSeriesError, \
             "Cannot adjust a series with 'Undefined' frequency."
-    if not a.dates.isvalid():
+    if not a._dates.isvalid():
         raise TimeSeriesError, \
             "Cannot adjust a series with missing or duplicated dates."
     # Flatten the series if needed ..............
@@ -1576,7 +1576,7 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
 
     Parameters
     ----------
-    series : :class:`TimeSeries`
+    series : TimeSeries
         Series to convert. Skip this parameter if you are calling this as
         a method of the TimeSeries object instead of the module function.
     freq : freq_spec
