@@ -14,8 +14,6 @@ import numpy.ma as ma
 from numpy.ma import masked, nomask, getmask
 from numpy.ma.extras import flatnotmasked_edges
 
-from scipy.interpolate import fitpack
-
 marray = ma.array
 
 __all__ = ['forward_fill', 'backward_fill', 'interp_masked1d',
@@ -27,7 +25,7 @@ __all__ = ['forward_fill', 'backward_fill', 'interp_masked1d',
 def forward_fill(marr, maxgap=None):
     """
     Forward fills masked values in a 1-d array when there are less ``maxgap``
-    consecutive masked values. 
+    consecutive masked values.
 
     Parameters
     ----------
@@ -36,7 +34,7 @@ def forward_fill(marr, maxgap=None):
     maxgap : {None, int}, optional
         Maximum gap between consecutive masked values.
         If ``maxgap`` is None, all masked values are forward-filled.
-    
+
     """
     # Initialization ..................
     if np.ndim(marr) > 1:
@@ -67,7 +65,7 @@ def forward_fill(marr, maxgap=None):
 def backward_fill(marr, maxgap=None):
     """
     Backward fills masked values in a 1-d array when there are less than ``maxgap``
-    consecutive masked values. 
+    consecutive masked values.
 
 
     Parameters
@@ -92,7 +90,7 @@ def interp_masked1d(marr, kind='linear'):
         Array to fill
     kind : {'constant', 'linear', 'cubic', quintic'}, optional
         Type of interpolation
-    
+
     """
     if np.ndim(marr) > 1:
         raise ValueError("array must be 1 dimensional!")
@@ -119,6 +117,7 @@ def interp_masked1d(marr, kind='linear'):
 
     vals = marr.data[unmaskedIndices]
 
+    from scipy.interpolate import fitpack
     tck = fitpack.splrep(unmaskedIndices, vals, k=k)
 
     maskedIndices = marr._mask.nonzero()[0]
