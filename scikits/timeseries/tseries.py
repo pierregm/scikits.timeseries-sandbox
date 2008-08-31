@@ -392,15 +392,15 @@ class TimeSeries(MaskedArray, object):
     Parameters
     ----------
     data : {array_like}
-        Data portion of the array. 
+        Data portion of the array.
         Any data that is valid for constructing a MaskedArray can be used here.
     dates : {DateArray}
         A :class:`DateArray` instance.
 
     Other Parameters
     ----------------
-    All other parameters are the same as for MaskedArray. 
-    Please refer to the documentation for the :class:`MaskedArray` class in the 
+    All other parameters are the same as for MaskedArray.
+    Please refer to the documentation for the :class:`MaskedArray` class in the
     :mod:`numpy.ma` module for details.
 
     Notes
@@ -889,15 +889,15 @@ timeseries(%(data)s,
     Returns
     -------
     TimeSeries:
-        A new TimeSeries with the :attr:`.dates` :class:`DateArray` at the 
-        specified frequency (the :meth`.asfreq` method of the :attr:`.dates` 
+        A new TimeSeries with the :attr:`.dates` :class:`DateArray` at the
+        specified frequency (the :meth`.asfreq` method of the :attr:`.dates`
         property will be called).
         The data in the resulting series will be a VIEW of the original series.
 
     Notes
     -----
-    The parameters are the exact same as for :meth:`DateArray.asfreq`, please 
-    see the `__doc__` string for that method for details on the parameters and 
+    The parameters are the exact same as for :meth:`DateArray.asfreq`, please
+    see the `__doc__` string for that method for details on the parameters and
     how the actual conversion is performed.
 
     """
@@ -979,7 +979,7 @@ timeseries(%(data)s,
     # Pickling
     def __getstate__(self):
         """
-    
+
     Returns the internal state of the TimeSeries, for pickling purposes.
         """
     #    raise NotImplementedError,"Please use timeseries.archive/unarchive instead."""
@@ -998,7 +998,7 @@ timeseries(%(data)s,
     #
     def __setstate__(self, state):
         """
-    
+
     Restores the internal state of the TimeSeries, for pickling purposes.
     `state` is typically the output of the ``__getstate__`` output, and is a 5-tuple:
 
@@ -1299,7 +1299,7 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
 
     Other Parameters
     ----------------
-    All other parameters that are accepted by the :func:`numpy.ma.array` function 
+    All other parameters that are accepted by the :func:`numpy.ma.array` function
     in the :mod:`numpy.ma` module are also accepted by this function.
 
     Notes
@@ -1528,7 +1528,8 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
         raise TimeSeriesError(err_msg)
 
     # Check the position parameter..........
-    if position.upper() not in ('END','START'):
+    position = position.upper()
+    if position not in ('END','START'):
         err_msg = "Invalid value for position argument: (%s). "\
                   "Should be in ['END','START']," % str(position)
         raise ValueError(err_msg)
@@ -1864,8 +1865,8 @@ def concatenate(series, axis=0, remove_duplicates=True, fill_missing=False):
     Joins series together.
 
     The series are joined in chronological order.
-    Duplicated dates are handled with the `remove_duplicates` parameter. 
-    If `remove_duplicate` is False, duplicated dates are saved. 
+    Duplicated dates are handled with the `remove_duplicates` parameter.
+    If `remove_duplicate` is False, duplicated dates are saved.
     Otherwise, only the first occurence of the date is conserved.
 
 

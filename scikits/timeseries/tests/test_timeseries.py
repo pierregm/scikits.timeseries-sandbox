@@ -730,6 +730,11 @@ test_dates test suite.
 
         lowToHigh_start = lowFreqSeries.convert('B', position='START')
 
+        # ensure that position argument is not case sensitive
+        lowToHigh_start_lowercase = lowFreqSeries.convert('B', position='start')
+
+        assert_array_equal(lowToHigh_start, lowToHigh_start_lowercase)
+
         assert_equal(lowToHigh_start.start_date,
                      June2005M.asfreq("B", relation="START"))
         assert_equal(lowToHigh_start.end_date,
