@@ -60,7 +60,9 @@ __all__ = ['ArithmeticDateError',
 #---- --- Date Exceptions ---
 #####---------------------------------------------------------------------------
 class DateError(Exception):
-    "Defines a generic DateArrayError."
+    """
+    Defines a generic DateArrayError.
+    """
     def __init__ (self, value=None):
         "Creates an exception."
         self.value = value
@@ -70,15 +72,19 @@ class DateError(Exception):
     __repr__ = __str__
 
 class InsufficientDateError(DateError):
-    """Defines the exception raised when there is not enough information
-    to create a Date object."""
+    """
+    Defines the exception raised when there is not enough information
+    to create a Date object.
+    """
     def __init__(self, msg=None):
         if msg is None:
             msg = "Insufficient parameters given to create a date at the given frequency"
         DateError.__init__(self, msg)
 
 class FrequencyDateError(DateError):
-    """Defines the exception raised when the frequencies are incompatible."""
+    """
+    Defines the exception raised when the frequencies are incompatible.
+    """
     def __init__(self, msg, freql=None, freqr=None):
         msg += " : Incompatible frequencies!"
         if not (freql is None or freqr is None):
@@ -86,7 +92,9 @@ class FrequencyDateError(DateError):
         DateError.__init__(self, msg)
 
 class ArithmeticDateError(DateError):
-    """Defines the exception raised when dates are used in arithmetic expressions."""
+    """
+    Defines the exception raised when dates are used in arithmetic expressions.
+    """
     def __init__(self, msg=''):
         msg += " Cannot use dates for arithmetics!"
         DateError.__init__(self, msg)
@@ -103,7 +111,9 @@ def prevbusday(day_end_hour=18, day_end_min=0):
     Parameters
     ----------
     day_end_hour : {18, int}, optional
+        Hour of the end of a business day.
     day_end_min : {0, int}, optional
+        Minutes of the end of a business day.
 
     Notes
     -----
@@ -129,16 +139,21 @@ ufunc_dateOK = ['add','subtract',
                 'isnan']
 
 class _datearithmetics(object):
-    """Defines a wrapper for arithmetic methods.
-Instead of directly calling a ufunc, the corresponding method of  the `array._data`
-object is called instead.
-If `asdates` is True, a DateArray object is returned , else a regular ndarray
-is returned.
+    """
+    Defines a wrapper for arithmetic methods.
+    Instead of directly calling a ufunc, the corresponding method of the `._data`
+    object is called instead.
+    If `asdates` is True, a DateArray object is returned , else a regular ndarray
+    is returned.
     """
     def __init__ (self, methodname, asdates=True):
         """
-:Parameters:
-    - `methodname` (String) : Method name.
+    Parameters
+    ----------
+    methodname : string
+        Method name.
+    asdates : {True, False}
+        Whether to return a DateArray object (True) or a regular ndarray.
         """
         self.methodname = methodname
         self._asdates = asdates
@@ -181,18 +196,18 @@ class DateArray(ndarray):
     """
     Defines a ndarray of dates, as ordinals.
 
-    When viewed globally (array-wise), DateArray is an array of integers.
-    When viewed element-wise, DateArray is a sequence of dates.
+    When viewed globally (array-wise), ``DateArray`` is an array of integers.
+    When viewed element-wise, ``DateArray`` is a sequence of dates.
     For example, a test such as :
 
     >>> DateArray(...) = value
 
-    will be valid only if value is an integer, not a Date
+    will be valid only if value is an integer, not a :class:`Date`.
     However, a loop such as :
 
     >>> for d in DateArray(...):
 
-    accesses the array element by element. Therefore, `d` is a Date object.
+    accesses the array element by element. Therefore, `d` is a :class:`Date` object.
     """
     def __new__(cls, dates=None, freq=None, copy=False):
         # Get the frequency ......
@@ -416,12 +431,12 @@ class DateArray(ndarray):
     Parameters
     ----------
     freq : {freq_spec}
-        Frequency to convert the DateArray to. Accepts any valid frequency
-        specification (string or integer)
+        Frequency into which :class:`DateArray` must be converted.
+        Accepts any valid frequency specification (string or integer)
     relation : {"END", "START"} (optional)
-        Applies only when converting a lower frequency Date to a higher
-        frequency Date, or when converting a weekend Date to a business
-        frequency Date. Valid values are 'START' and 'END' (or just 'S' and
+        Applies only when converting a lower frequency :class:`Date` to a higher
+        frequency :class:`Date`, or when converting a weekend :class:`Date` to a business
+        frequency :class:`Date`. Valid values are 'START' and 'END' (or just 'S' and
         'E' for brevity if you wish).
 
         For example, if converting a monthly date to a daily date, specifying
@@ -507,8 +522,10 @@ class DateArray(ndarray):
         return indx
 
     def get_steps(self):
-        """Returns the time steps between consecutive dates.
-    The timesteps have the same unit as the frequency of the series."""
+        """
+    Returns the time steps between consecutive dates.
+    The steps have the same unit as the frequency of the series.
+    """
         if self._cachedinfo['steps'] is None:
             _cached = self._cachedinfo
             val = np.asarray(self).ravel()
@@ -532,19 +549,19 @@ class DateArray(ndarray):
         return not(self._cachedinfo['full'])
 
     def isfull(self):
-        "Returns whether the DateArray has no missing dates."
+        "Returns whether the :class:`DateArray` has no missing dates."
         if self._cachedinfo['full'] is None:
             steps = self.get_steps()
         return self._cachedinfo['full']
 
     def has_duplicated_dates(self):
-        "Returns whether the DateArray has duplicated dates."
+        "Returns whether the :class:`DateArray` has duplicated dates."
         if self._cachedinfo['hasdups'] is None:
             steps = self.get_steps()
         return self._cachedinfo['hasdups']
 
     def isvalid(self):
-        "Returns whether the DateArray is valid: no missing/duplicated dates."
+        "Returns whether the :class:`DateArray` is valid: no missing/duplicated dates."
         return  (self.isfull() and not self.has_duplicated_dates())
     #......................................................
     @property
@@ -562,14 +579,16 @@ class DateArray(ndarray):
         return None
 
 def fill_missing_dates(dates, freq=None):
-    """Finds and fills the missing dates in a DateArray.
+    """
+    Finds and fills the missing dates in a :class:`DateArray`.
 
     Parameters
     ----------
     dates : {DateArray}
         Initial array of dates.
     freq : {freq_spec}, optional
-        Frequency of result. If not specified, the initial frequency is used.
+        Frequency of result. 
+        If not specified, the frequency of the input DateArray is used.
     """
     # Check the frequency ........
     orig_freq = freq

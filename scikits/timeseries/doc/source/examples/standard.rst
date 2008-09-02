@@ -249,7 +249,7 @@ ________________________________________________________________________________
 
 
 :class:`~tdates.DateArray` objects
-==========================
+==================================
 
 A :class:`~tdates.DateArray` object is  are simply a :class:`numpy.ndarray` of 
 :class:`~tdates.Date` objects.
@@ -276,8 +276,8 @@ for a more detailed presentation of the available parameters.
 _______________________________________________________________________________
 
 
-:class:`~tseries.TimeSeries`
-============================
+:class:`~tseries.TimeSeries` objects
+====================================
 
 A :class:`~tseries.TimeSeries` object is the combination of three ndarrays:
 
@@ -566,7 +566,8 @@ This will yield a series with a lot of masked values.
 To fill in these masked values, see the section `Interpolating Masked Values <interpolating>`_ below.
 
 .. warning::
-   Be careful not to confuse th two methods :meth:`asfreq` and :meth:`convert`.
+   Be careful not to confuse the two methods :meth:`asfreq` and :meth:`convert`.
+
    * :meth:`~tseries.TimeSeries.asfreq` simply takes every date 
      in the :attr:~tseries.TimeSeries.`dates` attribute of the 
      :class:`~tseries.TimeSeries` instance and changes it to the specified frequency, so the 
@@ -577,7 +578,7 @@ To fill in these masked values, see the section `Interpolating Masked Values <in
      original series into appropriate points in the new series.
 
 
-.. _interpolating
+.. _interpolating:
 Interpolating Masked Values
 ---------------------------
 

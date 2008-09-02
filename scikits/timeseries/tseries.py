@@ -1,11 +1,12 @@
 """
-The :class:`TimeSeries` class provides  a base for the definition of time series.
+The :class:`TimeSeries` class provides a base for the definition of time series.
 A time series is defined here as the combination of two arrays:
 
-- an array storing the time information (as a `DateArray` instance);
-- an array storing the data (as a `MaskedArray` instance.)
+- an array storing the time information
+  (as a :class:`~scikits.timeseries.tdates.DateArray` instance);
+- an array storing the data (as a :class:`MaskedArray` instance.)
 
-These two classes were liberally adapted from `MaskedArray` class.
+These two classes were liberally adapted from :class:`MaskedArray` class.
 
 
 :author: Pierre GF Gerard-Marchant & Matt Knox
@@ -75,13 +76,16 @@ def _unmasked_val(marray, x):
     return marray[idx[x]]
 
 def first_unmasked_val(marray):
-    """Retrieve the first unmasked value in a 1d MaskedArray.
+    """
+    Retrieve the first unmasked value in a 1d MaskedArray.
 
-*Parameters*:
+    Parameters
+    ----------
     marray : {MaskedArray}
         marray must be 1 dimensional.
 
-*Returns*:
+    Returns
+    -------
     val : {singleton of type marray.dtype}
         first unmasked value in marray. If all values in marray are masked,
         the function returns the numpy.ma.masked constant
@@ -91,11 +95,13 @@ def first_unmasked_val(marray):
 def last_unmasked_val(marray):
     """Retrieve the last unmasked value in a 1d MaskedArray.
 
-*Parameters*:
+    Parameters
+    ----------
     marray : {MaskedArray}
         marray must be 1 dimensional.
 
-*Returns*:
+    Returns
+    -------
     val : {singleton of type marray.dtype}
         last unmasked value in marray. If all values in marray are masked,
         the function returns the numpy.ma.masked constant
@@ -117,7 +123,15 @@ class TimeSeriesError(Exception):
 
 
 class TimeSeriesCompatibilityError(TimeSeriesError):
-    """Defines the exception raised when series are incompatible."""
+    """
+    Defines the exception raised when series are incompatible.
+    Incompatibility can arise from:
+
+    * Inconsistent frequency;
+    * Inconsistent starting dates;
+    * Inconsistent size and/or shape.
+    
+    """
     def __init__(self, mode, first, second):
         if mode == 'freq':
             msg = "Incompatible time steps! (%s <> %s)"
@@ -136,8 +150,10 @@ class TimeSeriesCompatibilityError(TimeSeriesError):
 
 
 def _timeseriescompat(a, b, raise_error=True):
-    """Checks the date compatibility of two TimeSeries object.
-    Returns True if everything's fine, or raises an exception."""
+    """
+    Checks the date compatibility of two TimeSeries object.
+    Returns True if everything's fine, or raises an exception.
+    """
     #!!!: We need to use _varshape to simplify the analysis
     # Check the frequency ..............
     (afreq, bfreq) = (getattr(a,'freq',None), getattr(b, 'freq', None))
@@ -210,7 +226,8 @@ def _timeseriescompat_multiple(*series):
 
 
 def get_varshape(data, dates):
-    """Checks the compatibility of dates and data.
+    """
+    Checks the compatibility of dates and data.
 
     Parameters
     ----------
@@ -315,12 +332,13 @@ class _tsmathmethod(object):
 
 
 class _tsarraymethod(object):
-    """Defines a wrapper for basic array methods.
-When called, returns a new TimeSeries object, with the new series the result
-of the method applied on the original series.
-If `ondates` is True, the same operation is performed on the `_dates`.
-If `ondates` is False, the `_dates` part remains unchanged.
-"""
+    """
+    Defines a wrapper for basic array methods.
+    When called, returns a new TimeSeries object, with the new series the result
+    of the method applied on the original series.
+    If `ondates` is True, the same operation is performed on the `_dates`.
+    If `ondates` is False, the `_dates` part remains unchanged.
+    """
     def __init__ (self, methodname, ondates=False):
         self.__name__ = methodname
         self.__doc__ = getattr(MaskedArray, methodname).__doc__
@@ -347,10 +365,11 @@ If `ondates` is False, the `_dates` part remains unchanged.
 
 
 class _tsaxismethod(object):
-    """Defines a wrapper for array methods working on an axis (mean...).
+    """
+    Defines a wrapper for array methods working on an axis (mean...).
 
-When called, returns a ndarray, as the result of the method applied on the
-series.
+    When called, returns a ndarray, as the result of the method applied on the
+    series.
 """
     def __init__ (self, methodname):
         """abfunc(fillx, filly) must be defined.
@@ -395,19 +414,30 @@ class TimeSeries(MaskedArray, object):
         Data portion of the array.
         Any data that is valid for constructing a MaskedArray can be used here.
     dates : {DateArray}
-        A :class:`DateArray` instance.
+        A `DateArray` instance.
 
     Other Parameters
     ----------------
+<<<<<<< .mine
+    All other parameters are the same as for MaskedArray. 
+    Please refer to the documentation for the ``MaskedArray`` class in the 
+    ``numpy.ma`` module for details.
+=======
     All other parameters are the same as for MaskedArray.
     Please refer to the documentation for the :class:`MaskedArray` class in the
     :mod:`numpy.ma` module for details.
+>>>>>>> .r1253
 
     Notes
     -----
-    It is recommended to use the `time_series` function for construction,
-    as it is more flexibile and convenient.
+    It is recommended to use the :func:`time_series` function for construction,
+    as it is more flexible and convenient.
 
+    See Also
+    --------
+    numpy.ma.MaskedArray
+        ndarray with support for missing data.
+    scikits.timeseries.tdates.DateArray
     """
     def __new__(cls, data, dates, mask=nomask, dtype=None, copy=False,
                 fill_value=None, subok=True, keep_mask=True, hard_mask=False,
@@ -878,8 +908,8 @@ timeseries(%(data)s,
         """
     Converts the dates portion of the TimeSeries to another frequency.
 
-    The resulting TimeSeries will have the same shape and dimensions as the
-    original series (unlike the :meth:`convert` method).
+    The resulting TimeSeries will have the same shape and dimensions
+    as the original series (unlike the :meth:`convert` method).
 
     Parameters
     ----------
@@ -889,15 +919,26 @@ timeseries(%(data)s,
     Returns
     -------
     TimeSeries:
+<<<<<<< .mine
+        A new TimeSeries with the `.dates` attribute at the specified frequency
+        (the :meth:`.asfreq` method of the :attr:`.dates` 
+=======
         A new TimeSeries with the :attr:`.dates` :class:`DateArray` at the
         specified frequency (the :meth`.asfreq` method of the :attr:`.dates`
+>>>>>>> .r1253
         property will be called).
         The data in the resulting series will be a VIEW of the original series.
 
     Notes
     -----
+<<<<<<< .mine
+    The parameters are the exact same as for
+    :meth:`~scikit.timeseries.tdates.DateArray.asfreq`.
+    Please see the docstring for that method for details on the parameters and 
+=======
     The parameters are the exact same as for :meth:`DateArray.asfreq`, please
     see the `__doc__` string for that method for details on the parameters and
+>>>>>>> .r1253
     how the actual conversion is performed.
 
     """
@@ -907,24 +948,6 @@ timeseries(%(data)s,
                           dates=self._dates.asfreq(freq, relation=relation))
     #.....................................................
     def transpose(self, *axes):
-        """
-    Returns a view of the series with axes transposed
-
-    Parameters
-    ----------
-    axes : {integers}
-        The axes to swap
-
-    Returns
-    -------
-    A VIEW of the series with axes for both the data and dates transposed
-
-    Notes
-    -----
-    If no axes are given, the order of the axes are switches. For a 2-d array,
-    this is the usual matrix transpose. If axes are given, they describe how
-    the axes are permuted.
-"""
         if self._dates.size == self.size:
             result = MaskedArray.transpose(self, *axes)
             result._dates = self._dates.transpose(*axes)
@@ -936,6 +959,7 @@ timeseries(%(data)s,
                 result = MaskedArray.transpose(self, *axes)
                 result._dates = self._dates
         return result
+    transpose.__doc__ = np.transpose.__doc__
 
     def split(self):
         """Split a multi-dimensional series into individual columns."""
@@ -957,7 +981,7 @@ timeseries(%(data)s,
     ----------
     fill_value : {None, singleton of type self.dtype}, optional
         The value to fill in masked values with.
-        If `fill_value` is None, uses self.fill_value.
+        If `fill_value` is None, uses ``self.fill_value``.
 
     """
         result = self._series.filled(fill_value=fill_value).view(type(self))
@@ -1180,7 +1204,7 @@ def tofile(series, fileobject, format=None,
 
     Parameters
     ----------
-    series : {TimeSeries}
+    series : TimeSeries
         The array to write.
     fileobject
         An open file object or a string to a valid filename.
@@ -1200,8 +1224,8 @@ def tofile(series, fileobject, format=None,
 
     Returns
     -------
-    file : {file object}
-        The open file (if keep_open is non-zero)
+    file : file object
+        The open file (if ``keep_open`` is non-zero).
     """
 
     try:
@@ -1281,7 +1305,7 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
                 dtype=None, copy=False, fill_value=None, keep_mask=True,
                 hard_mask=False):
     """
-    Creates a TimeSeries object
+    Creates a TimeSeries object.
 
     Parameters
     ----------
@@ -1295,7 +1319,7 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
     start_date : {Date}, optional
         Date corresponding to the first entry of the data (index 0)
     freq : {freq_spec}, optional
-        A valid frequency specification
+        A valid frequency specification.
 
     Other Parameters
     ----------------
@@ -1304,13 +1328,13 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
 
     Notes
     -----
-    The date portion of the time series must be specified in one of the
-    following ways:
-        - specify a TimeSeries object for the `data` parameter
-        - pass a DateArray for the `dates` parameter
-        - specify a start_date (a continuous DateArray will be automatically
-          constructed for the dates portion)
-        - specify just a frequency (for TimeSeries of size zero)
+    * The date portion of the time series must be specified in one of the
+      following ways:
+      * specify a TimeSeries object for the `data` parameter.
+      * pass a DateArray for the `dates` parameter.
+      * specify a start_date (a continuous DateArray will be automatically
+        constructed for the dates portion).
+      * specify just a frequency (for TimeSeries of size zero).
 
     """
     maparms = dict(copy=copy, dtype=dtype, fill_value=fill_value, subok=True,
@@ -1354,7 +1378,11 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
 ##### --------------------------------------------------------------------------
 
 def compressed(series):
-    """Suppresses missing values from a time series."""
+    """
+    Suppresses missing values from a time series.
+    Returns a TimeSeries object.
+
+    """
     if series._mask is nomask:
         return series
     if series.ndim == 1:
@@ -1380,9 +1408,19 @@ def compressed(series):
 TimeSeries.compressed = compressed
 #...............................................................................
 def adjust_endpoints(a, start_date=None, end_date=None):
-    """Returns a TimeSeries going from `start_date` to `end_date`.
+    """
+    Returns a TimeSeries going from `start_date` to `end_date`.
     If `start_date` and `end_date` both fall into the initial range of dates,
-    the new series is NOT a copy.
+    the new series is **NOT** a copy but a simple slice of the initial series.
+
+    Parameters
+    ----------
+    a : TimeSeries
+        TimeSeries object whose dates must be adjusted
+    start_date : Date object
+        New starting date. If None, the current starting date is used.
+    end_date : Date object
+        New ending date. If None, the current ending date is used.
     """
     # Series validity tests .....................
     if not isinstance(a, TimeSeries):
@@ -1453,16 +1491,17 @@ def adjust_endpoints(a, start_date=None, end_date=None):
     return newseries
 #.....................................................
 def align_series(*series, **kwargs):
-    """Aligns several TimeSeries, so that their starting and ending dates match.
+    """
+    Aligns several TimeSeries, so that their starting and ending dates match.
     Series are resized and filled with masked values accordingly. The resulting
-    series have no missing dates (ie. series.isvalid() == True for each of the
+    series have no missing dates (ie. ``series.isvalid() == True`` for each of the
     resulting series).
 
     The function accepts two extras parameters:
     - `start_date` forces the series to start at that given date,
     - `end_date` forces the series to end at that given date.
-    By default, `start_date` and `end_date` are set to the smallest and largest
-    dates respectively.
+    By default, `start_date` and `end_date` are set respectively to the smallest
+    and largest dates of the series.
     """
     if len(series) < 2:
         return series
@@ -1493,7 +1532,8 @@ aligned = align_series
 
 #.....................................................
 def align_with(*series):
-    """Aligns several TimeSeries to the first of the list, so that their
+    """
+    Aligns several TimeSeries to the first of the list, so that their
     starting and ending dates match.
     Series are resized and filled with masked values accordingly.
     """
@@ -1589,7 +1629,6 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
         one date's worth of data. ``func`` should handle masked values appropriately.
         If ``func`` is None, then each data point in the resulting series will a
         group of data points that fall into the date at the lower frequency.
-
         For example, if converting from monthly to daily and you wanted each
         data point in the resulting series to be the average value for each
         month, you could specify numpy.ma.average for the 'func' parameter.
@@ -1599,11 +1638,9 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
         going from monthly to daily, and position is 'END', then each data
         point is placed at the end of the month.
     *args : {extra arguments for func parameter}, optional
-        if a func is specified that requires additional parameters, specify
-        them here.
+        Additional mandatory parameters of the ``func`` function.
     **kwargs : {extra keyword arguments for func parameter}, optional
-        if a func is specified that requires additional keyword parameters,
-        specify them here.
+        Additional optional keyword parameters of the ``func`` function.
 
     """
     #!!!: Raise some kind of proper exception if the underlying dtype will mess things up
@@ -1649,8 +1686,8 @@ def tshift(series, nper, copy=True):
         TimeSeries object to shift. Ignore this parameter if calling this as a
         method.
     nper : int
-        number of periods to shift. Negative numbers shift values to the
-        right, positive to the left
+        Number of periods to shift. Negative numbers shift values to the right,
+        positive to the left.
     copy : {True, False}, optional
         copies the data if True, returns a view if False.
 
@@ -1689,9 +1726,11 @@ def tshift(series, nper, copy=True):
 TimeSeries.tshift = tshift
 #...............................................................................
 def _get_type_num_double(dtype):
-    """used for forcing upcast of dtypes in certain functions (eg. int -> float
-in pct function. Adapted from function of the same name in the c source code.
-"""
+    """
+    Private used to force dtypes upcasting in certain functions 
+    (eg. int -> float in pct function).
+    Adapted from function of the same name in the C source code.
+    """
     if dtype.num  < np.dtype('f').num:
         return np.dtype('d')
     return dtype
@@ -1706,7 +1745,7 @@ def pct(series, nper=1):
         TimeSeries object to to calculate percentage chage for. Ignore this
         parameter if calling this as a method.
     nper : {int}
-        number of periods for percentage change
+        Number of periods for percentage change.
 
     Notes
     -----
@@ -1751,7 +1790,7 @@ def fill_missing_dates(data, dates=None, freq=None, fill_value=None):
         Initial array of data.
     dates : {DateArray} (optional)
         Initial array of dates. Specify this if you are passing a plain ndarray
-        for the data instead of a TimeSeries.
+        for the data instead of a :class:`TimeSeries`.
     freq : {freq_spec} (optional)
         Frequency of result. If not specified, the initial frequency is used.
     fill_value : {scalar of type data.dtype} (optional)
@@ -1849,11 +1888,13 @@ def fill_missing_dates(data, dates=None, freq=None, fill_value=None):
 TimeSeries.fill_missing_dates = fill_missing_dates
 #..............................................................................
 def stack(*series):
-    """Performs a column_stack on the data from each series, and the
-resulting series has the same dates as each individual series. All series
-must be date compatible.
+    """
+    Performs a column_stack on the data from each series, and the
+    resulting series has the same dates as each individual series. The series
+    must have compatible dates (same starting and ending dates, same frequency).
 
-*Parameters*:
+    Parameters
+    ----------
     series : the series to be stacked
 """
     _timeseriescompat_multiple(*series)
@@ -1919,7 +1960,9 @@ def concatenate(series, axis=0, remove_duplicates=True, fill_missing=False):
     return result
 #...............................................................................
 def empty_like(series):
-    """Returns an empty series with the same dtype, mask and dates as series."""
+    """
+    Returns an empty series with the same dtype, mask and dates as series.
+    """
     result = np.empty_like(series).view(type(series))
     result._dates = series._dates
     result._mask = series._mask.copy()
