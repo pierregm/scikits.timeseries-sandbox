@@ -1,14 +1,12 @@
 .. currentmodule:: scikits.timeseries.tseries
 
-:mod:`tseries`
-==============
+===========================
+:class:`TimeSeries` objects
+===========================
 
 .. automodule:: scikits.timeseries.tseries
    :synopsis: Define a subclass of ndarray with support of masked data and time-indexing
 
-
-:class:`TimeSeries` object
---------------------------
 
 .. class:: TimeSeries
  
@@ -21,11 +19,12 @@
 As :class:`TimeSeries` objects subclass :class:`~numpy.ma.MaskedArrays`, they
 inherit all their attributes and methods, as well as the attributes and methods
 of regular ndarrays.
-In addition, :class:`TimeSeries` objects have some specific attributs and methods.
+:class:`TimeSeries` objects have also their own specific attributes and methods.
+
 
 
 Attributes
-~~~~~~~~~~
+----------
 
    .. attribute:: series
 
@@ -39,65 +38,13 @@ Attributes
 
       Returns the :class:`DateArray` object of the dates of the series.
 
-   .. attribute:: start_date
+In addition, all the attributes of the :class:`DateArray` :attr:`dates` attributes
+are directly accessible by :class:`TimeSeries`.
 
-      Returns the first date of the series, as a :class:`~scikits.timeseries.tdates.Date` object.
-
-   .. attribute:: end_date
-
-      Returns the last date of the series, as a :class:`~scikits.timeseries.tdates.Date` object.
-
-   .. attribute:: freq
-
-      Returns the frequency of the series, as an integer.
-
-   .. attribute:: freqstr
-
-      Returns the frequency of the series, as a string.
-
-   .. attribute:: year, years
-
-      Returns the year for each date of the array, as an integer.
-
-   .. attribute:: quarter, quarters
-
-      Returns the quarter for each date of the series, as an integer between 1 and 4.
-
-   .. attribute:: month, months
-
-      Returns the month for each date of the series, as an integer between 1 and 12.
-
-   .. attribute:: week, weeks
-
-      Returns the week for each date of the series, as an integer between 1 and 53.
-
-   .. attribute:: day, days
-
-      Returns the day of month for each date of the series, as an integer between 1 and 31.
-
-   .. attribute:: weekday, weekdays
-
-      Returns the day of the week for each date of the series, as an integer between 0 and 6.
-
-   .. attribute:: day_of_year, yeardays
-
-      Returns the day of year for each date of the series, as an integer between 1 and 366.
-
-   .. attribute:: hour, hours
-
-      Returns the hour for each date of the series, as an integer between 0 and 23.
-
-   .. attribute:: minute, minutes
-
-      Returns the minute for each date of the series, as an integer between 0 and 59.
-
-   .. attribute:: second, seconds
-
-      Returns the second of each date of the series, as an integer between 0 and 23.
 
 
 Methods
-~~~~~~~
+=======
 
 The following methods access information about the :attr:`dates` attribute:
 
@@ -110,11 +57,25 @@ The following methods access information about the :attr:`dates` attribute:
 .. automethod:: TimeSeries.date_to_index
 
 
+Frequency conversions
+---------------------
+
 The following method converts :class:`TimeSeries` from one frequency to another.
 
-.. automethod:: TimeSeries.asfreq
+.. method:: TimeSeries.asfreq(freq)
+
+   Returns a series whose :attr:`dates` has been converted to the new frequency ``freq``.
+   The :attr:`series` part remains unchanged.
+   Therefore, when converting to a lower frequency, the new series will have
+   duplicated dates, whereas when converting to a higher frequency, the new series
+   will have missing dates.
+
+
 .. automethod:: TimeSeries.convert
 
+
+Format conversions
+------------------
 
 The following methods transform the :class:`TimeSeries` to different formats.
 
@@ -125,8 +86,10 @@ The following methods transform the :class:`TimeSeries` to different formats.
 
 .. automethod:: TimeSeries.split
 
+
+
 Functions
----------
+=========
 
 .. autofunction:: time_series
 
@@ -140,8 +103,10 @@ Functions
 
 .. autofunction:: empty_like
 
+
+
 Exceptions
-----------
+==========
 
 .. autoexception:: TimeSeriesError
    :show-inheritance:

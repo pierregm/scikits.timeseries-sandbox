@@ -407,7 +407,6 @@ class TimeSeries(MaskedArray, object):
     """
     Base class for the definition of time series.
 
-
     Parameters
     ----------
     data : {array_like}
@@ -415,18 +414,9 @@ class TimeSeries(MaskedArray, object):
         Any data that is valid for constructing a MaskedArray can be used here.
     dates : {DateArray}
         A `DateArray` instance.
-
-    Other Parameters
-    ----------------
-<<<<<<< .mine
-    All other parameters are the same as for MaskedArray. 
-    Please refer to the documentation for the ``MaskedArray`` class in the 
-    ``numpy.ma`` module for details.
-=======
-    All other parameters are the same as for MaskedArray.
-    Please refer to the documentation for the :class:`MaskedArray` class in the
-    :mod:`numpy.ma` module for details.
->>>>>>> .r1253
+    **optional_parameters:
+        All the parameters recognized by `MaskedArray` are also recognized by
+        TimeSeries.
 
     Notes
     -----
@@ -1321,13 +1311,10 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
     freq : {freq_spec}, optional
         A valid frequency specification.
 
-    Other Parameters
-    ----------------
-    All other parameters that are accepted by the :func:`numpy.ma.array` function
-    in the :mod:`numpy.ma` module are also accepted by this function.
-
     Notes
     -----
+    * All other parameters that are accepted by the :func:`numpy.ma.array`
+      function in the :mod:`numpy.ma` module are also accepted by this function.
     * The date portion of the time series must be specified in one of the
       following ways:
       * specify a TimeSeries object for the `data` parameter.
@@ -1627,9 +1614,9 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
     func : {None,function}, optional
         When converting to a lower frequency, ``func`` is a function that acts on
         one date's worth of data. ``func`` should handle masked values appropriately.
-        If ``func`` is None, then each data point in the resulting series will a
+        If ``func`` is None, then each data point in the resulting series will be a
         group of data points that fall into the date at the lower frequency.
-        For example, if converting from monthly to daily and you wanted each
+        For example, when converting from daily to monthly and you wanted each
         data point in the resulting series to be the average value for each
         month, you could specify numpy.ma.average for the 'func' parameter.
     position : {'END', 'START'}, optional

@@ -200,9 +200,9 @@ class DateArray(ndarray):
     When viewed element-wise, ``DateArray`` is a sequence of dates.
     For example, a test such as :
 
-    >>> DateArray(...) = value
+    >>> DateArray(...) == value
 
-    will be valid only if value is an integer, not a :class:`Date`.
+    will be valid only if value is an integer, not a :class:`Date` object.
     However, a loop such as :
 
     >>> for d in DateArray(...):
@@ -661,7 +661,8 @@ def _listparser(dlist, freq=None):
 
 def date_array(dlist=None, start_date=None, end_date=None, length=None,
                freq=None):
-    """Factory function for constructing a DateArray
+    """
+    Factory function for constructing a DateArray.
 
     Parameters
     ----------
@@ -683,7 +684,7 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
 
     Returns
     -------
-    A :class:`DateArray` object
+    A :class:`DateArray` object.
     """
     freq = check_freq(freq)
     # Case #1: we have a list ...................

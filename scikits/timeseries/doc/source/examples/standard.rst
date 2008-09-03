@@ -73,85 +73,15 @@ can be specified in one of two ways:
 * using a valid string representation of the frequency, 
 * using the integer frequency constants.
 
-The constants can be found in the timeseries.const sub-module.
-The following table lists the frequency constants and their valid string aliases.
-
-.. tabularcolumns:: |l|l|
-
-===============  =====================================================================================================================
- CONSTANT         String aliases (case insensitive)
-===============  =====================================================================================================================
-[1]_
- ``FR_ANN``      ``A``, ``Y``, ``ANNUAL``, ``ANNUALLY``, ``YEAR``, ``YEARLY`` 
- ``FR_ANNDEC``   ``A-DEC``, ``A-December``, ``Y-DEC``, ``ANNUAL-DEC``, etc... (annual frequency with December year end, equivalent to FR_ANN) 
- ``FR_ANNNOV``   ``A-NOV``, ``A-NOVEMBER``, ``Y-NOVEMBER``, ``ANNUAL-NOV``, etc... (annual frequency with November year end) 
- ``FR_ANNOCT``   ``A-OCT``, ``A-OCTOBER``, ``Y-OCTOBER``, ``ANNUAL-OCT``, etc... (annual frequency with October year end) 
- ``FR_ANNSEP``   ``A-SEP``, ``A-SEPTEMBER``, ``Y-SEPTEMBER``, ``ANNUAL-SEP``, etc... (annual frequency with September year end) 
- ``FR_ANNAUG``   ``A-AUG``, ``A-AUGUST``, ``Y-AUGUST``, ``ANNUAL-AUG``, etc... (annual frequency with August year end) 
- ``FR_ANNJUL``   ``A-JUL``, ``A-JULY``, ``Y-JULY``, ``ANNUAL-JUL``, etc... (annual frequency with July year end) 
- ``FR_ANNJUN``   ``A-JUN``, ``A-JUNE``, ``Y-JUNE``, ``ANNUAL-JUN``, etc... (annual frequency with June year end) 
- ``FR_ANNMAY``   ``A-MAY``, ``Y-MAY``, ``YEARLY-MAY``, ``ANNUAL-MAY``, etc... (annual frequency with May year end) 
- ``FR_ANNAPR``   ``A-APR``, ``A-APRIL``, ``Y-APRIL``, ``ANNUAL-APR``, etc... (annual frequency with April year end) 
- ``FR_ANNMAR``   ``A-MAR``, ``A-MARCH``, ``Y-MARCH``, ``ANNUAL-MAR``, etc... (annual frequency with March year end) 
- ``FR_ANNFEB``   ``A-FEB``, ``A-FEBRUARY``, ``Y-FEBRUARY``, ``ANNUAL-FEB``, etc... (annual frequency with February year end) 
- ``FR_ANNJAN``   ``A-JAN``, ``A-JANUARY``, ``Y-JANUARY``, ``ANNUAL-JAN``, etc... (annual frequency with January year end) 
-
- [2]_ 
- ``FR_QTR``      ``Q``, ``QUARTER``, ``QUARTERLY`` 
- ``FR_QTREDEC``  ``Q-DEC``, ``QTR-December``, ``QUARTERLY-DEC``, etc... (quarterly frequency with December year end, equivalent to FR_QTR) 
- ``FR_QTRENOV``  ``Q-NOV``, ``QTR-NOVEMBER``, ``QUARTERLY-NOV``, etc... (quarterly frequency with November year end) 
- ``FR_QTREOCT``  ``Q-OCT``, ``QTR-OCTOBER``, ``QUARTERLY-OCT``, etc... (quarterly frequency with October year end) 
- ``FR_QTRESEP``  ``Q-SEP``, ``QTR-SEPTEMBER``, ``QUARTERLY-SEP``, etc... (quarterly frequency with September year end) 
- ``FR_QTREAUG``  ``Q-AUG``, ``QTR-AUGUST``, ``QUARTERLY-AUG``, etc... (quarterly frequency with August year end) 
- ``FR_QTREJUL``  ``Q-JUL``, ``QTR-JULY``, ``QUARTERLY-JUL``, etc... (quarterly frequency with July year end) 
- ``FR_QTREJUN``  ``Q-JUN``, ``QTR-JUNE``, ``QUARTERLY-JUN``, etc... (quarterly frequency with June year end) 
- ``FR_QTREMAY``  ``Q-MAY``, ``QTR-MAY``, ``QUARTERLY-MAY``, etc... (quarterly frequency with May year end) 
- ``FR_QTREAPR``  ``Q-APR``, ``QTR-APRIL``, ``QUARTERLY-APR``, etc... (quarterly frequency with April year end) 
- ``FR_QTREMAR``  ``Q-MAR``, ``QTR-MARCH``, ``QUARTERLY-MAR``, etc... (quarterly frequency with March year end) 
- ``FR_QTREFEB``  ``Q-FEB``, ``QTR-FEBRUARY``, ``QUARTERLY-FEB``, etc... (quarterly frequency with February year end) 
- ``FR_QTREJAN``  ``Q-JAN``, ``QTR-JANUARY``, ``QUARTERLY-JAN``, etc... (quarterly frequency with January year end) 
-
- [3]_ 
- ``FR_QTRSDEC``  ``Q-S-DEC``, ``QTR-S-December``, etc... (quarterly frequency with December year end) 
- ``FR_QTRSNOV``  ``Q-S-NOV``, ``QTR-S-NOVEMBER``, etc... (quarterly frequency with November year end) 
- ``FR_QTRSOCT``  ``Q-S-OCT``, ``QTR-S-OCTOBER``, etc... (quarterly frequency with October year end) 
- ``FR_QTRSSEP``  ``Q-S-SEP``, ``QTR-S-SEPTEMBER``, etc... (quarterly frequency with September year end) 
- ``FR_QTRSAUG``  ``Q-S-AUG``, ``QTR-S-AUGUST``, etc... (quarterly frequency with August year end) 
- ``FR_QTRSJUL``  ``Q-S-JUL``, ``QTR-S-JULY``, etc... (quarterly frequency with July year end) 
- ``FR_QTRSJUN``  ``Q-S-JUN``, ``QTR-S-JUNE``, etc... (quarterly frequency with June year end) 
- ``FR_QTRSMAY``  ``Q-S-MAY``, ``QTR-S-MAY``, etc... (quarterly frequency with May year end) 
- ``FR_QTRSAPR``  ``Q-S-APR``, ``QTR-S-APRIL``, etc... (quarterly frequency with April year end) 
- ``FR_QTRSMAR``  ``Q-S-MAR``, ``QTR-S-MARCH``, etc... (quarterly frequency with March year end) 
- ``FR_QTRSFEB``  ``Q-S-FEB``, ``QTR-S-FEBRUARY``, etc... (quarterly frequency with February year end) 
- ``FR_QTRSJAN``  ``Q-S-JAN``, ``QTR-S-JANUARY``, etc... (quarterly frequency with January year end) 
-
- ``FR_MTH``      ``M``, ``MONTH``, ``MONTHLY`` 
- ``FR_WK``       ``W``, ``WEEK``, ``WEEKLY`` 
- ``FR_WKSUN``    ``W-SUN``, ``WEEK-SUNDAY``, ``WEEKLY-SUN``, etc... (weekly frequency with Sunday being the last day of the week, equivalent to FR_WK) 
- ``FR_WKSAT``    ``W-SAT``, ``WEEK-SATURDAY``, ``WEEKLY-SUN``, etc... (weekly frequency with Saturday being the last day of the week) 
- ``FR_WKFRI``    ``W-FRI``, ``WEEK-FRIDAY``, ``WEEKLY-FRI``, etc... (weekly frequency with Friday being the last day of the week) 
- ``FR_WKTHU``    ``W-THU``, ``WEEK-THURSDAY``, ``WEEKLY-THU``, etc... (weekly frequency with Thursday being the last day of the week) 
- ``FR_WKWED``    ``W-WED``, ``WEEK-WEDNESDAY``, ``WEEKLY-WED``, etc... (weekly frequency with Wednesday being the last day of the week) 
- ``FR_WKTUE``    ``W-TUE``, ``WEEK-TUESDAY``, ``WEEKLY-TUE``, etc... (weekly frequency with Tuesday being the last day of the week) 
- ``FR_WKMON``    ``W-MON``, ``WEEK-MONDAY``, ``WEEKLY-MON``, etc... (weekly frequency with Monday being the last day of the week) 
- ``FR_BUS``      ``B``, ``BUSINESS``, ``BUSINESSLY`` 
- ``FR_DAY``      ``D``, ``DAY``, ``DAILY`` 
- ``FR_HR``       ``H``, ``HOUR``, ``HOURLY`` 
- ``FR_MIN``      ``T``, ``MINUTE``, ``MINUTELY`` 
- ``FR_SEC``      ``S``, ``SECOND``, ``SECONDLY`` 
- ``FR_UND``      ``U``, ``UNDEF``, ``UNDEFINED`` 
-===============  =====================================================================================================================
-
-_[1] For annual frequencies,
-     ``year`` is determined by where the last month of the year falls.
-_[2] For the following quarterly frequencies, 
-     ``year`` is determined by where the last quarter of the current group of quarters **ENDS**.
-_[3] For these quarterly frequencies,
-     ``year`` is determined by where the first quarter of the current group of quarters **STARTS**.
+The constants can be found in the :mod:`scikits.timeseries.const` submodule.
+The table of the frequency constants and their valid string aliases is available
+in section :ref:`date_frequencies`
 
 
 Convenience functions
 ---------------------
+
+Two convenience functions are provided to access the current date:
 
  * :func:`~tdates.now` 
    Get the current Date at a specified frequency
@@ -253,15 +183,15 @@ ________________________________________________________________________________
 
 A :class:`~tdates.DateArray` object is  are simply a :class:`numpy.ndarray` of 
 :class:`~tdates.Date` objects.
-They accept the same methods as a :class:`Date` object, with the addition of:
+They accept the same methods as a :class:`~tdates.Date` object, with the addition of:
 
-* :meth:`~tdates.DateArray.tovalue`
-  Converts the array to an array of integers.
-  Each integer is the internal representation of the corresponding date.
-* :meth:`~tdates.DateArray.has_missing_dates`
-  Outputs a boolean on whether some dates are missing or not.
-* :meth:`~tdates.DateArray.has_duplicated_dates`
-  Outputs a boolean on whether some dates are duplicated or not.
+:meth:`~tdates.DateArray.tovalue`
+   Converts the array to an array of integers.
+   Each integer is the internal representation of the corresponding date.
+:meth:`~tdates.DateArray.has_missing_dates`
+   Outputs a boolean on whether some dates are missing or not.
+:meth:`~tdates.DateArray.has_duplicated_dates`
+   Outputs a boolean on whether some dates are duplicated or not.
 
 
 Construction
@@ -269,7 +199,7 @@ Construction
 
 To construct a :class:`~tdates.DateArray` object, you can use the factory function 
 :func:`~tdates.date_array` (preferred), or call the class directly. 
-See the ``__doc__`` strings of :func:`~tdates.date_array` and :class:`~tdates.DateArray` 
+See the docstrings of :func:`~tdates.date_array` and :class:`~tdates.DateArray` 
 for a more detailed presentation of the available parameters.
 
 
@@ -296,7 +226,7 @@ Construction
 
 To construct a :class:`~tseries.TimeSeries`, you can use the factory function 
 :func:`~tseries.time_series` (preferred) or call the class directly.
-See the ``__doc__`` strings of this function and this class for more details 
+See the docstrings of this function and this class for more details 
 on the input parameters.
 Even if it is recommended to use the factory function :func:`~tseries.time_series`,
 you can still use the class constructor if you need to bypass some of the overhead 
@@ -579,6 +509,7 @@ To fill in these masked values, see the section `Interpolating Masked Values <in
 
 
 .. _interpolating:
+
 Interpolating Masked Values
 ---------------------------
 
