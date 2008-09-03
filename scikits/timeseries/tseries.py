@@ -1305,7 +1305,7 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
     dates : {None, DateArray}, optional
         A sequence of dates corresponding to each entry.
         If None, the dates will be constructed as a DateArray with the same
-        length as `data`, starting at `start_date` with frequency `freq`.
+        length as ``data``, starting at ``start_date`` with frequency ``freq``.
     start_date : {Date}, optional
         Date corresponding to the first entry of the data (index 0)
     freq : {freq_spec}, optional
@@ -1317,8 +1317,8 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
       function in the :mod:`numpy.ma` module are also accepted by this function.
     * The date portion of the time series must be specified in one of the
       following ways:
-      * specify a TimeSeries object for the `data` parameter.
-      * pass a DateArray for the `dates` parameter.
+      * specify a TimeSeries object for the ``data`` parameter.
+      * pass a DateArray for the ``dates`` parameter.
       * specify a start_date (a continuous DateArray will be automatically
         constructed for the dates portion).
       * specify just a frequency (for TimeSeries of size zero).
@@ -1601,7 +1601,22 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
 
 def convert(series, freq, func=None, position='END', *args, **kwargs):
     """
-    Converts a series from one frequency to another.
+    Converts a series from one frequency to another, by manipulating both the
+    `data` and `dates` attributes.
+    The input series should not have any missing nor duplicated dates.
+
+    When converting from one frequency to a lower one, use the ``func`` parameter
+    to control how data sharing the same new date should be handled. For example,
+    when converting a daily series to a monthly series, use ``numpy.ma.mean`` 
+    to get a series of monthly averages.
+    If ``func`` is not given, the output series group the points of the initial
+    series that share the same new date. For example, if the initial series has
+    a daily frequency and is 1D, the output series is 2D.
+    
+    When converting to a higher frequency, use the ``position`` parameter to
+    determine where the points should fall in the new period.
+    For example, when converting a monthly series to daily, set ``precision``
+    to ``'START'`` to force the points to fall on the first of each month.
 
     Parameters
     ----------
@@ -1612,22 +1627,25 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
         Frequency to convert the TimeSeries to. Accepts any valid frequency
         specification (string or integer)
     func : {None,function}, optional
-        When converting to a lower frequency, ``func`` is a function that acts on
-        one date's worth of data. ``func`` should handle masked values appropriately.
-        If ``func`` is None, then each data point in the resulting series will be a
-        group of data points that fall into the date at the lower frequency.
-        For example, when converting from daily to monthly and you wanted each
-        data point in the resulting series to be the average value for each
-        month, you could specify numpy.ma.average for the 'func' parameter.
+        Function controlling how data sharing the same new dates should be 
+        manipulated.
+        This function should handle masked values appropriately.
+        If ``func`` is None (default), the output series groups the points of the
+        initial series that share the same new date.
+        The parameter is used only when converting to a lower frequency.
     position : {'END', 'START'}, optional
-        When converting to a higher frequency, position is 'START' or 'END'
-        and determines where the data point is in each period. For example, if
-        going from monthly to daily, and position is 'END', then each data
-        point is placed at the end of the month.
+        Determines whether the points should fall at the beginning (``'START'``)
+        or at the end (``'END'``) of the new period.
     *args : {extra arguments for func parameter}, optional
         Additional mandatory parameters of the ``func`` function.
     **kwargs : {extra keyword arguments for func parameter}, optional
         Additional optional keyword parameters of the ``func`` function.
+
+    Returns
+    -------
+    converted_series
+        A new TimeSeries a thte given frequency, without any missing nor duplicated
+        dates
 
     """
     #!!!: Raise some kind of proper exception if the underlying dtype will mess things up

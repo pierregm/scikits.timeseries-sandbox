@@ -389,8 +389,8 @@ however the :meth:`reduce` and :meth:`accumulate` methods of some ufuncs
 
 When working with multiple series, only series of the same frequency, size and 
 starting date can be used in basic operations. 
-The function :func:`~tseries.align_series` (or its alias :func:`~tseries.aligned`) forces 
-series to have matching starting and ending dates.
+The function :func:`~tseries.align_series` (or its alias :func:`~tseries.aligned`) 
+forces series to have matching starting and ending dates.
 By default, the starting date will be set to the smallest starting date of the
 series, and the ending date to the largest.
 
@@ -466,8 +466,9 @@ To get around these issues, use the :meth:`tshift` method instead.
 ``mser.tshift(-12, copy=False)`` returns a series with the ``same start_date`` 
 and ``end_date`` as ``mser``, but values shifted to the right by 12 periods. 
 Note that this will result in 12 masked values at the start of the resulting series. 
-By default :meth:`~tseries.TimeSeries.tshift` copies any data it uses from the original series, 
-but for situations like the example above you may want to avoid that.
+By default :meth:`~tseries.TimeSeries.tshift` copies any data it uses from the 
+original series, but for situations like the example above you may want to avoid
+that.
 
 
 TimeSeries Frequency Conversion
@@ -493,19 +494,21 @@ When converting from a lower frequency to a higher frequency, an extra argument
 ``position`` is used to determine the placement of values in the resulting series.
 The value of the argument is either ``'START'`` or ``'END'`` (``'END'`` by default).
 This will yield a series with a lot of masked values.
-To fill in these masked values, see the section `Interpolating Masked Values <interpolating>`_ below.
+To fill in these masked values, see the section 
+`Interpolating Masked Values <interpolating>`_ below.
 
 .. warning::
    Be careful not to confuse the two methods :meth:`asfreq` and :meth:`convert`.
 
    * :meth:`~tseries.TimeSeries.asfreq` simply takes every date 
-     in the :attr:~tseries.TimeSeries.`dates` attribute of the 
-     :class:`~tseries.TimeSeries` instance and changes it to the specified frequency, so the 
-     resulting series will have the same shape as the original series.
-   * :meth:`TimeSeries.convert` is a more complicated function that takes a series with no 
-     missing or duplicated dates and creates a series at the new frequency with 
-     no missing or duplicated dates and intelligently places the data from the 
-     original series into appropriate points in the new series.
+     in the :attr:`~tseries.TimeSeries.dates` attribute of the 
+     :class:`~tseries.TimeSeries` instance and changes it to the specified frequency,
+     so the resulting series will have the same shape as the original series.
+   * :meth:`~tseries.TimeSeries.convert` is a more complicated function
+     that takes a series with no missing nor duplicated dates and creates a series
+     at the new frequency with no missing nor duplicated dates and intelligently
+     places the data from the original series into appropriate points in the new
+     series.
 
 
 .. _interpolating:
@@ -513,12 +516,12 @@ To fill in these masked values, see the section `Interpolating Masked Values <in
 Interpolating Masked Values
 ---------------------------
 
-The :mod:`~scikits.timeseries.lib.interpolate` sub-module contains several functions for
-filling in masked values in an array.
+The :mod:`~scikits.timeseries.lib.interpolate` sub-module contains several functions
+for filling in masked values in an array.
 Currently this includes:
 
 * :func:`~lib.interpolate.interp_masked1d`
-* :func:`~lib.interpolate.foward_fill`
+* :func:`~lib.interpolate.forward_fill`
 * :func:`~lib.interpolate.backward_fill`
 
 Let us take a monthly :class:`~tseries.TimeSeries` , convert it to business frequency,
@@ -532,7 +535,7 @@ and then interpolate the resulting masked values.
    >>> bser_linear = itp.interp_masked1d(bser, kind='linear')
 
 The optional ``maxgap`` parameter for :func:`~lib.interpolate.forward_fill` and 
-:func:`backward_fill` will ensure that if there are more than ``maxgap``
-consecutive masked values, they will not be filled. 
+:func:`~lib.interpolate.backward_fill` will ensure that if there are more than 
+``maxgap`` consecutive masked values, they will not be filled. 
 Using ``maxgap=30`` like in our above example will ensure that missing months 
 from our original monthly series are not filled in.

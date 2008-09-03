@@ -7,3 +7,4 @@ Implementation
    tdates
    tdatearrays
    tseries
+   interpolation_filtering

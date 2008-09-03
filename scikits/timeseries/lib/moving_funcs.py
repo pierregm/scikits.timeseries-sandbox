@@ -422,11 +422,12 @@ mov_result_doc = """
 
     Returns
     -------
-    The result is always a masked array (preserves subclass attributes).
-    The result at index i uses values from [i-span:i+1], and will be masked for
-    the first ``span`` values.
-    The result will also be masked at i if any of the input values in the slice 
-    [i-span:i+1] are masked.
+    filtered_series
+        The result is always a masked array (preserves subclass attributes).
+        The result at index i uses values from ``[i-span:i+1]``, and will be masked
+        for the first ``span`` values.
+        The result will also be masked at i if any of the input values in the slice 
+        ``[i-span:i+1]`` are masked.
 """
 
 _g = globals()

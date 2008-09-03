@@ -1,9 +1,8 @@
 """
-A collection of intperolation tools for timeseries
+A collection of interpolation tools for timeseries.
 
 :author: Pierre GF Gerard-Marchant & Matt Knox
 :contact: pierregm_at_uga_dot_edu - mattknox_ca_at_hotmail_dot_com
-:version: $Id$
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author$)"
 __revision__ = "$Revision$"
@@ -34,6 +33,16 @@ def forward_fill(marr, maxgap=None):
     maxgap : {None, int}, optional
         Maximum gap between consecutive masked values.
         If ``maxgap`` is None, all masked values are forward-filled.
+
+
+    Examples
+    --------
+    >>> x = ma.arange(20)
+    >>> x[(x%5)!=0] = ma.masked
+    >>> print x
+    [0 -- -- -- -- 5 -- -- -- -- 10 -- -- -- -- 15 -- -- -- --]
+    >>> print forward_fill(x)
+    [0 0 0 0 0 5 5 5 5 5 10 10 10 10 10 15 15 15 15 15]
 
     """
     # Initialization ..................
@@ -75,6 +84,17 @@ def backward_fill(marr, maxgap=None):
     maxgap : {None, int}, optional
         Maximum gap between consecutive masked values.
         If ``maxgap`` is None, all masked values are backward-filled.
+
+    Examples
+    --------
+    >>> x = ma.arange(20)
+    >>> x[(x%5)!=0] = ma.masked
+    >>> print x
+    [0 -- -- -- -- 5 -- -- -- -- 10 -- -- -- -- 15 -- -- -- --]
+    >>> print backward_fill(x)
+    [0 5 5 5 5 5 10 10 10 10 10 15 15 15 15 15 0 0 0 0]
+
+
     """
     return forward_fill(marr[::-1], maxgap=maxgap)[::-1]
 
