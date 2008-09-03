@@ -10,7 +10,7 @@ __date__     = '$Date$'
 
 import numpy as np
 import numpy.ma as ma
-from numpy.ma import masked, nomask, getmask
+from numpy.ma import masked, nomask, getmask, getdata
 from numpy.ma.extras import flatnotmasked_edges
 
 marray = ma.array
@@ -21,14 +21,14 @@ __all__ = ['forward_fill', 'backward_fill', 'interp_masked1d',
 #####---------------------------------------------------------------------------
 #---- --- Functions for filling in masked values in a masked array ---
 #####---------------------------------------------------------------------------
-def forward_fill(marr, maxgap=None):
+def forward_fill(a, maxgap=None):
     """
     Forward fills masked values in a 1-d array when there are less ``maxgap``
     consecutive masked values.
 
     Parameters
     ----------
-    marr : MaskedArray
+    a : MaskedArray
         Series to fill
     maxgap : {None, int}, optional
         Maximum gap between consecutive masked values.
@@ -45,30 +45,36 @@ def forward_fill(marr, maxgap=None):
     [0 0 0 0 0 5 5 5 5 5 10 10 10 10 10 15 15 15 15 15]
 
     """
+    # !!!: We should probably port that to C.
     # Initialization ..................
-    if np.ndim(marr) > 1:
+    if np.ndim(a) > 1:
         raise ValueError,"The input array should be 1D only!"
-    marr = marray(marr, copy=True)
-    if getmask(marr) is nomask or marr.size == 0:
-        return marr
+    a = ma.array(a, copy=True)
+    amask = getmask(a)
+    if amask is nomask or a.size == 0:
+        return a
     #
+    adata = getdata(a)
+    idxtofill = amask.nonzero()[0]
     currGap = 0
     if maxgap is not None:
-        previdx = -999
-        for i in np.where(marr._mask)[0]:
-            if i != previdx + 1: currGap = 0
+        previdx = -1
+        for i in idxtofill:
+            if i != previdx + 1:
+                currGap = 0
             currGap += 1
-            if currGap <= maxgap and not marr._mask[i-1]:
-                marr._data[i] = marr._data[i-1]
-                marr._mask[i] = False
-            elif currGap == maxgap + 1:
-                marr._mask[i-maxgap:i] = True
+            if currGap <= maxgap and not amask[i-1]:
+                adata[i] = adata[i-1]
+                amask[i] = False
+                previdx = i
+            else:
+                amask[i-maxgap:i] = True
     else:
-        for i in np.where(marr._mask)[0]:
-            if not marr._mask[i-1]:
-                marr._data[i] = marr._data[i-1]
-                marr._mask[i] = False
-    return marr
+        for i in idxtofill:
+            if not amask[i-1]:
+                adata[i] = adata[i-1]
+                amask[i] = False
+    return a
 
 
 def backward_fill(marr, maxgap=None):
