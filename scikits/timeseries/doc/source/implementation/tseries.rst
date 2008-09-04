@@ -26,17 +26,27 @@ of regular ndarrays.
 Attributes
 ----------
 
-   .. attribute:: series
-
-      Returns a view of a :class:`TimeSeries` as a :class:`~numpy.ma.MaskedArrays`.
-
    .. attribute:: data
 
       Returns a view of a :class:`TimeSeries` as a :class:`~numpy.ndarray`.
+      This attribute is read-only and cannot be directly set.
+
+   .. attribute:: mask
+
+      Returns the mask of the object, as a boolean ndarray with the same shape
+      as :attr:`data`, or as the special value ``nomask`` (equivalent to ``False``).
+      This attribute is writable and can be modified.
+
+   .. attribute:: series
+
+      Returns a view of a :class:`TimeSeries` as a :class:`~numpy.ma.MaskedArray`.
+      This attribute is read-only and cannot be directly set
 
    .. attribute:: dates
 
       Returns the :class:`DateArray` object of the dates of the series.
+      This attribute is writable and can be modified.
+
 
 In addition, all the attributes of the :class:`DateArray` :attr:`dates` attributes
 are directly accessible by :class:`TimeSeries`.

@@ -1307,9 +1307,12 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
         If None, the dates will be constructed as a DateArray with the same
         length as ``data``, starting at ``start_date`` with frequency ``freq``.
     start_date : {Date}, optional
-        Date corresponding to the first entry of the data (index 0)
+        Date corresponding to the first entry of the data (index 0).
+        This parameter must be a valid Date object, and is mandatory if ``dates``
+        is None and if ``data`` has a length greater or equal to 1.
     freq : {freq_spec}, optional
-        A valid frequency specification.
+        A valid frequency specification, as a string or an integer.
+        This parameter is mandatory if ``dates`` is None.
 
     Notes
     -----
