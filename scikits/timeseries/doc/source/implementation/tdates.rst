@@ -49,6 +49,7 @@ Base attributes
 .. attribute:: value
 
    Returns the integer coding the :class:`Date` object.
+   This attribute is read-only.
    
    >>> Date('D','2001-01-01').value
    730486
@@ -57,12 +58,13 @@ Base attributes
 .. attribute:: datetime
 
    Returns the object as a :class:`datetime.datetime` object.
+   This attribute is read-only.
 
 
 Date information
 ~~~~~~~~~~~~~~~~
 
-The following attributes are integers:
+The following attributes are read-only, with an integer type.
 
 .. tabularcolumns:: |l|l|c|
 
@@ -108,6 +110,7 @@ Frequency information
 .. attribute:: Date.freq
 
    Frequency of the :class:`Date` object, as an integer.
+   This attribute is read-only.
 
    >>> now('D').freq
    6000
@@ -116,6 +119,7 @@ Frequency information
 .. attribute:: Date.freqstr
 
    Frequency of the :class:`Date` object, as a string.
+   This attribute is read-only.
 
    >>> now('D').freqstr
    'D'

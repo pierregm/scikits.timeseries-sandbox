@@ -22,15 +22,19 @@ Frequency information
 .. attribute:: DateArray.freq
 
    Returns the frequency of the series, as an integer.
+   This attribute is read-only.
 
 .. attribute:: DateArray.freqstr
 
    Returns the frequency of the series, as a string.
+   This attribute is read-only.
 
 
 Date information
 ~~~~~~~~~~~~~~~~
 
+The following attributes give some information about the dates.
+They are read-only.
 
 +--------------------------------------+---------------------------------------+-------+
 | Name                                 | Description                           | Range |
