@@ -1033,7 +1033,22 @@ class TestMisc(TestCase):
         series = time_series(np.arange(60).reshape(5,4,3),
                              start_date=ts.now('M'))
         assert_equal(series._varshape, (4,3))
+    #
+    def test_deepcopy(self):
+        "Test deepcopy"
+        t = time_series([0,1,2], mask=[0,1,0], start_date=ts.now('D'))
+        t_ = deepcopy(t)
+        for attr in ('_data','_mask','_dates'):
+            attrt = getattr(t, attr)
+            attrt_ = getattr(t_, attr)
+            assert_equal(attrt, attrt_)
+            assert_not_equal(id(attrt), id(attrt_))
+        t_.mask[1] = False
+        assert_equal(t_.mask, [False,False,False])
+        assert_equal(t.mask, [False,True,False])
 
+
+#------------------------------------------------------------------------------
 
 class TestGenericMethods(TestCase):
     #

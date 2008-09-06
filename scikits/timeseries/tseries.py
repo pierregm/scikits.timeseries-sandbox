@@ -435,7 +435,7 @@ class TimeSeries(MaskedArray, object):
 
         maparms = dict(copy=copy, dtype=dtype, fill_value=fill_value,
                        subok=subok, keep_mask=keep_mask, hard_mask=hard_mask)
-        _data = MaskedArray(data, mask=mask, **maparms)
+        _data = MaskedArray.__new__(cls, data, mask=mask, **maparms)
 
         # Get the data .......................................................
         if not subok or not isinstance(_data,TimeSeries):
