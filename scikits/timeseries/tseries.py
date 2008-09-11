@@ -467,6 +467,17 @@ class TimeSeries(MaskedArray, object):
             self._dates = newdates
         MaskedArray._update_from(self, obj)
 
+    def view(self, dtype=None, type=None):
+        output = MaskedArray.view(self, dtype=dtype, type=type)
+        if isinstance(output, TimeSeries):
+            if output.dtype.fields:
+                output._varshape = ()
+            else:
+                fields = self.dtype.fields
+                if fields:
+                    output._varshape = (len(fields),)
+        return output
+
     def _get_series(self):
         "Returns the series as a regular masked array."
         if self._mask.ndim == 0 and self._mask:

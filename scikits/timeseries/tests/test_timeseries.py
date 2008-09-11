@@ -16,7 +16,7 @@ from numpy.testing import *
 
 import numpy.ma as ma
 from numpy.ma import masked, nomask
-from numpy.ma.testutils import assert_equal, assert_array_equal
+from numpy.ma.testutils import assert_equal, assert_array_equal, assert_not_equal
 
 import scikits.timeseries as ts
 
@@ -1036,6 +1036,7 @@ class TestMisc(TestCase):
     #
     def test_deepcopy(self):
         "Test deepcopy"
+        from copy import deepcopy
         t = time_series([0,1,2], mask=[0,1,0], start_date=ts.now('D'))
         t_ = deepcopy(t)
         for attr in ('_data','_mask','_dates'):
@@ -1046,6 +1047,23 @@ class TestMisc(TestCase):
         t_.mask[1] = False
         assert_equal(t_.mask, [False,False,False])
         assert_equal(t.mask, [False,True,False])
+    #
+    def test_view(self):
+        "Test view w/ flexible dtype"
+        ndtype = [('a',float),('b',float),('c',float)]
+        data = np.random.rand(15).reshape(-1,3)
+        fseries = time_series([tuple(_) for _ in data],
+                              start_date=ts.now('D'), dtype=ndtype)
+        dseries = time_series(data, start_date=ts.now('D'))
+        #
+        test = fseries.view((float,3))
+        assert_equal(test._series, dseries)
+        assert(test._varshape == (3,))
+        #
+        assert(dseries._varshape == (3,))
+        test = dseries.view(ndtype).squeeze()
+        assert_equal(test, fseries)
+        assert(test._varshape == ())
 
 
 #------------------------------------------------------------------------------
