@@ -1,56 +1,10 @@
 """
-Reporting functions
+This module provides the `Report` class for generating simple tabular time
+series reports.
 
 :author: Pierre GF Gerard-Marchant & Matt Knox
 :contact: pierregm_at_uga_dot_edu - mattknox_ca_at_hotmail_dot_com
 :version: $Id$
-
-Ideas borrowed from:
-
-- George Sakkis
-    http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/267662
-
-- Mike Brown
-    http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/148061
-
-:Examples:
-
-    import numpy as np
-    from scikits import timeseries as ts
-    from scikits.timeseries.lib.reportlib import Report, wrap_onspace
-    from numpy import ma
-
-    series1 = ts.time_series(np.random.uniform(-100,100,15), start_date=ts.thisday('b')-15)
-    series2 = ts.time_series(np.random.uniform(-100,100,13), start_date=ts.thisday('b')-10)
-    series3 = ts.time_series(['string1', 'another string', 'yet another string']*3, start_date=ts.thisday('b')-10)
-
-    darray = ts.date_array(start_date=ts.thisday('b')-8, end_date=ts.thisday('b')-3)
-
-    txt_o = open('myfile.txt', 'w')
-    html_o = open('myfile.html', 'w')
-
-    # report containing only numerical series, showing 2 decimal places
-    num_report = Report(series1, series2, fmt_func=lambda x:'%.2f' % x)
-
-    # report containing some string and numerical data
-    mixed_report = Report(series1, series2, series3)
-
-    # output a csv report suitable for excel to sys.stdout, show masked values as "N/A"
-    num_report(delim=', ', mask_rep='N/A')
-
-    # format one column one with 2 decimal places, and column two with 4.
-    # Add a sum footer. Write the output to txt_o
-    num_report(fmt_func=[(lambda x:'%.2f' % x), (lambda x:'%.4f' % x)],
-                 footer_func=ma.sum, footer_label='sum', output=txt_o)
-
-    # create an html table of the data over a specified range.
-    # Wrap text in cells to width 10. Output to html_o
-    html_o.write("<table>")
-    mixed_report(series1, series2, series3, dates=darray,
-               delim="</td><td>", prefix="<tr><td>", postfix="</td></tr>",
-               wrap_func=wrap_onspace(10, nls='<BR>'), output=html_o)
-    html_o.write("</table>")
-
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author$)"
 __revision__ = "$Revision$"
@@ -468,6 +422,15 @@ class Report(object):
             elif footer_separator and rowNum == data_end + 1:
                 output.write(footer_separator + nls)
 
+"""
+The following classes were inspired by:
+
+- George Sakkis
+    http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/267662
+
+- Mike Brown
+    http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/148061
+"""
 
 class wrap_onspace(object):
     """
