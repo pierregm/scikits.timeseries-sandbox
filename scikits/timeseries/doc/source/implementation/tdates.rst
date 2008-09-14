@@ -1,15 +1,6 @@
-.. currentmodule:: scikits.timeseries.tdates
+.. currentmodule:: scikits.timeseries
 
-======================
-:class:`Dates` objects
-======================
-
-.. automodule:: scikits.timeseries.tdates
-
-
-
-.. _date_class:
-
+=====================
 :class:`Date` objects
 =====================
 
@@ -35,10 +26,10 @@
      >>> Date('D', datetime=datetime.datetime.now())
 
    * Use the ``value`` keyword and provide an integer representation of the date.
-   
+
      >>> ts.Date('D', value=732677)
      <D : 01-Jan-2007>
-   
+
 
 Attributes
 ----------
@@ -50,7 +41,7 @@ Base attributes
 
    Returns the integer coding the :class:`Date` object.
    This attribute is read-only.
-   
+
    >>> Date('D','2001-01-01').value
    730486
 
@@ -97,7 +88,7 @@ The following attributes are read-only, with an integer type.
 
 Notes
 
-(1)  For :class:`Date` objects with a quarterly frequency dates, 
+(1)  For :class:`Date` objects with a quarterly frequency dates,
      :attr:`qyear` returns the year corresponding to the ending (starting) month
      of the year. When using ``QTR`` or ``QTR-E`` based quarterly frequencies,
      this is the fiscal year in a financial context.
@@ -140,7 +131,7 @@ Methods
    format.
    The formats recognized by the :func:`time.strftime` function of the standard
    Python distribution are recognized. Some additional directives are also recognized:
-   
+
    * ``'%q'`` : Quarter of the date
 
      >>> Date('D', '2001-01-01').strftime('%q')
@@ -152,10 +143,10 @@ Methods
 .. automethod:: Date.asfreq
 
 
-.. _date_function : 
+.. _date_function :
 
 Functions
-=========
+---------
 
 Two convenience functions return :class:`Date` objects:
 
@@ -166,8 +157,8 @@ Two convenience functions return :class:`Date` objects:
 
 .. _date_frequencies:
 
-Available Frequencies 
-======================
+Available Frequencies
+---------------------
 
 .. tabularcolumns:: |l|l|
 

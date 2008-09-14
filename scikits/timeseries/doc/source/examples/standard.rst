@@ -1,11 +1,11 @@
 .. currentmodule:: scikits.timeseries
 
-:class:`~tdates.Date` objects
+:class:`~Date` objects
 =============================
 
-Even if you have no use for time series in general, you may still find the 
-:class:`~tdates.Date` class contained in the module quite useful. 
-A :class:`~tdates.Date` object combines some date and/or time related information 
+Even if you have no use for time series in general, you may still find the
+:class:`~Date` class contained in the module quite useful.
+A :class:`~Date` object combines some date and/or time related information
 with a given frequency.
 You can picture the frequency as the unit into which the date is expressed.
 For example, we can create dates in the following manner:
@@ -26,17 +26,17 @@ frequency.
 The importance of the frequency will become clearer later on.
 
 .. note::
-   A more technical note: :class:`~tdates.Date` objects are internally stored as integers.
-   The conversion to integers and back is controlled by the frequency. 
-   In the example above, the internal representation of the three objects ``D``, 
+   A more technical note: :class:`~Date` objects are internally stored as integers.
+   The conversion to integers and back is controlled by the frequency.
+   In the example above, the internal representation of the three objects ``D``,
    ``M`` and ``Y`` are ``732677``, ``24073`` and ``2007``, respectively.
 
 
 
-Construction of a :class:`~tdates.Date` object
+Construction of a :class:`~Date` object
 ----------------------------------------------
 
-Several options are available to construct a :class:`~tdates.Date` object explicitly.
+Several options are available to construct a :class:`~Date` object explicitly.
 In each case, the ``frequency`` argument must be given.
 Valid frequency specifications are given in the Frequencies_ section below.
 
@@ -49,7 +49,7 @@ Valid frequency specifications are given in the Frequencies_ section below.
    <D : 01-Jan-2001>
 
 * Use the ``string`` keyword.
-  
+
    >>> ts.Date('D', string='2007-01-01')
    <D : 01-Jan-2007>
 
@@ -58,7 +58,7 @@ Valid frequency specifications are given in the Frequencies_ section below.
    >>> ts.Date('D', datetime=datetime.datetime.now())
 
 * Use the ``value`` keyword and provide an integer representation of the date.
-   
+
    >>> ts.Date('D', value=732677)
    <D : 01-Jan-2007>
 
@@ -70,7 +70,7 @@ Frequencies
 For any functions or class constructors taking a frequency argument, the frequency
 can be specified in one of two ways:
 
-* using a valid string representation of the frequency, 
+* using a valid string representation of the frequency,
 * using the integer frequency constants.
 
 The constants can be found in the :mod:`scikits.timeseries.const` submodule.
@@ -83,9 +83,9 @@ Convenience functions
 
 Two convenience functions are provided to access the current date:
 
- * :func:`~tdates.now` 
+ * :func:`~now`
    Get the current Date at a specified frequency
- * :func:`~tdates.prevbusday`
+ * :func:`~prevbusday`
    Get the previous business day, determined by a specified cut off time.
    See the function's docstring for more details.
 
@@ -93,13 +93,13 @@ Two convenience functions are provided to access the current date:
 Manipulating dates
 ------------------
 
-You can convert a :class:`~tdates.Date` object from one frequency to another with the 
-:meth:`~tdates.Date.asfreq` method.
+You can convert a :class:`~Date` object from one frequency to another with the
+:meth:`~Date.asfreq` method.
 When converting to a higher frequency (for example, from monthly to daily),
 you may optionally specify the "relation" parameter with the value ``"START"`` or
 ``"END"`` (default is ``"END"``).
-Note that if you convert a daily :class:`~tdates.Date` to a monthly frequency and back 
-to a daily one, you will lose your day information in the process 
+Note that if you convert a daily :class:`~Date` to a monthly frequency and back
+to a daily one, you will lose your day information in the process
 (similarly for converting any higher frequency to a lower one):
 
    >>> D = ts.Date('D', year=2007, month=12, day=31)
@@ -111,8 +111,8 @@ to a daily one, you will lose your day information in the process
    <D: 31-Dec-2006>
 
 
-You can add and subtract integers from a :class:`~tdates.Date` object to get a new 
-:class:`~tdates.Date`` object.
+You can add and subtract integers from a :class:`~Date` object to get a new
+:class:`~Date`` object.
 The frequency of the new object is the same as the original one.
 For example:
 
@@ -120,7 +120,7 @@ For example:
    >>> infivemonths = ts.now('M') + 5
 
 
-You can also subtract a :class:`~tdates.Date` from another :class:`~tdates.Date` of the same 
+You can also subtract a :class:`~Date` from another :class:`~Date` of the same
 frequency to determine the number of periods between the two dates.
 
    >>> Y = ts.Date('A', year=2007)
@@ -131,29 +131,29 @@ frequency to determine the number of periods between the two dates.
 
 Some other methods worth mentioning are:
 
-* :meth:`~tdates.Date.toordinal`
+* :meth:`~Date.toordinal`
   Converts an object to the equivalent proleptic gregorian date.
-* :meth:`~tdates.Date.tostring`
+* :meth:`~Date.tostring`
   Converts an object to the corresponding string.
 
 
 Formatting Dates as String
 --------------------------
 
-To output a date as a string, you can simply cast it to a string (call 
+To output a date as a string, you can simply cast it to a string (call
 :func:`str` on it) and a default output format for that frequency will be used,
-or you can use the :meth:`~tdates.Date.strfmt` method for explicit control. 
-The :meth:`~tdates.Date.strfmt` method of the Date class takes one argument: a format string.
-This behaves in essentially the same manner as the ``strftime`` function in the 
-standard python time module and accepts the same directives, plus several 
+or you can use the :meth:`~Date.strfmt` method for explicit control.
+The :meth:`~Date.strfmt` method of the Date class takes one argument: a format string.
+This behaves in essentially the same manner as the ``strftime`` function in the
+standard python time module and accepts the same directives, plus several
 additional directives outlined below.
 
 * '%q'
   The ''quarter'' of the date.
 * '%f'
-  Year without century as a decimal number [00,99]. 
+  Year without century as a decimal number [00,99].
   The ''year'' in this case is the year of the date determined by the year for the current quarter.
-  This is the same as '%y' unless the Date is one of the quarterly frequencies. 
+  This is the same as '%y' unless the Date is one of the quarterly frequencies.
   In financial terms, this is the 'fiscal year'.
 * '%F'
   Year with century as a decimal number.
@@ -178,68 +178,68 @@ Examples
 ________________________________________________________________________________
 
 
-:class:`~tdates.DateArray` objects
+:class:`~DateArray` objects
 ==================================
 
-A :class:`~tdates.DateArray` object is  are simply a :class:`numpy.ndarray` of 
-:class:`~tdates.Date` objects.
-They accept the same methods as a :class:`~tdates.Date` object, with the addition of:
+A :class:`~DateArray` object is  are simply a :class:`numpy.ndarray` of
+:class:`~Date` objects.
+They accept the same methods as a :class:`~Date` object, with the addition of:
 
-:meth:`~tdates.DateArray.tovalue`
+:meth:`~DateArray.tovalue`
    Converts the array to an array of integers.
    Each integer is the internal representation of the corresponding date.
-:meth:`~tdates.DateArray.has_missing_dates`
+:meth:`~DateArray.has_missing_dates`
    Outputs a boolean on whether some dates are missing or not.
-:meth:`~tdates.DateArray.has_duplicated_dates`
+:meth:`~DateArray.has_duplicated_dates`
    Outputs a boolean on whether some dates are duplicated or not.
 
 
 Construction
 ------------
 
-To construct a :class:`~tdates.DateArray` object, you can use the factory function 
-:func:`~tdates.date_array` (preferred), or call the class directly. 
-See the docstrings of :func:`~tdates.date_array` and :class:`~tdates.DateArray` 
+To construct a :class:`~DateArray` object, you can use the factory function
+:func:`~date_array` (preferred), or call the class directly.
+See the docstrings of :func:`~date_array` and :class:`~DateArray`
 for a more detailed presentation of the available parameters.
 
 
 _______________________________________________________________________________
 
 
-:class:`~tseries.TimeSeries` objects
+:class:`~TimeSeries` objects
 ====================================
 
-A :class:`~tseries.TimeSeries` object is the combination of three ndarrays:
+A :class:`~TimeSeries` object is the combination of three ndarrays:
 
-* :attr:`dates`: A :class:`~tdates.DateArray` object.
+* :attr:`dates`: A :class:`~DateArray` object.
 * :attr:`data` : A :class:`numpy.ndarray`.
 * :attr:`mask` : A boolean :class:`numpy.ndarray`, indicating missing or invalid data.
 
-These three arrays can be accessed as attributes of a :class:`~tseries.TimeSeries` object.
-Another very useful attribute is :attr:`~tseries.series`, that gives you the possibility
-to directly access :attr:`~tseries.TimeSeries.data` and 
-:attr:`~tseries.TimeSeries.mask` as a masked array.
+These three arrays can be accessed as attributes of a :class:`~TimeSeries` object.
+Another very useful attribute is :attr:`~TimeSeries.series`, that gives you the possibility
+to directly access :attr:`~TimeSeries.data` and
+:attr:`~TimeSeries.mask` as a masked array.
 
 
 Construction
 ------------
 
-To construct a :class:`~tseries.TimeSeries`, you can use the factory function 
-:func:`~tseries.time_series` (preferred) or call the class directly.
-See the docstrings of this function and this class for more details 
+To construct a :class:`~TimeSeries`, you can use the factory function
+:func:`~time_series` (preferred) or call the class directly.
+See the docstrings of this function and this class for more details
 on the input parameters.
-Even if it is recommended to use the factory function :func:`~tseries.time_series`,
-you can still use the class constructor if you need to bypass some of the overhead 
+Even if it is recommended to use the factory function :func:`~time_series`,
+you can still use the class constructor if you need to bypass some of the overhead
 associated with the additional flexibility of the factory function.
 
-As an example, let us construct a series of 600 random elements, starting 600 
+As an example, let us construct a series of 600 random elements, starting 600
 business days ago, at  a business daily frequency:
 
    >>> data = np.random.uniform(-100,100,600)
    >>> today = ts.now('B')
    >>> series = ts.time_series(data, dtype=np.float_, freq='B', start_date=today-600)
 
-We can check that ``series.dates`` is a :class:`~tdates.DateArray` object and that 
+We can check that ``series.dates`` is a :class:`~DateArray` object and that
 ``series.series`` is a :class:`numpy.ma.MaskedArray` object.
 
    >>> isinstance(series.dates, ts.DateArray)
@@ -258,31 +258,31 @@ Dates and Data compatibility
 
 The example we just introduced corresponds to the simplest case of only one
 variable indexed in time.
-In that case, the :class:`~tdates.DateArray` object should have the same size as the 
-:attr:`~tseries.TimeSeries.data` part.
-In our example, the length of the :class:`~tdates.DateArray` was automatically adjusted 
+In that case, the :class:`~DateArray` object should have the same size as the
+:attr:`~TimeSeries.data` part.
+In our example, the length of the :class:`~DateArray` was automatically adjusted
 to match the data length, and we have ``DateArray.size == series.size``.
 
 However, it is often convenient to use series with multiple variables.
 A simple representation of this kind of data is a matrix, with as many rows as
 actual observations and as many columns as variables.
-In that case, the :class:`~tdates.DateArray` object should have the same length as the
+In that case, the :class:`~DateArray` object should have the same length as the
 number of rows.
 More generally, ``DateArray.size`` should be equal to ``series.shape[0]``.
 
-When a :class:`~tseries.TimeSeries` is created from a multi-dimensional ``data`` and a
-single starting date, it is assumed that the data consists of several variables: 
-the length of the :class:`~tdates.DateArray` is then adjusted to match ``len(data)``.
-However, you can force the length of the :class:`~tdates.DateArray`
+When a :class:`~TimeSeries` is created from a multi-dimensional ``data`` and a
+single starting date, it is assumed that the data consists of several variables:
+the length of the :class:`~DateArray` is then adjusted to match ``len(data)``.
+However, you can force the length of the :class:`~DateArray`
 with the ``length`` optional parameter.
 
-For example, let us consider the case of an array of (50 x 12) points, 
+For example, let us consider the case of an array of (50 x 12) points,
 corresponding to 50 years of monthly data.
 
    >>> data = np.random.uniform(-1,1,50*12).reshape(50,12)
 
 We may want to consider each month independently from the others:
-in that case, we want an annual series of 50 observations, each observation 
+in that case, we want an annual series of 50 observations, each observation
 consisting of 12 variables.
 We define the time series as:
 
@@ -291,7 +291,7 @@ We define the time series as:
    50
 
 But we can also consider the series as monthly data.
-We could even ravel the initial data, or force the length of the :class:`~tdates.DateArray`:
+We could even ravel the initial data, or force the length of the :class:`~DateArray`:
 
    >>> newseries = ts.time_series(data, start_date=ts.now('M')-600, length=600)
    >>> newseries._dates.size
@@ -308,7 +308,7 @@ The following code defines a daily series of 5 maps:
 Indexing
 --------
 
-Elements of a :class:`~tseries.TimeSeries` can be accessed just like with regular ndarrays.
+Elements of a :class:`~TimeSeries` can be accessed just like with regular ndarrays.
 Thus,
 
    >>> series[0]
@@ -336,7 +336,7 @@ or a sequence/ndarray of integers...
    This latter is quite useful: it gives you the first and last data of your series.
 
 
-In a similar way, setting elements of a :class:`~tseries.TimeSeries` works seamlessly.
+In a similar way, setting elements of a :class:`~TimeSeries` works seamlessly.
 Let us set negative values to zero...
 
    >>> series[series<0] = 0
@@ -348,13 +348,13 @@ Let us set negative values to zero...
 
 We can also index on multiple criteria.
 We will create a temporary array of 'weekdays' to avoid recomputing the weekdays
-multiple times. 
+multiple times.
 Here we will set all Wednesday and Fridays to 100.
 
    >>> weekdays = series.weekday
    >>> series[(weekdays == 2)  (weekdays == 4)] = 100
 
-You should keep in mind that :class:`~tseries.TimeSeries` are basically :class:`numpy.ma.MaskedArrays`.
+You should keep in mind that :class:`~TimeSeries` are basically :class:`numpy.ma.MaskedArrays`.
 If some data of an array are masked, you will not be able to use this array as index,
 you will have to fill it first.
 
@@ -363,22 +363,22 @@ Missing Observations (aka masked values)
 ----------------------------------------
 
 Missing observations are handled in exactly the same way as with masked arrays.
-If you are familiar with masked arrays, then there is nothing new to learn. 
+If you are familiar with masked arrays, then there is nothing new to learn.
 Please see the main numpy documentation for additional info on masked arrays.
 
 
 Operations on TimeSeries
 ------------------------
 
-If you work with only one :class:`~tseries.TimeSeries`, you can use the :mod:`numpy.ma` 
+If you work with only one :class:`~TimeSeries`, you can use the :mod:`numpy.ma`
 commands to process the data. For example:
 
    >>> series_log = ma.log(series)
 
 Note that invalid values (negative, in that case), are automatically masked.
 Note also that you could use the standard numpy version of the function instead,
-however the :meth:`reduce` and :meth:`accumulate` methods of some ufuncs 
-(such as :func:`add` or :func:`multiply`) will only function properly with the 
+however the :meth:`reduce` and :meth:`accumulate` methods of some ufuncs
+(such as :func:`add` or :func:`multiply`) will only function properly with the
 :mod:`numpy.ma` versions.
 
 .. note::
@@ -387,9 +387,9 @@ however the :meth:`reduce` and :meth:`accumulate` methods of some ufuncs
    properly ignore masked values for such operations.
 
 
-When working with multiple series, only series of the same frequency, size and 
-starting date can be used in basic operations. 
-The function :func:`~tseries.align_series` (or its alias :func:`~tseries.aligned`) 
+When working with multiple series, only series of the same frequency, size and
+starting date can be used in basic operations.
+The function :func:`~align_series` (or its alias :func:`~aligned`)
 forces series to have matching starting and ending dates.
 By default, the starting date will be set to the smallest starting date of the
 series, and the ending date to the largest.
@@ -427,17 +427,17 @@ Thus, we need to align them first.
 
 Now we can add the two series.
 Only the data that fall on dates common to the original, non-aligned series will
-be actually added, the others will be masked. 
+be actually added, the others will be masked.
 After all, we are adding masked arrays.
 
    >>> mser_3 = malg_1 + malg_2
 
-We could have filled the initial series first (replace masked values with a 
+We could have filled the initial series first (replace masked values with a
 specified value):
 
    >>> mser_3 = malg_1.filled(0) + malg_2.filled(0)
 
-When aligning the series, we could have forced the series to start/end at some 
+When aligning the series, we could have forced the series to start/end at some
 given dates:
 
    >>> (malg_1,malg_2) = align_series(mser_1_filled, mser2,
@@ -446,27 +446,27 @@ given dates:
 
 Time Shifting Operations
 ------------------------
-Calculating things like rate of change, or difference in a :class:`~tseries.TimeSeries`
-can be done most easily using a special method called :meth:`~tseries.TimeSeries.tshift`.
+Calculating things like rate of change, or difference in a :class:`~TimeSeries`
+can be done most easily using a special method called :meth:`~TimeSeries.tshift`.
 
-Suppose we want to calculate a Year over Year rate of return for a monthly time 
+Suppose we want to calculate a Year over Year rate of return for a monthly time
 series. One might initially try to do something along the lines of...
 
    >>> YoY_change = 100*(mser[12:]/mser[:-12] - 1)
 
-This will give you the correct numerical result, but since ``mser[12:]`` and 
-``mser[:-12]`` have different start and end dates, the result will be forced to 
+This will give you the correct numerical result, but since ``mser[12:]`` and
+``mser[:-12]`` have different start and end dates, the result will be forced to
 a plain :class:`numpy.ma.MaskedArray`.
-Also, it will not be the same shape as your original input series, 
+Also, it will not be the same shape as your original input series,
 which may also be inconvenient.
 To get around these issues, use the :meth:`tshift` method instead.
 
    >>> YoY_change = 100*(mser/mser.tshift(-12, copy=False) - 1)
 
-``mser.tshift(-12, copy=False)`` returns a series with the ``same start_date`` 
-and ``end_date`` as ``mser``, but values shifted to the right by 12 periods. 
-Note that this will result in 12 masked values at the start of the resulting series. 
-By default :meth:`~tseries.TimeSeries.tshift` copies any data it uses from the 
+``mser.tshift(-12, copy=False)`` returns a series with the ``same start_date``
+and ``end_date`` as ``mser``, but values shifted to the right by 12 periods.
+Note that this will result in 12 masked values at the start of the resulting series.
+By default :meth:`~TimeSeries.tshift` copies any data it uses from the
 original series, but for situations like the example above you may want to avoid
 that.
 
@@ -474,37 +474,37 @@ that.
 TimeSeries Frequency Conversion
 -------------------------------
 
-To convert a :class:`~tseries.TimeSeries` to another frequency, 
-use the :meth:`~tseries.TimeSeries.convert` method or is function equivalent.
-The optional argument ``func`` must be a function that acts on a 
+To convert a :class:`~TimeSeries` to another frequency,
+use the :meth:`~TimeSeries.convert` method or is function equivalent.
+The optional argument ``func`` must be a function that acts on a
 1D masked array and returns a scalar.
 
    >>> mseries = series.convert('M',func=ma.average)
 
-If ``func`` is None (the default value), the convert method/function returns a 
-2D array, where each row corresponds to the new frequency, and the columns to 
-the original data. 
+If ``func`` is None (the default value), the convert method/function returns a
+2D array, where each row corresponds to the new frequency, and the columns to
+the original data.
 In our example, :meth:`convert` will return a 2D array with 23 columns, as there
 are at most 23 business days per month.
 
    >>> mseries_default = series.convert('M')
 
 
-When converting from a lower frequency to a higher frequency, an extra argument 
+When converting from a lower frequency to a higher frequency, an extra argument
 ``position`` is used to determine the placement of values in the resulting series.
 The value of the argument is either ``'START'`` or ``'END'`` (``'END'`` by default).
 This will yield a series with a lot of masked values.
-To fill in these masked values, see the section 
+To fill in these masked values, see the section
 `Interpolating Masked Values <interpolating>`_ below.
 
 .. warning::
    Be careful not to confuse the two methods :meth:`asfreq` and :meth:`convert`.
 
-   * :meth:`~tseries.TimeSeries.asfreq` simply takes every date 
-     in the :attr:`~tseries.TimeSeries.dates` attribute of the 
-     :class:`~tseries.TimeSeries` instance and changes it to the specified frequency,
+   * :meth:`~TimeSeries.asfreq` simply takes every date
+     in the :attr:`~TimeSeries.dates` attribute of the
+     :class:`~TimeSeries` instance and changes it to the specified frequency,
      so the resulting series will have the same shape as the original series.
-   * :meth:`~tseries.TimeSeries.convert` is a more complicated function
+   * :meth:`~TimeSeries.convert` is a more complicated function
      that takes a series with no missing nor duplicated dates and creates a series
      at the new frequency with no missing nor duplicated dates and intelligently
      places the data from the original series into appropriate points in the new
@@ -524,7 +524,7 @@ Currently this includes:
 * :func:`~lib.interpolate.forward_fill`
 * :func:`~lib.interpolate.backward_fill`
 
-Let us take a monthly :class:`~tseries.TimeSeries` , convert it to business frequency,
+Let us take a monthly :class:`~TimeSeries` , convert it to business frequency,
 and then interpolate the resulting masked values.
 
    >>> import scikits.timeseries.lib.interpolate as itp
@@ -534,8 +534,8 @@ and then interpolate the resulting masked values.
    >>> bser_bfill = itp.backward_fill(bser)
    >>> bser_linear = itp.interp_masked1d(bser, kind='linear')
 
-The optional ``maxgap`` parameter for :func:`~lib.interpolate.forward_fill` and 
-:func:`~lib.interpolate.backward_fill` will ensure that if there are more than 
-``maxgap`` consecutive masked values, they will not be filled. 
-Using ``maxgap=30`` like in our above example will ensure that missing months 
+The optional ``maxgap`` parameter for :func:`~lib.interpolate.forward_fill` and
+:func:`~lib.interpolate.backward_fill` will ensure that if there are more than
+``maxgap`` consecutive masked values, they will not be filled.
+Using ``maxgap=30`` like in our above example will ensure that missing months
 from our original monthly series are not filled in.

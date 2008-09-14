@@ -1,23 +1,17 @@
-.. currentmodule:: scikits.timeseries.tdates
+.. currentmodule:: scikits.timeseries
 
 ===========================
-:class:`DateArrays` objects
-===========================
-
-
-
-
 :class:`DateArray` objects
-==========================
+===========================
 
 .. autoclass:: DateArray
 
 
 Attributes
-----------
+==========
 
 Frequency information
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
 
 .. attribute:: DateArray.freq
 
@@ -31,7 +25,7 @@ Frequency information
 
 
 Date information
-~~~~~~~~~~~~~~~~
+----------------
 
 The following attributes give some information about the dates.
 They are read-only.
@@ -82,10 +76,10 @@ They are read-only.
 
 
 Methods
--------
+=======
 
 Information methods
-~~~~~~~~~~~~~~~~~~~
+-------------------
 
 The following methods give some information about the distribution of dates.
 These methods do not need any argument.

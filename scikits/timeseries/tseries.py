@@ -130,7 +130,7 @@ class TimeSeriesCompatibilityError(TimeSeriesError):
     * Inconsistent frequency;
     * Inconsistent starting dates;
     * Inconsistent size and/or shape.
-    
+
     """
     def __init__(self, mode, first, second):
         if mode == 'freq':
@@ -427,7 +427,7 @@ class TimeSeries(MaskedArray, object):
     --------
     numpy.ma.MaskedArray
         ndarray with support for missing data.
-    scikits.timeseries.tdates.DateArray
+    scikits.timeseries.DateArray
     """
     def __new__(cls, data, dates, mask=nomask, dtype=None, copy=False,
                 fill_value=None, subok=True, keep_mask=True, hard_mask=False,
@@ -922,7 +922,7 @@ timeseries(%(data)s,
     TimeSeries:
 <<<<<<< .mine
         A new TimeSeries with the `.dates` attribute at the specified frequency
-        (the :meth:`.asfreq` method of the :attr:`.dates` 
+        (the :meth:`.asfreq` method of the :attr:`.dates`
 =======
         A new TimeSeries with the :attr:`.dates` :class:`DateArray` at the
         specified frequency (the :meth`.asfreq` method of the :attr:`.dates`
@@ -935,7 +935,7 @@ timeseries(%(data)s,
 <<<<<<< .mine
     The parameters are the exact same as for
     :meth:`~scikit.timeseries.tdates.DateArray.asfreq`.
-    Please see the docstring for that method for details on the parameters and 
+    Please see the docstring for that method for details on the parameters and
 =======
     The parameters are the exact same as for :meth:`DateArray.asfreq`, please
     see the `__doc__` string for that method for details on the parameters and
@@ -1331,11 +1331,12 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
       function in the :mod:`numpy.ma` module are also accepted by this function.
     * The date portion of the time series must be specified in one of the
       following ways:
-      * specify a TimeSeries object for the ``data`` parameter.
-      * pass a DateArray for the ``dates`` parameter.
-      * specify a start_date (a continuous DateArray will be automatically
-        constructed for the dates portion).
-      * specify just a frequency (for TimeSeries of size zero).
+
+       * specify a TimeSeries object for the ``data`` parameter.
+       * pass a DateArray for the ``dates`` parameter.
+       * specify a start_date (a continuous DateArray will be automatically
+         constructed for the dates portion).
+       * specify just a frequency (for TimeSeries of size zero).
 
     """
     maparms = dict(copy=copy, dtype=dtype, fill_value=fill_value, subok=True,
@@ -1621,12 +1622,12 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
 
     When converting from one frequency to a lower one, use the ``func`` parameter
     to control how data sharing the same new date should be handled. For example,
-    when converting a daily series to a monthly series, use ``numpy.ma.mean`` 
+    when converting a daily series to a monthly series, use ``numpy.ma.mean``
     to get a series of monthly averages.
     If ``func`` is not given, the output series group the points of the initial
     series that share the same new date. For example, if the initial series has
     a daily frequency and is 1D, the output series is 2D.
-    
+
     When converting to a higher frequency, use the ``position`` parameter to
     determine where the points should fall in the new period.
     For example, when converting a monthly series to daily, set ``precision``
@@ -1641,7 +1642,7 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
         Frequency to convert the TimeSeries to. Accepts any valid frequency
         specification (string or integer)
     func : {None,function}, optional
-        Function controlling how data sharing the same new dates should be 
+        Function controlling how data sharing the same new dates should be
         manipulated.
         This function should handle masked values appropriately.
         If ``func`` is None (default), the output series groups the points of the
@@ -1746,7 +1747,7 @@ TimeSeries.tshift = tshift
 #...............................................................................
 def _get_type_num_double(dtype):
     """
-    Private used to force dtypes upcasting in certain functions 
+    Private used to force dtypes upcasting in certain functions
     (eg. int -> float in pct function).
     Adapted from function of the same name in the C source code.
     """

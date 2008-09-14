@@ -1,4 +1,4 @@
-.. currentmodule:: scikits.timeseries.tseries
+.. currentmodule:: scikits.timeseries
 
 ===========================
 :class:`TimeSeries` objects
@@ -9,7 +9,7 @@
 
 
 .. class:: TimeSeries
- 
+
    Bases: :class:`numpy.ma.MaskedArray`.
 
    :class:`TimeSeries` objects are ndarrays objects that support masked data and
@@ -24,7 +24,7 @@ of regular ndarrays.
 
 
 Attributes
-----------
+==========
 
    .. attribute:: data
 
