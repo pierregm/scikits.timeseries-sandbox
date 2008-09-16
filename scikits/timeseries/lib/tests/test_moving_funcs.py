@@ -97,6 +97,7 @@ class TestMovFuncs(TestCase):
             ((lambda x, span : mf.mov_std(x, span)), ma.std)]
     #
     def test_onregulararray(self):
+        "Tests the moving functions on regular ndarrays."
         data = self.data
         for mfunc, nfunc in self.func_pairs:
             for k in [3,4,5]:
@@ -108,8 +109,8 @@ class TestMovFuncs(TestCase):
 
     #
     def test_onmaskedarray(self):
+        "Tests the moving functions on MaskedArrays."
         data = self.maskeddata
-
         for Mfunc, Nfunc in self.func_pairs:
             for k in [3,4,5]:
                 result = Mfunc(data, k)
@@ -123,9 +124,7 @@ class TestMovFuncs(TestCase):
 
     #
     def test_ontimeseries(self):
-
         data = time_series(self.maskeddata, start_date=now('D'))
-
         for Mfunc, Nfunc in self.func_pairs:
             for k in [3,4,5]:
                 result = Mfunc(data, k)
@@ -147,6 +146,33 @@ class TestMovFuncs(TestCase):
             cov = mf.mov_cov(data, data, 3, bias=bias)
             var = mf.mov_var(data, 3, ddof=1-bias)
             assert_equal(cov, var)
+
+
+    def test_on_list(self):
+        data = self.data.tolist()
+        for mfunc, nfunc in self.func_pairs:
+            for k in [3,4,5]:
+                result = mfunc(data, k)
+                assert(isinstance(result, MaskedArray))
+                for x in range(len(data)-k+1):
+                    assert_almost_equal(result[x+k-1], nfunc(data[x:x+k]))
+                assert_equal(result._mask, [1]*(k-1)+[0]*(len(data)-k+1))
+
+
+    def test_w_nans(self):
+        #
+        data = np.random.rand(20)
+        control = mf.mov_average(data, 3)
+        # Test that we get the right result
+        a = ma.array(data, mask=False)
+        assert_almost_equal(control, mf.mov_average(a,3))
+        # Test with a masked element
+        a.data[10] = 0
+        a.mask[10] = True
+        assert_almost_equal(control, mf.mov_average(a,3))
+        # Test w/ a masked element and an underlying nan
+        a[10] = np.nan
+        assert_almost_equal(control, mf.mov_average(a,3))
 
 #------------------------------------------------------------------------------
 if __name__ == "__main__":

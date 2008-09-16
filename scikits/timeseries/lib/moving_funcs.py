@@ -44,6 +44,9 @@ def _process_result_dict(orig_data, result_dict):
 
 def _moving_func(data, cfunc, kwargs):
 
+    data = ma.fix_invalid(data)
+    data = ma.array(data.filled(0), mask=data._mask)
+
     if data.ndim == 1:
         kwargs['array'] = data
         result_dict = cfunc(**kwargs)
@@ -188,8 +191,10 @@ def mov_std(data, span, dtype=None, ddof=0):
 #...............................................................................
 def _mov_cov(x, y, span, ddof, dtype=None):
     # helper function
-
     denom = span - ddof
+
+    x = ma.asanyarray(x)
+    y = ma.asanyarray(y)
 
     sum_prod = _mov_sum(x*y, span, dtype=dtype, type_num_double=True)
     sum_x = _mov_sum(x, span, dtype=dtype, type_num_double=True)

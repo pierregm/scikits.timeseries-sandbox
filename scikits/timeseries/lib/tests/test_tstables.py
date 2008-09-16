@@ -15,9 +15,13 @@ import scikits.timeseries as ts
 from numpy.testing import *
 from numpy.ma.testutils import assert_equal, assert_equal_records
 
-import tables
-import tstables
-from tstables import tabulate
+try:
+    import tables
+    has_tables = True
+except ImportError:
+    has_tables = False
+import scikits.timeseries.lib.tstables as tstables
+tabulate = tstables.tabulate
 
 
 
@@ -337,4 +341,5 @@ class TestSpecialAttrs(TestCase):
 ###############################################################################
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
-    run_module_suite()
+    if has_tables:
+        run_module_suite()
