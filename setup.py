@@ -16,8 +16,15 @@ classifiers = ['Development Status :: 0.67.0 - Beta',
                'Operating System :: POSIX',
                'Operating System :: Unix',
                'Operating System :: MacOS']
-               
+
 distname = 'scikits.timeseries'
+
+long_description = """
+The scikits.timeseries module provides classes and functions for manipulating,
+reporting, and plotting time series of various frequencies. The focus is on
+convenient data access and manipulation while leveraging the existing
+mathematical functionality in numpy and scipy.
+"""
 
 import os
 import sys
@@ -56,11 +63,13 @@ def setup_package():
           name = distname,
           version = version,
           description = "Time series manipulation",
+          long_description = long_description,
+          license = "BSD",
           author = "Pierre GF GERARD-MARCHANT & Matt KNOX",
           author_email = "pgmdevlist_AT_gmail_DOT_com & "\
-                         "mattknox_ca_at_hotmail_dot_com",
+                         "mattknox.ca_AT_gmail_DOT_com",
           url = "http://scipy.org/scipy/scikits/wiki/TimeSeries",
-          classifiers = classifiers, 
+          classifiers = classifiers,
           platforms = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
           configuration = configuration,
     )
