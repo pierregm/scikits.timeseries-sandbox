@@ -28,6 +28,50 @@ from scikits.timeseries.cseries import \
     MA_mov_sum, MA_mov_median, MA_mov_min, MA_mov_max
 
 
+_doc_parameters = dict(
+data="""    data : array-like
+        Input data, as a sequence or (subclass of) ndarray.
+        Masked arrays and TimeSeries objects are also accepted.
+        The input array should be 1D or 2D at most.
+        If the input array is 2D, the function is applied on each column.
+""",
+span="""    span : int
+        Size of the filtering window.
+""",
+dtype="""    dtype: dtype
+        Dta-type of the result.
+""",
+ddof="""    ddof : {0, integer}, optional
+        Means Delta Degrees of Freedom.
+        The divisor used in calculations of variance or standard deviation is 
+        ``N-ddof``.
+        For biased estimates of the variance/standard deviation, use ``ddof=0``.
+        For unbiased estimates, use ``ddof=1``.
+""",
+x="""    x : array-like
+        First array to be included in the calculation.
+        x must be a ndarray or a subclass of ndarray, such as MaskedArray or
+        TimeSeries objects. In that case, the type is saved.
+""",
+y="""    y : array-like
+        Second array to be included in the calculation.
+        x must be a ndarray or a subclass of ndarray, such as MaskedArray or
+        TimeSeries objects. In that case, the type is saved.
+""",
+movfuncresults="""
+    Returns
+    -------
+    filtered_series
+        The result is always a masked array (preserves subclass attributes).
+        The result at index i uses values from ``[i-span:i+1]``, and will be masked
+        for the first ``span`` values.
+        The result will also be masked at i if any of the input values in the slice 
+        ``[i-span:i+1]`` are masked.
+    """
+
+)
+
+
 def _process_result_dict(orig_data, result_dict):
     "process the results from the c function"
 
@@ -87,11 +131,12 @@ def mov_sum(data, span, dtype=None):
 
     Parameters
     ----------
-        $$data$$
-        $$span$$
-        $$dtype$$
+    %(data)s
+    %(span)s
+    %(dtype)s
 
-"""
+    %(movfuncresults)s
+    """
 
     return _mov_sum(data, span, dtype=dtype)
 #...............................................................................
@@ -101,11 +146,12 @@ def mov_median(data, span, dtype=None):
 
     Parameters
     ----------
-        $$data$$
-        $$span$$
-        $$dtype$$
+    %(data)s
+    %(span)s
+    %(dtype)s
 
-"""
+    %(movfuncresults)s
+    """
 
     kwargs = {'span':span}
     if dtype is not None:
@@ -119,10 +165,12 @@ def mov_min(data, span, dtype=None):
 
     Parameters
     ----------
-        $$data$$
-        $$span$$
-        $$dtype$$
-"""
+    %(data)s
+    %(span)s
+    %(dtype)s
+
+    %(movfuncresults)s
+    """
 
     kwargs = {'span':span}
     if dtype is not None:
@@ -136,11 +184,12 @@ def mov_max(data, span, dtype=None):
 
     Parameters
     ----------
-        $$data$$
-        $$span$$
-        $$dtype$$
+    %(data)s
+    %(span)s
+    %(dtype)s
 
-"""
+    %(movfuncresults)s
+    """
 
     kwargs = {'span':span}
     if dtype is not None:
@@ -153,11 +202,12 @@ def mov_average(data, span, dtype=None):
 
     Parameters
     ----------
-        $$data$$
-        $$span$$
-        $$dtype$$
+    %(data)s
+    %(span)s
+    %(dtype)s
 
-"""
+    %(movfuncresults)s
+    """
     return _mov_sum(data, span, dtype=dtype, type_num_double=True)/span
 mov_mean = mov_average
 #...............................................................................
@@ -167,12 +217,13 @@ def mov_var(data, span, dtype=None, ddof=0):
 
     Parameters
     ----------
-        $$data$$
-        $$span$$
-        $$dtype$$
-        $$ddof$$
+    %(data)s
+    %(span)s
+    %(dtype)s
+    %(ddof)s
 
-"""
+    %(movfuncresults)s
+    """
     return _mov_cov(data, data, span, ddof, dtype=dtype)
 #...............................................................................
 def mov_std(data, span, dtype=None, ddof=0):
@@ -181,11 +232,12 @@ def mov_std(data, span, dtype=None, ddof=0):
 
     Parameters
     ----------
-        $$x$$
-        $$y$$
-        $$span$$
-        $$dtype$$
+    %(data)s
+    %(span)s
+    %(dtype)s
+    %(ddof)s
 
+    %(movfuncresults)s
 """
     return sqrt(mov_var(data, span, dtype=dtype, ddof=ddof))
 #...............................................................................
@@ -208,12 +260,13 @@ def mov_cov(x, y, span, bias=0, dtype=None):
 
     Parameters
     ----------
-        $$x$$
-        $$y$$
-        $$span$$
-        $$dtype$$
+    %(x)s
+    %(y)s
+    %(span)s
+    %(dtype)s
 
-"""
+    %(movfuncresults)s
+    """
 
     if bias==0: ddof = 1
     else:       ddof = 0
@@ -226,12 +279,13 @@ def mov_corr(x, y, span, dtype=None):
 
     Parameters
     ----------
-        $$x$$
-        $$y$$
-        $$span$$
-        $$dtype$$
+    %(x)s
+    %(y)s
+    %(span)s
+    %(dtype)s
 
-"""
+    %(movfuncresults)s
+    """
 
     sum_x = _mov_sum(x, span, dtype=dtype, type_num_double=True)
     sum_y = _mov_sum(y, span, dtype=dtype, type_num_double=True)
@@ -253,7 +307,7 @@ def mov_average_expw(data, span, tol=1e-6):
 
     Parameters
     ----------
-    $$data$$
+    %(data)s
     span : int
         Time periods. The smoothing factor is 2/(span + 1)
     tol : float, *[1e-6]*
@@ -262,7 +316,9 @@ def mov_average_expw(data, span, tol=1e-6):
         masked. Values in the result that would not be "significantly"
         impacted (as determined by this parameter) by the masked values are
         left unmasked.
-"""
+
+    %(movfuncresults)s
+    """
 
     data = marray(data, copy=True, subok=True)
     ismasked = (data._mask is not nomask)
@@ -289,11 +345,8 @@ def cmov_window(data, span, window_type):
 
     Parameters
     ----------
-    data : {ndarray}
-        Data to process. The array should be at most 2D. On 2D arrays, the
-        window is applied recursively on each column.
-    span : {int}
-        The width of the window.
+    %(data)s
+    $(span)s
     window_type : {string/tuple/float}
         Window type (see Notes)
 
@@ -362,11 +415,8 @@ def cmov_average(data, span):
 
     Parameters
     ----------
-    data : ndarray
-        Data to process. The array should be at most 2D. On 2D arrays, the
-        window is applied recursively on each column.
-    span : int
-        The width of the window.
+    %(data)s
+    %(span)s
 
     Returns
     -------
@@ -379,68 +429,16 @@ def cmov_average(data, span):
 
 cmov_mean = cmov_average
 
-param_doc = {}
-param_doc['data'] = """
-    data : {ndarray}
-        data must be an ndarray or a subclass of ndarray.
-        :class:`~scikits.timesiers.core.TimeSeries` objects are also recognized.
-"""
 
-param_doc['x'] = """
-    x : {ndarray}
-        First array to be included in the calculation.
-        x must be an ndarray or a subclass of ndarray.
-        :class:`~scikits.timesiers.core.TimeSeries` objects are also recognized.
-"""
 
-param_doc['y'] = """
-    y : {ndarray}
-        Second array to be included in the calculation.
-        y must be an ndarray or a subclass of ndarray.
-        :class:`~scikits.timesiers.core.TimeSeries` objects are also recognized.
-"""
+if __doc__ is not None:
+    mov_sum.__doc__ = mov_sum.__doc__ % _doc_parameters
+    mov_median.__doc__ = mov_median.__doc__ % _doc_parameters
+    mov_min.__doc__ = mov_min.__doc__ % _doc_parameters
+    mov_max.__doc__ = mov_max.__doc__ % _doc_parameters
+    mov_average.__doc__ = mov_average.__doc__ % _doc_parameters
+    mov_std.__doc__ = mov_var.__doc__ % _doc_parameters
+    mov_cov.__doc__ = mov_cov.__doc__ % _doc_parameters
+    mov_corr.__doc__ = mov_corr.__doc__ % _doc_parameters
 
-param_doc['span'] = """
-    span : {int }
-        Time periods to use for each calculation.
-"""
 
-param_doc['bias'] = """
-    bias : {0, 1}, optional
-        If ``bias`` is 0, the result is normalized by ``(N-1)`` where ``N`` is
-        the number of observations (unbiased estimate).
-        If ``bias`` is 1 then normalization is by N.
-"""
-
-param_doc['ddof'] = """
-    ddof : {0, integer}, optional
-        Means Delta Degrees of Freedom.  The divisor used in calculations
-        is N-ddof.
-"""
-
-param_doc['dtype'] = """
-    dtype : {numpy data type specification}, optional
-        dtype for the result
-"""
-
-mov_result_doc = """
-
-    Returns
-    -------
-    filtered_series
-        The result is always a masked array (preserves subclass attributes).
-        The result at index i uses values from ``[i-span:i+1]``, and will be masked
-        for the first ``span`` values.
-        The result will also be masked at i if any of the input values in the slice 
-        ``[i-span:i+1]`` are masked.
-"""
-
-_g = globals()
-
-# generate function doc strings
-for fn in (x for x in __all__ if x[:4] == 'mov_' and x[4:] != 'mean'):
-    fdoc = _g[fn].func_doc
-    for prm, dc in param_doc.iteritems():
-        fdoc = fdoc.replace('$$'+prm+'$$', dc)
-    fdoc += mov_result_doc
-    _g[fn].func_doc = fdoc
