@@ -23,21 +23,23 @@ Examples
 Adaptation of date_demo2.py from matplotlib tutorial
 ----------------------------------------------------
 
-.. plot:: yahoo.py
+.. plot:: plotting/yahoo.py
    :include-source:
-
+   :linenos:
 
 Monthly Data with an exponential moving average
 -----------------------------------------------
 
-.. plot:: expmave.py
+.. plot:: plotting/expmave.py
    :include-source:
+   :linenos:
 
 Separate scales for left and right axis
 ---------------------------------------
 
-.. plot:: sepaxis.py
+.. plot:: plotting/sepaxis.py
    :include-source:
+   :linenos:
 
 
 Sample plots at various levels of zoom
@@ -47,10 +49,10 @@ The following charts show daily data being plotted at varying length date ranges
 This demonstrates the dynamic nature of the axis labels.
 With interactive plotting, labels will be updated dynamically as you scroll and zoom.
 
-.. plot:: zoom1.py
+.. plot:: plotting/zoom1.py
 
-.. plot:: zoom2.py
+.. plot:: plotting/zoom2.py
 
-.. plot:: zoom3.py
+.. plot:: plotting/zoom3.py
 
-.. plot:: zoom4.py
+.. plot:: plotting/zoom4.py

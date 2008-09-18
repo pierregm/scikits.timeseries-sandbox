@@ -33,7 +33,8 @@ options = {'alt': directives.unchanged,
            'scale': directives.nonnegative_int,
            'align': align,
            'class': directives.class_option,
-           'include-source': directives.flag }
+           'include-source': directives.flag,
+           'linenos': directives.flag}
 
 template = """
 .. htmlonly::
@@ -56,14 +57,16 @@ def makefig(fullpath, outdir):
                ('pdf', 72),
                ]
 
-    basedir, fname = os.path.split(fullpath)
-    basename, ext = os.path.splitext(fname)
+    (basedir, fname) = os.path.split(fullpath)
+    (basename, ext) = os.path.splitext(fname)
     all_exists = True
 
     if basedir != outdir:
+        print "DEBUG: current directory:", os.getcwd()
+        print "DEBUG: fullpath:%s \nDEBUG: outdirnm:%s\n" % (fullpath, os.path.join(outdir, fname))
         shutil.copyfile(fullpath, os.path.join(outdir, fname))
 
-    for format, dpi in formats:
+    for (format, dpi) in formats:
         outname = os.path.join(outdir, '%s.%s' % (basename, format))
         print outname
         if not os.path.exists(outname):
@@ -100,28 +103,45 @@ def makefig(fullpath, outdir):
 
 def run(arguments, options, state_machine, lineno):
     reference = directives.uri(arguments[0])
-    basedir, fname = os.path.split(reference)
-    basename, ext = os.path.splitext(fname)
+    (basedir, fname) = os.path.split(reference)
+    (basename, ext) = os.path.splitext(fname)
 
-    srcdir = 'examples/plotting'
-    outdir = '../build/plots'
+#    print """
+#    reference : %(reference)s
+#    arguments : %(arguments)s
+#    options   : %(options)s
+#    basedir   : %(basedir)s
+#    basename  : %(basename)s
+#    fname     : %(fname)s
+#    """ % locals()
+    #With reference to the current directory (one step above source and build)"
+    srcdir = 'source/examples'
+    outdir = 'source/../build/plots'
+    # Make sure that outdir exists and is an actual directory
+    outdir_abs = os.path.normpath(outdir)
+    if not os.path.isdir(outdir_abs):
+        os.mkdir(outdir_abs)
 
+    # Build the figure from the script
     makefig(os.path.join(srcdir, reference), outdir)
+    # Make sure that outdir now is now with reference to source
+    outdir = os.path.sep.join(outdir.split(os.path.sep)[1:])
 
-    if options.has_key('include-source'):
-        lines = ['.. literalinclude:: ../examples/plotting/%(reference)s' % locals()]
-        del options['include-source']
+    # Process the options
+    if options.pop('include-source', None) is not None:
+        codetemplate = ".. literalinclude:: %(srcdir)s/%(reference)s\n"\
+                       "   :language:python"
+        lines = [codetemplate % locals()]
+        if options.pop('linenos'):
+            codetemplate += "\n   :linenos:"
     else:
         lines = []
-
-    options = ['      :%s: %s' % (key, val) for key, val in
-               options.items()]
+    options = ['      :%s: %s' % (k, v) for (k, v) in options.items()]
     options = "\n".join(options)
 
     lines.extend((template % locals()).split('\n'))
 
-    state_machine.insert_input(
-        lines, state_machine.input_lines.source(0))
+    state_machine.insert_input(lines, state_machine.input_lines.source(0))
     return []
 
 
@@ -132,6 +152,17 @@ except ImportError:
 
     def plot_directive(name, arguments, options, content, lineno,
                        content_offset, block_text, state, state_machine):
+#        print """
+#        name     : %(name)s
+#        arguments: %(arguments)s
+#        options  : %(options)s
+#        content  : %(content)s
+#        lineno   : %(content)s
+#        offset   : %(content_offset)s
+#        blktxt   : %(block_text)s
+#        state    : %(state)s
+#        stmmch   : %(state_machine)s
+#        """ % locals()
         return run(arguments, options, state_machine, lineno)
     plot_directive.__doc__ = __doc__
     plot_directive.arguments = (1, 0, 1)
@@ -151,3 +182,7 @@ else:
 
     directives.register_directive('plot', plot_directive)
 
+
+def setup(app):
+    #
+    app.add_config_value('plotting_scripts_directory', None, True)

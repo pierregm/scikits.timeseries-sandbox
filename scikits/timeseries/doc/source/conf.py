@@ -192,3 +192,5 @@ numpydoc_phantom_import_file = 'dump.xml'
 numpydoc_default_block_type = None
 # How should we format list/descriptions ? (fields, describe, rubric...)
 numpydoc_default_list_type = "field"
+#
+plotting_scripts_directory = "examples/plotting"

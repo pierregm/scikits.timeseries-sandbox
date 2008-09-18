@@ -1,6 +1,7 @@
 License
 =======
 
+
 The :mod:`scikits.timeseries` scikit is free for both commercial and non-commercial use, 
 under the `BSD <http://www.opensource.org/licenses/bsd-license.php>`_ license.
 
