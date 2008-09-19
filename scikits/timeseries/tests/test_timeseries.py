@@ -15,7 +15,7 @@ from numpy import bool_, complex_, float_, int_, object_
 from numpy.testing import *
 
 import numpy.ma as ma
-from numpy.ma import masked, nomask
+from numpy.ma import MaskedArray, masked, nomask
 from numpy.ma.testutils import assert_equal, assert_array_equal, assert_not_equal
 
 import scikits.timeseries as ts
@@ -1094,6 +1094,47 @@ class TestGenericMethods(TestCase):
             assert(isinstance(test, self.SubTimeSeries))
             assert_equal(test, getattr(subseries._series, method).__call__())
             assert_equal(test._dates, subseries._dates)
+
+
+
+#------------------------------------------------------------------------------
+
+class TestFlexibleType(TestCase):
+    "Test flexible types"
+    #
+    def setUp(self):
+        ndtype = [('a',float), ('b',float)]
+        data = ma.array(zip(np.random.rand(10),np.arange(10)), dtype=ndtype)
+        data.mask[0] = (0,1)
+        data.mask[1] = (1,1)
+        data.mask[-1] = (1,0)
+        series = time_series(data, start_date=ts.Date('M', '2007-01'))
+        self.data = (data, series)
+    #
+    def test_getitem_index(self):
+        (data, series) = self.data
+        test = series[0]
+        assert(isinstance(test, MaskedArray))
+        assert_equal(test, data[0])
+        test = series[1]
+        assert(isinstance(test, MaskedArray))
+        assert_equal(test, data[1])
+        test = series[2]
+        assert(isinstance(test, np.void))
+        assert_equal(test, data[2])
+    #
+    def test_getitem_dates(self):
+        (data, series) = self.data
+        test = series['2007-01']
+        assert(isinstance(test, MaskedArray))
+        assert_equal(test, data[0])
+        test = series['2007-02']
+        assert(isinstance(test, MaskedArray))
+        assert_equal(test, data[1])
+        test = series['2007-03']
+        assert(isinstance(test, np.void))
+        assert_equal(test, data[2])
+
 
 ###############################################################################
 #------------------------------------------------------------------------------

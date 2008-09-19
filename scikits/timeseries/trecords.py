@@ -82,13 +82,21 @@ def _getdates(dates=None, newdates=None, length=None, freq=None,
 
 class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
     """
+    MaskedRecords with support for time-indexing
 
-:IVariables:
-    - `__localfdict` : Dictionary
-        Dictionary of local fields (`f0_data`, `f0_mask`...)
-    - `__globalfdict` : Dictionary
-        Dictionary of global fields, as the combination of a `_data` and a `_mask`.
-        (`f0`)
+    Fields can be retrieved either with ``__getitem__`` (the standard indexing
+    scheme) or with ``__getattribute__``.
+
+    The type of the output of __getitem__ is variable:
+    
+    field
+       returns a :class:`TimeSeries` object.
+    single record, no masked fields
+        returns a ``numpy.void`` object
+    single record with at least one masked field
+        returns a :class:`MaskedRecords` object.
+    slice
+        return a :class:`TimeSeriesRecords`.
     """
     _defaultfieldmask = nomask
     _defaulthardmask = False
@@ -118,7 +126,6 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
         self.__dict__.update(_varshape = getattr(obj, '_varshape', ()),
                              _dates=getattr(obj,'_dates',DateArray([])),
                              _observed=getattr(obj,'_observed',None),
-                             _names = self.dtype.names,
                              _optinfo = getattr(obj,'_optinfo',{}))
         MaskedRecords.__array_finalize__(self, obj)
         return
@@ -126,19 +133,20 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
 
     def _getdata(self):
         "Returns the data as a recarray."
-        return self.view(recarray)
+        return ndarray.view(self, recarray)
     _data = property(fget=_getdata)
 
     def _getseries(self):
         "Returns the data as a MaskedRecord array."
-        return self.view(mrecarray)
+        return MaskedArray.view(self, mrecarray)
     _series = property(fget=_getseries)
 
 
     def __getattribute__(self, attr):
         getattribute = MaskedRecords.__getattribute__
         _dict = getattribute(self,'__dict__')
-        if attr in _dict.get('_names',[]):
+        _names = ndarray.__getattribute__(self,'dtype').names
+        if attr in (_names or []):
             obj = getattribute(self,attr).view(TimeSeries)
             obj._dates = _dict['_dates']
             return obj
@@ -147,30 +155,7 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
 
     def __setattr__(self, attr, value):
         if attr in ['_dates','dates']:
-            # Make sure it's a DateArray
-            if not isinstance(value, (Date, DateArray)):
-                err_msg = "The input dates should be a valid Date or "\
-                          "DateArray object (got %s instead)" % type(value)
-                raise TypeError(err_msg)
-            # Skip if dates is nodates (or empty)\
-            if value is nodates or not getattr(value,'size',0):
-                return MaskedArray.__setattr__(self, attr, value)
-            # Make sure it has the proper size
-            tsize = getattr(value, 'size', 1)
-            # Check the _varshape
-            varshape = self._varshape
-            if not varshape:
-                # We may be using the default: retry
-                varshape = self._varshape = get_varshape(self, value)
-            # Get the data length (independently of the nb of variables)
-            dsize = self.size // int(np.prod(varshape))
-            if tsize != dsize:
-                raise TimeSeriesCompatibilityError("size",
-                                                   "data: %s" % dsize,
-                                                   "dates: %s" % tsize)
-            elif not varshape:
-                # The data is 1D
-                value.shape = self.shape
+            self.__setdates__(value)
         elif attr == 'shape':
             if self._varshape:
                 err_msg = "Reshaping a nV/nD series is not implemented yet !"
@@ -183,17 +168,15 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
     The fieldname base is either `_data` or `_mask`."""
         _localdict = self.__dict__
         # We want a field ........
-        if indx in self.dtype.names:
+        if indx in ndarray.__getattribute__(self, 'dtype').names:
             obj = self._data[indx].view(TimeSeries)
             obj._dates = _localdict['_dates']
             obj._mask = make_mask(_localdict['_fieldmask'][indx])
             return obj
         # We want some elements ..
-        (sindx, dindx, recheck) = self._index_checker(indx)
-        obj = np.array(self._data[sindx], copy=False, subok=True).view(type(self))
-        obj.__dict__.update(_dates=_localdict['_dates'][dindx],
-                            _fill_value=_localdict['_fill_value'])
-        obj._fieldmask = np.array(_localdict['_fieldmask'][sindx]).view(recarray)
+        obj = TimeSeries.__getitem__(self, indx)
+        if isinstance(obj, MaskedArray) and not isinstance(obj, TimeSeries):
+            obj = ndarray.view(obj, MaskedRecords)
         return obj
 
 

@@ -468,7 +468,10 @@ class TimeSeries(MaskedArray, object):
         MaskedArray._update_from(self, obj)
 
     def view(self, dtype=None, type=None):
-        output = MaskedArray.view(self, dtype=dtype, type=type)
+        try:
+            output = MaskedArray.view(self, dtype=dtype, type=type)
+        except ValueError:
+            output = MaskedArray.view(self, dtype)
         if isinstance(output, TimeSeries):
             if output.dtype.fields:
                 output._varshape = ()
@@ -568,7 +571,14 @@ Returns the item described by i. Not a copy.
                 sindx = dindx = indx
         # Don't find the date if it's not needed......
         if not getattr(output,'ndim', False):
-            if _mask is not nomask and _mask[sindx]:
+            # A record ................
+            if isinstance(output, np.void):
+                mask = _mask[sindx]
+                if mask.view((bool,len(mask.dtype))).any():
+                    output = masked_array(output, mask=mask)
+                else:
+                    return output
+            elif _mask is not nomask and _mask[sindx]:
                 return masked
             return output
         # Get the date................................
@@ -583,10 +593,10 @@ Returns the item described by i. Not a copy.
         # Update some info from self (fill_value, _basedict...)
         MaskedArray._update_from(newseries, self)
         # Fix the fill_value if we were accessing a field of a flexible array
-        if isinstance(indx, basestring):
+        if isinstance(sindx, basestring):
             _fv = self._fill_value
             if _fv is not None and not np.isscalar(_fv):
-                 newseries._fill_value = _fv[indx]
+                 newseries._fill_value = _fv[sindx]
             newseries._isfield = True
         # Fix the mask
         if _mask is not nomask:
@@ -625,30 +635,7 @@ Sets item described by index. If value is masked, masks those locations.
 
     def __setattr__(self, attr, value):
         if attr in ['_dates','dates']:
-            # Make sure it's a DateArray
-            if not isinstance(value, (Date, DateArray)):
-                err_msg = "The input dates should be a valid Date or "\
-                          "DateArray object (got %s instead)" % type(value)
-                raise TypeError(err_msg)
-            # Skip if dates is nodates (or empty)\
-            if value is nodates or not getattr(value,'size',0):
-                return MaskedArray.__setattr__(self, attr, value)
-            # Make sure it has the proper size
-            tsize = getattr(value, 'size', 1)
-            # Check the _varshape
-            varshape = self._varshape
-            if not varshape:
-                # We may be using the default: retry
-                varshape = self._varshape = get_varshape(self, value)
-            # Get the data length (independently of the nb of variables)
-            dsize = self.size // int(np.prod(varshape))
-            if tsize != dsize:
-                raise TimeSeriesCompatibilityError("size",
-                                                   "data: %s" % dsize,
-                                                   "dates: %s" % tsize)
-            elif not varshape:
-                # The data is 1D
-                value.shape = self.shape
+            self.__setdates__(value)
         elif attr == 'shape':
             if self._varshape:
                 err_msg = "Reshaping a nV/nD series is not implemented yet !"
