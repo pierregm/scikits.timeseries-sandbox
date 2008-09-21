@@ -879,6 +879,30 @@ class TestMethods(TestCase):
         #
         assert_equal(mdates>=mdates[-4], [0,0,0,0,0,0,1,1,1,1])
 
+    def test_add(self):
+        dt1 = Date(freq='D', year=2008, month=1, day=1)
+        dt2 = Date(freq='D', year=2008, month=1, day=2)
+        assert_equal(dt1 + 1, dt2)
+        assert_equal(dt1 + 1.0, dt2)
+        assert_equal(dt1 + np.int16(1), dt2)
+        assert_equal(dt1 + np.int32(1), dt2)
+        assert_equal(dt1 + np.int64(1), dt2)
+        assert_equal(dt1 + np.float32(1), dt2)
+        assert_equal(dt1 + np.float64(1), dt2)
+
+        try:
+            temp = dt1 + "str"
+        except TypeError:
+            pass
+        else:
+            raise RuntimeError("invalid add type passed")
+
+        try:
+            temp = dt1 + dt2
+        except TypeError:
+            pass
+        else:
+            raise RuntimeError("invalid add type passed")
 
     def test_getsteps(self):
         "Tests the getsteps method"

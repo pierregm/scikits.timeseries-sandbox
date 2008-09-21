@@ -1959,7 +1959,10 @@ DateObject_FromFreqAndValue(int freq, int value) {
 static PyObject *
 DateObject_date_plus_int(PyObject *date, PyObject *pyint) {
     DateObject *dateobj = (DateObject*)date;
-    if (!PyInt_Check(pyint)) {
+
+    if (!PyInt_Check(pyint) && !PyObject_HasAttrString(pyint, "__int__")) {
+        // invalid type for addition
+
         char *err_str, *type_str;
         PyObject *type_repr, *obj_type;
 
@@ -1985,7 +1988,10 @@ DateObject_date_plus_int(PyObject *date, PyObject *pyint) {
 static PyObject *
 DateObject___add__(PyObject *left, PyObject *right)
 {
-    if (DateObject_Check(left)) {
+    if (DateObject_Check(left) && DateObject_Check(right)) {
+        PyErr_SetString(PyExc_TypeError, "Cannot add Date to Date");
+        return NULL;
+    } else if (DateObject_Check(left)) {
         return DateObject_date_plus_int(left, right);
     } else {
         return DateObject_date_plus_int(right, left);
