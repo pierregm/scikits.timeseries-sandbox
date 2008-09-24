@@ -21,6 +21,9 @@ from numpy.ma.testutils import assert_equal, assert_array_equal
 import scikits.timeseries as ts
 from scikits.timeseries import const as C, Date, DateArray, now, date_array
 from scikits.timeseries.cseries import freq_dict
+from scikits.timeseries.tdates import convert_to_float
+
+
 
 class TestCreation(TestCase):
     "Base test class for MaskedArrays."
@@ -56,6 +59,7 @@ class TestCreation(TestCase):
         assert_equal(dates, 24073 + np.arange(12))
         print "finished test_fromstrings"
 
+
     def test_fromstrings_sorting_bug(self):
         """regression test for previous bug with string dates getting sorted
         incorrectly"""
@@ -68,9 +72,8 @@ class TestCreation(TestCase):
 
     def test_fromstrings_wmissing(self):
         "Tests creation from list of strings w/ missing dates"
-        print "starting test_fromstrings_wmissing..."
         dlist = ['2007-01-%02i' % i for i in (1,2,4,5,7,8,10,11,13)]
-
+        #
         dates = date_array(dlist)
         assert_equal(dates.freqstr,'U')
         assert(not dates.isfull())
@@ -86,50 +89,47 @@ class TestCreation(TestCase):
         assert_equal(mdates.freqstr,'M')
         assert(not mdates.isfull())
         assert(mdates.has_duplicated_dates())
-        print "finished test_fromstrings_wmissing"
-        #
+
 
     def test_fromsobjects(self):
         "Tests creation from list of objects."
-        print "starting test_fromsobjects..."
+        #
         dlist = ['2007-01-%02i' % i for i in (1,2,4,5,7,8,10,11,13)]
         dates = date_array(dlist, freq='D')
         dobj = [d.datetime for d in dates]
         odates = date_array(dobj, freq='D')
         assert_equal(dates,odates)
-
         # check that frequency gets set when passing list of Date objects
         dlist = [Date(freq='M', year=2001, month=2), Date(freq='M', year=2001, month=3)]
         dates = date_array(dlist)
         assert_equal(dates.freq, dlist[0].freq)
-
         #
         dates = date_array(['2006-01'], freq='M')
         assert_equal(dates[0], ts.Date(freq='M', year=2006, month=1))
 
+
+    def test_from_datetime_objects(self):
+        "Test creation from a list of datetime.date or datetime.datetime objects."
         # test from datetime.date object
         _dt = ts.Date(freq='D', datetime=datetime.date(2007, 1, 1))
         _tsdt = ts.Date(freq='D', year=2007, month=1, day=1)
         assert_equal(_dt, _tsdt)
-
         # test from datetime.datetime object
         _dt = ts.Date(freq='D', datetime=datetime.datetime(2007, 1, 1, 0, 0, 0, 0))
         assert_equal(_dt, _tsdt)
         print "finished test_fromsobjects"
 
+
     def test_consistent_value(self):
         "Tests that values don't get mutated when constructing dates from a value"
-        print "starting test_consistent_value..."
         freqs = [x[0] for x in freq_dict.values() if x[0] != 'U']
-
         for f in freqs:
             _now = now(f)
             assert_equal(Date(freq=f, value=_now.value), _now)
-        print "finished test_consistent_value"
+
 
     def test_shortcuts(self):
         "Tests some creation shortcuts. Because I'm lazy like that."
-        print "starting test_shortcuts..."
         # Dates shortcuts
         assert_equal(Date('D','2007-01'), Date('D',string='2007-01'))
         assert_equal(Date('D','2007-01'), Date('D', value=732677))
@@ -141,70 +141,78 @@ class TestCreation(TestCase):
         assert_equal(date_array(n, n+2), d)
         print "finished test_shortcuts"
 
+
+
 class TestDateProperties(TestCase):
     "Test properties such as year, month, weekday, etc...."
-
+    #
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
 
-    def test_properties(self):
-
+    def test_properties_annually(self):
+        "Test properties on DateArrays with annually frequency."
         a_date = Date(freq='A', year=2007)
+        assert_equal(a_date.year, 2007)
 
+
+    def test_properties_quarterly(self):
+        "Test properties on DateArrays with daily frequency."
         q_date = Date(freq=C.FR_QTREDEC, year=2007, quarter=1)
-
         qedec_date = Date(freq=C.FR_QTREDEC, year=2007, quarter=1)
         qejan_date = Date(freq=C.FR_QTREJAN, year=2007, quarter=1)
         qejun_date = Date(freq=C.FR_QTREJUN, year=2007, quarter=1)
-
         qsdec_date = Date(freq=C.FR_QTREDEC, year=2007, quarter=1)
         qsjan_date = Date(freq=C.FR_QTREJAN, year=2007, quarter=1)
         qsjun_date = Date(freq=C.FR_QTREJUN, year=2007, quarter=1)
-
-        m_date = Date(freq='M', year=2007, month=1)
-        w_date = Date(freq='W', year=2007, month=1, day=7)
-        b_date = Date(freq='B', year=2007, month=1, day=1)
-        d_date = Date(freq='D', year=2007, month=1, day=1)
-        h_date = Date(freq='H', year=2007, month=1, day=1,
-                                       hour=0)
-        t_date = Date(freq='T', year=2007, month=1, day=1,
-                                       hour=0, minute=0)
-        s_date = Date(freq='T', year=2007, month=1, day=1,
-                                       hour=0, minute=0, second=0)
-
-        assert_equal(a_date.year, 2007)
-
+        #
         for x in range(3):
             for qd in (qedec_date, qejan_date, qejun_date,
                        qsdec_date, qsjan_date, qsjun_date):
                 assert_equal((qd+x).qyear, 2007)
                 assert_equal((qd+x).quarter, x+1)
 
-        for x in range(11):
 
+    def test_properties_monthly(self):
+        "Test properties on DateArrays with daily frequency."
+        m_date = Date(freq='M', year=2007, month=1)
+        for x in range(11):
             m_date_x = m_date+x
             assert_equal(m_date_x.year, 2007)
-
-            if   1  <= x + 1 <= 3:  assert_equal(m_date_x.quarter, 1)
-            elif 4  <= x + 1 <= 6:  assert_equal(m_date_x.quarter, 2)
-            elif 7  <= x + 1 <= 9:  assert_equal(m_date_x.quarter, 3)
-            elif 10 <= x + 1 <= 12: assert_equal(m_date_x.quarter, 4)
-
+            if 1  <= x + 1 <= 3:
+                assert_equal(m_date_x.quarter, 1)
+            elif 4  <= x + 1 <= 6:
+                assert_equal(m_date_x.quarter, 2)
+            elif 7  <= x + 1 <= 9:
+                assert_equal(m_date_x.quarter, 3)
+            elif 10 <= x + 1 <= 12:
+                assert_equal(m_date_x.quarter, 4)
             assert_equal(m_date_x.month, x+1)
 
+
+    def test_properties_weekly(self):
+        "Test properties on DateArrays with daily frequency."
+        w_date = Date(freq='W', year=2007, month=1, day=7)
+        #
         assert_equal(w_date.year, 2007)
         assert_equal(w_date.quarter, 1)
         assert_equal(w_date.month, 1)
         assert_equal(w_date.week, 1)
         assert_equal((w_date-1).week, 52)
 
+
+    def test_properties_daily(self):
+        "Test properties on DateArrays with daily frequency."
+        b_date = Date(freq='B', year=2007, month=1, day=1)
+        #
         assert_equal(b_date.year, 2007)
         assert_equal(b_date.quarter, 1)
         assert_equal(b_date.month, 1)
         assert_equal(b_date.day, 1)
         assert_equal(b_date.weekday, 0)
         assert_equal(b_date.day_of_year, 1)
-
+        #
+        d_date = Date(freq='D', year=2007, month=1, day=1)
+        #
         assert_equal(d_date.year, 2007)
         assert_equal(d_date.quarter, 1)
         assert_equal(d_date.month, 1)
@@ -212,6 +220,11 @@ class TestDateProperties(TestCase):
         assert_equal(d_date.weekday, 0)
         assert_equal(d_date.day_of_year, 1)
 
+
+    def test_properties_hourly(self):
+        "Test properties on DateArrays with hourly frequency."
+        h_date = Date(freq='H', year=2007, month=1, day=1, hour=0)
+        #
         assert_equal(h_date.year, 2007)
         assert_equal(h_date.quarter, 1)
         assert_equal(h_date.month, 1)
@@ -219,12 +232,16 @@ class TestDateProperties(TestCase):
         assert_equal(h_date.weekday, 0)
         assert_equal(h_date.day_of_year, 1)
         assert_equal(h_date.hour, 0)
-
+        #
         harray = date_array(start_date=h_date, end_date=h_date+3000)
         assert_equal(harray.week[0], h_date.week)
         assert_equal(harray.week[-1], (h_date+3000).week)
 
-        assert_equal(t_date.year, 2007)
+
+    def test_properties_minutely(self):
+        "Test properties on DateArrays with minutely frequency."
+        t_date = Date(freq='T', year=2007, month=1, day=1, hour=0, minute=0)
+        #
         assert_equal(t_date.quarter, 1)
         assert_equal(t_date.month, 1)
         assert_equal(t_date.day, 1)
@@ -233,6 +250,12 @@ class TestDateProperties(TestCase):
         assert_equal(t_date.hour, 0)
         assert_equal(t_date.minute, 0)
 
+
+    def test_properties_secondly(self):
+        "Test properties on DateArrays with secondly frequency."
+        s_date = Date(freq='T', year=2007, month=1, day=1,
+                                       hour=0, minute=0, second=0)
+        #
         assert_equal(s_date.year, 2007)
         assert_equal(s_date.quarter, 1)
         assert_equal(s_date.month, 1)
@@ -248,7 +271,9 @@ def dArrayWrap(date):
     "wrap a date into a DateArray of length 1"
     return date_array(start_date=date,length=1)
 
-def noWrap(item): return item
+def noWrap(item):
+    return item
+
 
 class TestFreqConversion(TestCase):
     "Test frequency conversion of date objects"
@@ -325,6 +350,7 @@ class TestFreqConversion(TestCase):
             assert_func(date_ANOV.asfreq('D', "END"), date_ANOV_to_D_end)
 
             assert_func(date_A.asfreq('A'), date_A)
+
 
     def test_conv_quarterly(self):
         "frequency conversion tests: from Quarterly Frequency"
@@ -409,6 +435,7 @@ class TestFreqConversion(TestCase):
 
             assert_func(date_Q.asfreq('Q'), date_Q)
 
+
     def test_conv_monthly(self):
         "frequency conversion tests: from Monthly Frequency"
 
@@ -456,6 +483,7 @@ class TestFreqConversion(TestCase):
             assert_func(date_M.asfreq('S', "END"), date_M_to_S_end)
 
             assert_func(date_M.asfreq('M'), date_M)
+
 
     def test_conv_weekly(self):
         "frequency conversion tests: from Weekly Frequency"
@@ -562,6 +590,7 @@ class TestFreqConversion(TestCase):
 
             assert_func(date_W.asfreq('W'), date_W)
 
+
     def test_conv_business(self):
         "frequency conversion tests: from Business Frequency"
 
@@ -609,6 +638,7 @@ class TestFreqConversion(TestCase):
             assert_func(date_B.asfreq('S', "END"), date_B_to_S_end)
 
             assert_func(date_B.asfreq('B'), date_B)
+
 
     def test_conv_daily(self):
         "frequency conversion tests: from Business Frequency"
@@ -853,6 +883,49 @@ class TestFreqConversion(TestCase):
 
             assert_func(date_S.asfreq('S'), date_S)
 
+    def test_convert_to_float_daily(self):
+        "Test convert_to_float on daily data"
+        dbase = ts.date_array(start_date=ts.Date('D','2007-01-01'),
+                              end_date=ts.Date('D', '2008-12-31'),
+                              freq='D')
+        # D -> A
+        test = convert_to_float(dbase, 'A')
+        assert_equal(test, np.r_[2007 + np.arange(365)/365.,
+                                 2008 + np.arange(366)/366.])
+        # D -> M
+        test = convert_to_float(dbase, 'M')
+        control = []
+        for (m,d) in zip(ts.date_array(length=24,
+                                       start_date=ts.Date('M','2007-01')),
+                         [31,28,31,30,31,30,31,31,30,31,30,31,
+                          31,29,31,30,31,30,31,31,30,31,30,31,]):
+            control.extend([m.value+np.arange(d)/float(d)])
+        control = np.concatenate(control)
+        assert_equal(test, control)
+
+
+    def test_convert_to_float_monthly(self):
+        "Test convert_to_float on daily data"
+        mbase = ts.date_array(start_date=ts.Date('M', '2007-01'),
+                              end_date=ts.Date('M', '2009-01',),
+                              freq='M')
+        # M -> A
+        test = convert_to_float(mbase, 'A')
+        assert_equal(test, 2007 + np.arange(25)/12.)
+        # M -> Q
+
+
+    def test_convert_to_float_quarterly(self):
+        "Test convert_to_float on daily data"
+        qbase = ts.date_array(start_date=ts.Date('Q',year=2007,quarter=1),
+                              end_date=ts.Date('Q',year=2008,quarter=4),
+                              freq='Q')
+        # Q -> A
+        test = convert_to_float(qbase, 'A')
+        assert_equal(test, 2007+np.arange(8)/4.)
+
+
+
 class TestMethods(TestCase):
     "Base test class for MaskedArrays."
 
@@ -879,6 +952,7 @@ class TestMethods(TestCase):
         #
         assert_equal(mdates>=mdates[-4], [0,0,0,0,0,0,1,1,1,1])
 
+
     def test_add(self):
         dt1 = Date(freq='D', year=2008, month=1, day=1)
         dt2 = Date(freq='D', year=2008, month=1, day=2)
@@ -889,20 +963,21 @@ class TestMethods(TestCase):
         assert_equal(dt1 + np.int64(1), dt2)
         assert_equal(dt1 + np.float32(1), dt2)
         assert_equal(dt1 + np.float64(1), dt2)
-
+        #
         try:
             temp = dt1 + "str"
         except TypeError:
             pass
         else:
             raise RuntimeError("invalid add type passed")
-
+        #
         try:
             temp = dt1 + dt2
         except TypeError:
             pass
         else:
             raise RuntimeError("invalid add type passed")
+
 
     def test_getsteps(self):
         "Tests the getsteps method"
@@ -917,12 +992,14 @@ class TestMethods(TestCase):
         assert_equal(empty_darray.isvalid(), True)
         assert_equal(empty_darray.get_steps(), None)
 
+
     def test_cachedinfo(self):
         D = date_array(start_date=now('D'), length=5)
         Dstr = D.tostring()
         assert_equal(D.tostring(), Dstr)
         DL = D[[0,-1]]
         assert_equal(DL.tostring(), Dstr[[0,-1]])
+
 
     def test_date_to_index_valid(self):
         "Tests date_to_index"
@@ -949,6 +1026,7 @@ class TestMethods(TestCase):
         chosen = dates.date_to_index(choices[0:1])
         assert_equal(chosen, [2])
 
+
     def test_contains(self):
         dt = ts.now('d')
         darr = date_array(start_date=dt, length=5)
@@ -956,7 +1034,7 @@ class TestMethods(TestCase):
         assert(dt-1 not in darr)
         assert(dt.value in darr)
         assert((dt-1).value not in darr)
-
+        #
         try:
             ts.now('b') in darr
         except ValueError:
@@ -964,7 +1042,7 @@ class TestMethods(TestCase):
         else:
             raise RuntimeError("containment of wrong frequency permitted")
 
-    #
+
     def test_date_to_index_invalid(self):
         "Tests date_to_index"
         dates_invalid = date_array(['2007-01-%02i' % i for i in range(1, 11)] + \

@@ -42,7 +42,7 @@ __all__ = ['ArithmeticDateError',
            'DateError',
            'FrequencyDateError',
            'InsufficientDateError',
-           'check_freq', 'check_freq_str',
+           'check_freq', 'check_freq_str', 'convert_to_float',
            'date_array', 'day', 'day_of_year',
            'get_freq_group',
            'hour',
@@ -784,3 +784,71 @@ def period_break(dates, period):
     current = getattr(dates, period)
     previous = getattr(dates-1, period)
     return (current - previous).nonzero()[0]
+
+
+def convert_to_float(datearray, ofreq):
+    """
+    Convert a :class:`~scikits.timeseries.DateArray` from a ndarray of integer
+    at the given frequency to a ndarray of float at a lower frequency.
+
+    Parameters
+    ----------
+    datearray : DateArray
+        Input :class:`~scikits.timeseries.DateArray` to convert.
+    ofreq : var
+        Valid frequency specifier.
+
+    Notes
+    -----
+    This function is currently restricted to conversion between annual (``'A'``),
+    quarterly (``'Q'``), monthly (``'M'``) and daily (``'D'``) frequencies only.
+    """
+    if not isinstance(datearray, DateArray):
+        raise TypeError("The input should be a valid DateArray instance !"\
+                        " (got '%s' instead)" % type(datearray))
+    errmsg = "Not implemented for the frequencies ('%s', '%s')"
+    #
+    freqdict = dict([(f, check_freq(f)) for f in ('A','Q','M','D')])
+    ifreq = datearray.freq
+    ofreq = check_freq(ofreq)
+    errmsg = "Not implemented for the frequencies ('%s', '%s')" % \
+             (check_freq_str(ifreq), check_freq_str(ofreq))
+    if ifreq < ofreq:
+        output = datearray.asfreq(ofreq).tovalue().astype(float)
+    elif ifreq == ofreq:
+        output = datearray.tovalue().astype(float)
+    # Quarterly.........
+    elif (ifreq >= freqdict['Q']) and (ifreq < freqdict['M']):
+        if (ofreq >= freqdict['A']) and (ofreq < freqdict['Q']):
+            output = datearray.years.astype(float) + (datearray.quarters -1.)/4.
+    # Monthly...........
+    elif ifreq == freqdict['M']:
+        #... to annual
+        if (ofreq >= freqdict['A']) and (ofreq < freqdict['Q']):
+            output = datearray.years.astype(float) + (datearray.months - 1)/12.
+        else:
+            raise NotImplementedError(errmsg)
+    # Daily ............
+    elif ifreq == freqdict['D']:
+        # ... to annual
+        if (ofreq >= freqdict['A']) and (ofreq < freqdict['Q']):
+            output = datearray.asfreq('A')
+            output = output.tovalue().astype(float) + \
+                     (datearray.yeardays-1.) / output.yeardays.astype(float)
+        # ... to quarterly
+        elif (ofreq >= freqdict['Q']) and (ofreq < freqdict['M']):
+            raise NotImplementedError
+        # ... to monthly
+        elif ofreq == freqdict['M']:
+            output = datearray.asfreq('M')
+            output = output.tovalue().astype(float) + \
+                     (datearray.days-1.) / output.days.astype(float)
+        # ... to other
+        else:
+            raise NotImplementedError(errmsg)
+    # Less than daily
+    elif ifreq > freqdict['D']:
+        raise NotImplementedError(errmsg)
+    else:
+        raise NotImplementedError(errmsg)
+    return output
