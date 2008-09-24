@@ -103,13 +103,12 @@ from matplotlib.pyplot import acorr, annotate, arrow, autumn, axes, axhline,\
                               ylabel, ylim, yscale, yticks
 
 
-
-
 import numpy as np
 import numpy.ma as ma
 
 from scikits.timeseries import \
-    date_array, Date, DateArray, get_freq_group, TimeSeries, check_freq_str
+    date_array, Date, DateArray, get_freq_group, TimeSeries, check_freq_str, \
+    convert_to_float
 from scikits.timeseries import const as _c
 
 import warnings
@@ -795,16 +794,6 @@ class TimeSeriesPlot(Subplot, object):
     All the other series that will be plotted will be first converted to the
     :attr:`freq` frequency, using their :meth:`~scikits.timeseries.TimeSeries.asfreq`
     method.
-    
-    Warnings
-    --------
-    * Because the series to plot are first converted to the frequency of the plot,
-      it is recommended when plotting several series to associate the plot with
-      the series with the highest frequency, in order to keep a good level of detail.
-    
-    The x axis of a :class:`TimeSeriesPlot` is a :class:`~scikits.timeseries.DateArray`
-    object. The frequency of this :class:`~scikits.timeseries.DateArray` is 
-    associated with the plot.
 
     The same parameters used for the instanciation of a standard Subplot are
     recognized.
@@ -825,6 +814,12 @@ class TimeSeriesPlot(Subplot, object):
         List of the labels associated with each plot.
         The first label corresponds to the first plot, the second label to the
         second plot, and so forth.
+
+    Warnings
+    --------
+    * Because the series to plot are first converted to the frequency of the plot,
+      it is recommended when plotting several series to associate the plot with
+      the series with the highest frequency, in order to keep a good level of detail.
 
     """
     def __init__(self, fig=None, *args, **kwargs):
@@ -851,7 +846,7 @@ class TimeSeriesPlot(Subplot, object):
         self.legendsymbols = []
         self.legendlabels = []
     #......................................................
-    def set_ydata(self, series=None):
+    def set_series(self, series=None):
         """
     Sets the time series associated with the plot.
     If ``series`` is a valid :class:`~scikits.timeseries.TimeSeries` object, 
@@ -864,14 +859,32 @@ class TimeSeriesPlot(Subplot, object):
             if isinstance(series, TimeSeries):
                 self.xdata = self.series.dates
     #....
-    def get_ydata(self):
+    def get_series(self):
         """
     Returns the data part of the time series associated with the plot, as a 
     (subclass of) :class:`MaskedArray`.
     """
         return self._series
-    ydata = property(fget=get_ydata, fset=set_ydata,
+    #....
+    series = property(fget=get_series, fset=set_series,
                      doc="Underlying time series.")
+
+    def set_ydata(self, series=None):
+        errmsg = "The use of 'set_ydata' is deprecated. "\
+                 "Please use 'set_series' instead"
+        warnings.DepreciationWarning(errmsg)
+        return self.set_series(series)
+    #
+    def get_ydata(self):
+        errmsg = "The use of 'get_ydata' is deprecated. "\
+                 "Please use 'get_series' instead"
+        warnings.DepreciationWarning(errmsg)
+        return self.get_series()
+    #
+    ydata = property(fget=get_ydata, fset=set_ydata,
+                      doc="Underlying time series.")
+
+
     #......................................................
     def _check_plot_params(self,*args):
         """
@@ -882,7 +895,7 @@ class TimeSeriesPlot(Subplot, object):
         if len(args) == 0:
             if self.xdata is None:
                 raise ValueError, "No date information available!"
-            return (self.xdata, self.ydata)
+            return (self.xdata, self.series)
         output = []
         while len(remaining) > 0:
             a = remaining.pop(0)
@@ -891,7 +904,7 @@ class TimeSeriesPlot(Subplot, object):
                 if self.xdata is None:
                     raise ValueError, "No date information available!"
                 else:
-                    output.extend([self.xdata, self.ydata, a])
+                    output.extend([self.xdata, self.series, a])
             # The argument is a TimeSeries: use its dates for x
             elif isinstance(a, TimeSeries):
                 (x,y) = (a._dates, a._series)
@@ -911,16 +924,16 @@ class TimeSeriesPlot(Subplot, object):
                     #...and it's a format string
                     if isinstance(remaining[0], str):
                         b = remaining.pop(0)
-                        if self.ydata is None:
+                        if self.series is None:
                             raise ValueError, "No data information available!"
                         else:
-                            output.extend([a, self.ydata, b])
+                            output.extend([a, self.series, b])
                     #... and it's another date: use the default
                     elif isinstance(remaining[0], DateArray):
-                        if self.ydata is None:
+                        if self.series is None:
                             raise ValueError, "No data information available!"
                         else:
-                            output.extend([a, self.ydata])
+                            output.extend([a, self.series])
                     #... and it must be some data
                     else:
                         b = remaining.pop(0)
@@ -931,7 +944,7 @@ class TimeSeriesPlot(Subplot, object):
                             else:
                                 output.extend([a,b])
                 else:
-                    if self.ydata is None:
+                    if self.series is None:
                         raise ValueError, "No data information available!"
             # Otherwise..............................
             elif len(remaining) > 0 and isinstance(remaining[0], str):
@@ -951,7 +964,10 @@ class TimeSeriesPlot(Subplot, object):
         # Force the xdata to the current frequency
         elif output[0].freq != self.freq:
             output = list(output)
-            output[0] = output[0].asfreq(self.freq)
+            try:
+                output[0] = convert_to_float(output[0], self.freq)
+            except NotImplementedError:
+                output[0] = output[0].asfreq(self.freq)
         return output
     #......................................................
     def tsplot(self,*args,**kwargs):
@@ -1007,7 +1023,7 @@ class TimeSeriesPlot(Subplot, object):
         if self.get_xlim().tolist() == [0., 1.]:
             # if xlim still at default values, autoscale the axis
             self.autoscale_view()
-
+        self.reset_datelimits()
         return plotted
     #......................................................
     def format_dateaxis(self):

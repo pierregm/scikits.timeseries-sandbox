@@ -1,5 +1,5 @@
 """
-.. currentmodule:: scikits.timeseries.lib.tables
+.. currentmodule:: scikits.timeseries.lib.tstables
 
 :mod:`~scikits.timeseries.lib.tstables`
 =======================================
@@ -7,7 +7,7 @@
 Interface between :mod:`scikits.timeseries` and :mod:`PyTables`.
 :mod:`PyTables` is a Python package "for managing hierarchical datasets and 
 designed to efficiently and easily cope with extremely large amounts of data".
-:mod:`PyTables` is available at this `URL <http://www.pytables.org/moin>_`.
+:mod:`PyTables` is available at this `URL <http://www.pytables.org/moin>`_.
 
 
 The :mod:`~scikits.timeseries.lib.tstables` module defines two new objects,
@@ -20,21 +20,23 @@ Classes
 -------
 
 .. class:: MaskedTable
+
    Based on :class:`tables.Table`
    
-   Stores a MaskedArray into a table.
-   The initial MaskedArray is transformed into a flexible-type standard ndarray
-   before storage:
+   Stores a :class:`~numpy.ma.MaskedArray` into a table.
+   The initial :class:`~numpy.ma.MaskedArray` is transformed into a flexible-type
+   standard ndarray before storage:
 
-   * if the initial MaskedArray has no named fields (standard dtype), the resulting
-     ndarray has two named fields: ``_data`` and ``_mask``.
+   * if the initial :class:`~numpy.ma.MaskedArray` has no named fields (standard
+     type), the resulting ndarray has two named fields: ``_data`` and ``_mask``.
      The ``_data`` field has the same type as the original array, while the
      ``_mask`` field is always boolean.
-     Note that a mask is always created, even if the initial MaskedArray has no
-     missing values.
+     Note that a mask is always created, even if the initial
+     :class:`~numpy.ma.MaskedArray` has no missing values.
 
-   * if the initial MaskedArray has named fields (flexible type), the resulting
-     ndarray will have as many fields as the initial array, with the same name.
+   * if the initial :class:`~numpy.ma.MaskedArray` has named fields (flexible
+     type), the resulting ndarray will have as many fields as the initial array,
+     with the same name.
      Each field will have two nested subfields, ``_data`` and ``_mask``.
      The ``_data`` subfield will have the same dtype as the original field, 
      while the ``_mask`` subfield will always be boolean.
@@ -48,68 +50,74 @@ Classes
         ...                 ('b', [('_data', '<f8'), ('_mask', '|b1')]), 
         ...                 ('c', [('_data', '|S3'), ('_mask', '|b1')])]
 
-   When a MaskedTable is read, it is automatically retransformed into a
-   MaskedArray.
+   When a :class:`MaskedTable` is read, it is automatically retransformed into a
+   :class:`~numpy.ma.MaskedArray`.
 
-   Additional information about the MaskedArray (such as ``_baseclass``, 
-   ``_fill_value``...) is stored into a dictionary named ``special_attrs``.
+   Additional information about the :class:`~numpy.ma.MaskedArray` (such as 
+   ``_baseclass``, ``_fill_value``...) is stored into a dictionary named
+   ``special_attrs``.
+   This information can be accessed through the :attr:`attr` attribute of the
+   table.
+
+   .. automethod:: MaskedTable.read
 
 
 
 .. class:: TimeSeriesTable
+   
    Based on :class:`MaskedTable`
    
-   Stores a TimeSeries object into a table.
-   The initial TimeSeries is transformed into a flexible-type standard ndarray
-   before storage:
+   Stores a :class:`~scikits.timeseries.TimeSeries` object into a table.
+   The initial :class:`~scikits.timeseries.TimeSeries` is transformed into a
+   flexible-type standard ndarray before storage:
 
-   * if the initial TimeSeries has no named fields (standard dtype), the resulting
-     ndarray has three named fields: ``_dates``, ``_data`` and ``_mask``.
+   * if the initial :class:`~scikits.timeseries.TimeSeries` has no named fields
+     (standard dtype), the resulting ndarray has three named fields: ``_dates``,
+     ``_data`` and ``_mask``.
      The ``_data`` field has the same type as the original array, while the
      ``_mask`` field is always boolean.
      The ``_dates`` field is always integer.
-     Note that a mask is always created, even if the initial TimeSeries has no
-     missing values.
+     Note that a mask is always created, even if the initial
+     :class:`~scikits.timeseries.TimeSeries` has no missing values.
 
-   * if the initial TimeSeries has named fields (flexible type), the resulting
-     ndarray will have the same fields as the initial array, with the same name,
-     with the addition of an extra field ``_dates``.
+   * if the initial :class:`~scikits.timeseries.TimeSeries` has named fields
+     (flexible type), the resulting ndarray will have the same fields as the
+     initial array, with the same name, with the addition of an extra field
+     ``_dates``.
      Each field (except ``_dates``) will have two nested subfields, ``_data``
      and ``_mask``.
      The ``_data`` subfield will have the same dtype as the original field, 
      while the ``_mask`` subfield will always be boolean.
      The ``_dates`` field is always integer.
 
-   When a TimeSeriesTable is read, it is automatically retransformed into a
-   TimeSereis.
 
-   Additional information about the TimeSeries (such as ``_baseclass``, 
-   ``_fill_value``, or the frequency attribute of the ``_dates``...) 
-   is stored into a dictionary named ``special_attrs``.
+   Additional information about the :class:`~scikits.timeseries.TimeSeries`
+   (such as ``_baseclass``, ``_fill_value``, or the frequency attribute of the 
+   ``_dates``...) is stored into a dictionary named ``special_attrs``.
+   This information can be accessed through the :attr:`attr` attribute of the
+   table.
 
 
-   To create a TimeSeriesTable, just use the :meth:`File.createTimeSeriesTable`
-   method of a standard :class:`tables.File` object.
+   To create a :class:`TimeSeriesTable`, just use the
+   :meth:`File.createTimeSeriesTable` method of a standard :class:`tables.File`
+   object.
 
+
+   .. automethod:: TimeSeriesTable.read
 
 
 Methods
 -------
 
-.. method:: tables.File.createMaskedTable(where, name, maskedarray, title="",
-                                          filters=None, expectedrows=10000,
-                                          chunkshape=None, byteorder=None,
-                                          createparents=False)
+.. method:: tables.File.createMaskedTable(where, name, maskedarray, title="", filters=None, expectedrows=10000, chunkshape=None, byteorder=None, createparents=False`)
 
    Use this method to create a new :class:`MaskedTable` object.
    This method accepts the same input parameters as the standard
    :meth:`tables.File.createTable`.
 
 
-.. method:: tables.File.createTimeSeriesTable(where, name, maskedarray, title="",
-                                              filters=None, expectedrows=10000,
-                                              chunkshape=None, byteorder=None,
-                                              createparents=False)
+
+.. method:: tables.File.createTimeSeriesTable(where, name, series, title="", filters=None, expectedrows=10000, chunkshape=None, byteorder=None, createparents=False)
 
    Use this method to create a new :class:`TimeSeriesTable` object.
    This method accepts the same input parameters as the standard
@@ -272,6 +280,31 @@ class MaskedTable(Table):
 
     def read(self, start=None, stop=None, step=None, field=None):
         """
+    Reads the current :class:`MaskedTable`.
+    
+    Returns
+    -------
+    
+    Depending on the value of the ``field`` parameter, the method returns either
+    * a ndarray, if ``field=='_data'`` or if ``field=='_mask'``;
+    * a :class:`~numpy.ma.MaskedArray`, if ``field`` is None or a valid field.
+    
+    Parameters
+    ----------
+    start : {None, int}, optional
+        Index of the first record to read.
+        If None, records will be read starting from the very first one.
+    stop : {None, int}, optional
+        Index of the last record to read.
+        If None, records will be read until the very last one.
+    step : {None, int}, optional
+        Increment between succesive records to read.
+        If None, all the records between ``start`` and ``stop`` will be read.
+    field : {None, str}, optional
+        Name of the field to read.
+        If None, all the fields from each record are read.
+        The argument should be one of the field of the series, or one of the
+        following: ``'_data','_mask'``.
         """
         data = Table.read(self, start=start, stop=stop, step=step,
                           field=field)
@@ -353,7 +386,36 @@ class TimeSeriesTable(MaskedTable):
 
     def read(self, start=None, stop=None, step=None, field=None):
         """
-    Reads a TimeTable and returns a time series
+    Reads the current :class:`TimeSeriesTable`.
+    
+    Returns
+    -------
+    
+    Depending on the value of the ``field`` parameter, the method returns:
+    
+    * a :class:`~scikits.timeseries.TimeSeries`, if ``field`` is None or a valid
+      field;
+    * a :class:`~scikits.timeseries.DateArray`, if ``field=='_dates'``;
+    * a ndarray, if ``field=='_data'`` or if ``field=='_mask'``;
+    * a :class:`~numpy.ma.MaskedArray`, if ``field=='_series'``.
+    
+    
+    Parameters
+    ----------
+    start : {None, int}, optional
+        Index of the first record to read.
+        If None, records will be read starting from the very first one.
+    stop : {None, int}, optional
+        Index of the last record to read.
+        If None, records will be read until the very last one.
+    step : {None, int}, optional
+        Increment between succesive records to read.
+        If None, all the records between ``start`` and ``stop`` will be read.
+    field : {None, str}, optional
+        Name of the field to read.
+        If None, all the fields from each record are read.
+        The argument should be one of the field of the series, or one of the
+        following: ``'_data','_mask','_dates','_series'``.
         """
 #        data = Table.read(self, start=start, stop=stop, step=step,
 #                          field=field)
@@ -432,7 +494,7 @@ def createMaskedTable(self, where, name, maskedarray, title="",
                       chunkshape=None, byteorder=None,
                       createparents=False):
     """
-    Creates a MaskedTable from a masked array.
+    Creates a :class:`MaskedTable` from a masked array.
 
     Parameters
     ----------
@@ -460,7 +522,8 @@ def createTimeSeriesTable(self, where, name, series, title="",
                           chunkshape=None, byteorder=None,
                           createparents=False):
     """
-    Creates a TimeSeriesTable from a TimeSeries object.
+    Creates a :class:`TimeSeriesTable` from
+    a :class:`~scikits.timeseries.TimeSeries` object.
 
     Parameters
     ----------
