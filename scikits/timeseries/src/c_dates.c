@@ -1432,6 +1432,7 @@ DateObject_init(DateObject *self, PyObject *args, PyObject *kwds) {
             if (PyDateTime_Check(datetime) || PyDate_Check(datetime)) {
                 year=PyDateTime_GET_YEAR(datetime);
                 month=PyDateTime_GET_MONTH(datetime);
+                quarter=((month-1)/3)+1;
                 day=PyDateTime_GET_DAY(datetime);
                 hour=PyDateTime_DATE_GET_HOUR(datetime);
                 minute=PyDateTime_DATE_GET_MINUTE(datetime);
