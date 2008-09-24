@@ -482,7 +482,7 @@ class NumpyDocString(Docstring):
         self.section.update([(h, self[s[0]:s[1]])
                              for (h,s) in sectidx.iteritems()])
         #
-        for header in ['Parameters', 'Returns', 'Raises', 'Warns']:
+        for header in ['Parameters', 'Returns', 'Raises', 'Warns', 'Attributes']:
             self._fix_description(header)
         self._fix_examples()
         self._fix_see_also()
@@ -718,7 +718,7 @@ class NumpyDocString(Docstring):
             if out[-1] != '':
                 out += ['']
         #
-        for header in ('Parameters','Returns','Raises', 'Warns'):
+        for header in ('Parameters', 'Attributes', 'Returns', 'Raises', 'Warns'):
             out += self._format_list(header)
         #
         out += self._format_see_also() #("obj")

@@ -131,11 +131,13 @@ def run(arguments, options, state_machine, lineno):
     if options.pop('include-source', None) is not None:
         codetemplate = ".. literalinclude:: %(srcdir)s/%(reference)s\n"\
                        "   :language:python"
-        lines = [codetemplate % locals()]
-        if options.pop('linenos'):
+        if options.pop('linenos', None):
             codetemplate += "\n   :linenos:"
+        lines = [codetemplate % locals()]
     else:
         lines = []
+        if 'linenos' in options:
+            del options['linenos']
     options = ['      :%s: %s' % (k, v) for (k, v) in options.items()]
     options = "\n".join(options)
 
