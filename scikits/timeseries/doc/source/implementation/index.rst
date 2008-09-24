@@ -8,3 +8,5 @@ Implementation
    tdatearrays
    tseries
    interpolation_filtering
+   plotlib
+   tstables
