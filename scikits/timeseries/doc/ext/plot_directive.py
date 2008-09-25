@@ -38,11 +38,11 @@ options = {'alt': directives.unchanged,
 
 template = """
 .. htmlonly::
-   .. image:: ../%(outdir)s/%(basename)s.png
+   .. image:: %(outdir)s/%(basename)s.png
 %(options)s
 
 .. latexonly::
-   .. image:: ../%(outdir)s/%(basename)s.pdf
+   .. image:: %(outdir)s/%(basename)s.pdf
 %(options)s
 
 """
@@ -106,26 +106,23 @@ def run(arguments, options, state_machine, lineno):
     (basedir, fname) = os.path.split(reference)
     (basename, ext) = os.path.splitext(fname)
 
-#    print """
-#    reference : %(reference)s
-#    arguments : %(arguments)s
-#    options   : %(options)s
-#    basedir   : %(basedir)s
-#    basename  : %(basename)s
-#    fname     : %(fname)s
-#    """ % locals()
-    #With reference to the current directory (one step above source and build)"
+    path_parts = list(os.getcwd().split(os.path.sep))
+    doc_idx = path_parts.index('doc')
+
+    # change to doc directory if not already there
+    for x in range(len(path_parts) - 1 - doc_idx): os.chdir('..')
+
     srcdir = 'source/examples'
-    outdir = 'source/../build/plots'
+    outdir = 'build/plots'
+
+    outdir = os.path.abspath(outdir)
+    srcdir = os.path.abspath(srcdir)
+
     # Make sure that outdir exists and is an actual directory
-    outdir_abs = os.path.normpath(outdir)
-    if not os.path.isdir(outdir_abs):
-        os.mkdir(outdir_abs)
+    if not os.path.isdir(outdir): os.mkdir(outdir)
 
     # Build the figure from the script
     makefig(os.path.join(srcdir, reference), outdir)
-    # Make sure that outdir now is now with reference to source
-    outdir = os.path.sep.join(outdir.split(os.path.sep)[1:])
 
     # Process the options
     if options.pop('include-source', None) is not None:
@@ -154,17 +151,6 @@ except ImportError:
 
     def plot_directive(name, arguments, options, content, lineno,
                        content_offset, block_text, state, state_machine):
-#        print """
-#        name     : %(name)s
-#        arguments: %(arguments)s
-#        options  : %(options)s
-#        content  : %(content)s
-#        lineno   : %(content)s
-#        offset   : %(content_offset)s
-#        blktxt   : %(block_text)s
-#        state    : %(state)s
-#        stmmch   : %(state_machine)s
-#        """ % locals()
         return run(arguments, options, state_machine, lineno)
     plot_directive.__doc__ = __doc__
     plot_directive.arguments = (1, 0, 1)
