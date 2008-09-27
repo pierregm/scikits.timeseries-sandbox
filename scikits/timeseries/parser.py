@@ -103,6 +103,7 @@ _time = (_hour + ':' + _minute + '(?::' + _second + '|[^:]|$) *'
          + _ampm + '? *' + _zone + '?')
 _isotime = _hour + ':?' + _minute + ':?' + _second + '? *' + _zone + '?'
 
+_yeardate = _year
 _weekdate = _year + '-?(?:' + _week + '-?' + _day + '?)?'
 _eurodate = _day + '\.' + _month + '\.' + _year_epoch + '?'
 _usdate = _month + '/' + _day + '(?:/' + _year_epoch + '|[^/]|$)'
@@ -159,6 +160,7 @@ _isotimeRE = re.compile(_isotime, re.I)
 _isodateRE = re.compile(_isodate, re.I)
 _altisodateRE = re.compile(_altisodate, re.I)
 _usisodateRE = re.compile(_usisodate, re.I)
+_yeardateRE = re.compile(_yeardate, re.I)
 _eurodateRE = re.compile(_eurodate, re.I)
 _usdateRE = re.compile(_usdate, re.I)
 _altusdateRE = re.compile(_altusdate, re.I)
@@ -179,7 +181,7 @@ _date_formats = ('euro',
                  'usiso', 'us', 'altus',
                  'iso', 'altiso',
                  'lit', 'altlit', 'eurlit',
-                 'unknown')
+                 'year', 'unknown')
 
 # Available time parsers
 _time_formats = ('standard',
@@ -388,6 +390,24 @@ def _parse_date(text):
                 if month > 12 or month == 0:
                     match = None
                     continue
+                break
+
+        elif format == 'year':
+            # just a year specified
+            match = _yeardateRE.match(text)
+            if match is not None:
+                year = match.groups()[0]
+                if year:
+                    if len(year) == 2:
+                        # Y2K problem:
+                        year = add_century(int(year))
+                    else:
+                        year = int(year)
+                else:
+                    defaultdate = now()
+                    year = defaultdate.year
+                day = 1
+                month = 1
                 break
 
         elif format in iso_formats:

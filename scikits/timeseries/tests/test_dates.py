@@ -59,6 +59,14 @@ class TestCreation(TestCase):
         assert_equal(dates, 24073 + np.arange(12))
         print "finished test_fromstrings"
 
+        # quarterly date
+        assert_equal(
+            Date(freq='Q', string='2007-01'),
+            Date(freq='Q', year=2007, quarter=1))
+
+        # just a year
+        assert_equal(Date(freq='A', string='2007'), Date(freq='A', year=2007))
+
 
     def test_fromstrings_sorting_bug(self):
         """regression test for previous bug with string dates getting sorted
