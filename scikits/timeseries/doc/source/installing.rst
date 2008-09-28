@@ -19,7 +19,7 @@ packages must be installed before hand:
   namespace package, and as a result every scikit requires ``setuptools`` to be
   installed to function properly.
 
-* `Numpy <http://www.scipy.org/Download>`_ 1.2.0 or later
+* `Numpy <http://www.scipy.org/Download>`_ 1.2.1 or later
 
 Optional
 --------
