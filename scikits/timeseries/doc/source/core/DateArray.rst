@@ -6,6 +6,13 @@
 
 .. autoclass:: DateArray
 
+Construction
+============
+
+To construct a :class:`~DateArray` object, you can use the factory function
+:func:`~date_array` (preferred), or call the class directly.
+
+.. autofunction:: date_array
 
 Attributes
 ==========
@@ -117,8 +124,6 @@ These methods transform a :class:`DateArray` to other formats.
 
 Functions
 =========
-
-.. autofunction:: date_array
 
 .. autofunction:: fill_missing_dates
 .. autofunction:: period_break

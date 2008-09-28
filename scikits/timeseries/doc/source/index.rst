@@ -12,11 +12,10 @@
 
    intro
    installing
-   examples/index
-   implementation/index
+   core/index
+   lib/index
 
 .. htmlonly::
 
   * :ref:`genindex`
-  * :ref:`modindex`
   * :ref:`search`

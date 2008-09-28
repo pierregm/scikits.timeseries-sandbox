@@ -1,211 +1,5 @@
 .. currentmodule:: scikits.timeseries
 
-:class:`~Date` objects
-=============================
-
-Even if you have no use for time series in general, you may still find the
-:class:`~Date` class contained in the module quite useful.
-A :class:`~Date` object combines some date and/or time related information
-with a given frequency.
-You can picture the frequency as the unit into which the date is expressed.
-For example, we can create dates in the following manner:
-
-   >>> # The following imports are assumed throughout the documentation
-   >>> import numpy as np
-   >>> import numpy.ma as ma
-   >>> import datetime
-   >>> import scikits.timeseries as ts
-   >>>
-   >>> D = ts.Date(freq='D', year=2007, month=1, day=1)
-   >>> M = ts.Date(freq='M', year=2007, month=1)
-   >>> Y = ts.Date(freq='A', year=2007)
-
-
-Observe that you only need to specify as much information as is relevant to the
-frequency.
-The importance of the frequency will become clearer later on.
-
-.. note::
-   A more technical note: :class:`~Date` objects are internally stored as integers.
-   The conversion to integers and back is controlled by the frequency.
-   In the example above, the internal representation of the three objects ``D``,
-   ``M`` and ``Y`` are ``732677``, ``24073`` and ``2007``, respectively.
-
-
-
-Construction of a :class:`~Date` object
-----------------------------------------------
-
-Several options are available to construct a :class:`~Date` object explicitly.
-In each case, the ``frequency`` argument must be given.
-Valid frequency specifications are given in the Frequencies_ section below.
-
-* Give appropriate values to any of the ``year``, ``month``, ``day``, ``quarter``,
-  ``hour``, ``minute``, ``second`` arguments.
-
-   >>> ts.Date(freq='Q',year=2004,quarter=3)
-   <Q : 2004Q3>
-   >>> ts.Date(freq='D',year=2001,month=1,day=1)
-   <D : 01-Jan-2001>
-
-* Use the ``string`` keyword.
-
-   >>> ts.Date('D', string='2007-01-01')
-   <D : 01-Jan-2007>
-
-* Use the ``datetime`` keyword with an existing :class:`datetime.datetime` object.
-
-   >>> ts.Date('D', datetime=datetime.datetime.now())
-
-* Use the ``value`` keyword and provide an integer representation of the date.
-
-   >>> ts.Date('D', value=732677)
-   <D : 01-Jan-2007>
-
-
-
-Frequencies
------------
-
-For any functions or class constructors taking a frequency argument, the frequency
-can be specified in one of two ways:
-
-* using a valid string representation of the frequency,
-* using the integer frequency constants.
-
-The constants can be found in the :mod:`scikits.timeseries.const` submodule.
-The table of the frequency constants and their valid string aliases is available
-in section :ref:`date_frequencies`
-
-
-Convenience functions
----------------------
-
-Two convenience functions are provided to access the current date:
-
- * :func:`~now`
-   Get the current Date at a specified frequency
- * :func:`~prevbusday`
-   Get the previous business day, determined by a specified cut off time.
-   See the function's docstring for more details.
-
-
-Manipulating dates
-------------------
-
-You can convert a :class:`~Date` object from one frequency to another with the
-:meth:`~Date.asfreq` method.
-When converting to a higher frequency (for example, from monthly to daily),
-you may optionally specify the "relation" parameter with the value ``"START"`` or
-``"END"`` (default is ``"END"``).
-Note that if you convert a daily :class:`~Date` to a monthly frequency and back
-to a daily one, you will lose your day information in the process
-(similarly for converting any higher frequency to a lower one):
-
-   >>> D = ts.Date('D', year=2007, month=12, day=31)
-   >>> D.asfreq('M')
-   <M: Dec-2006>
-   >>> D.asfreq('M').asfreq('D', relation="START")
-   <D: 01-Dec-2006>
-   >>> D.asfreq('M').asfreq('D', relation="END")
-   <D: 31-Dec-2006>
-
-
-You can add and subtract integers from a :class:`~Date` object to get a new
-:class:`~Date`` object.
-The frequency of the new object is the same as the original one.
-For example:
-
-   >>> yesterday = ts.now('D') - 1
-   >>> infivemonths = ts.now('M') + 5
-
-
-You can also subtract a :class:`~Date` from another :class:`~Date` of the same
-frequency to determine the number of periods between the two dates.
-
-   >>> Y = ts.Date('A', year=2007)
-   >>> days_in_year = Y.asfreq('D', relation='END') - Y.asfreq('D', relation='START') + 1
-   >>> days_in_year
-   365
-
-
-Some other methods worth mentioning are:
-
-* :meth:`~Date.toordinal`
-  Converts an object to the equivalent proleptic gregorian date.
-* :meth:`~Date.tostring`
-  Converts an object to the corresponding string.
-
-
-Formatting Dates as String
---------------------------
-
-To output a date as a string, you can simply cast it to a string (call
-:func:`str` on it) and a default output format for that frequency will be used,
-or you can use the :meth:`~Date.strfmt` method for explicit control.
-The :meth:`~Date.strfmt` method of the Date class takes one argument: a format string.
-This behaves in essentially the same manner as the ``strftime`` function in the
-standard python time module and accepts the same directives, plus several
-additional directives outlined below.
-
-* '%q'
-  The ''quarter'' of the date.
-* '%f'
-  Year without century as a decimal number [00,99].
-  The ''year'' in this case is the year of the date determined by the year for the current quarter.
-  This is the same as '%y' unless the Date is one of the quarterly frequencies.
-  In financial terms, this is the 'fiscal year'.
-* '%F'
-  Year with century as a decimal number.
-  The ''year'' in this case is the year of the date determined by the year for the current quarter.
-  This is the same as %Y unless the Date is one of the quarterly frequencies.
-  In financial terms, this is the 'fiscal year'.
-
-
-Examples
-~~~~~~~~
-
-   >>> a = ts.Date(freq='q-jul', year=2006, quarter=1)
-   >>> a.strfmt("%F-Q%q")
-   '2006-Q1'
-   >>> a.strfmt("%b-%Y") # this will output the last month in the quarter for this date
-   'Oct-2005'
-   >>> b = ts.Date(freq='d', year=2006, month=4, day=25)
-   >>> b.strfmt("%d-%b-%Y")
-   '25-Apr-2006'
-
-
-________________________________________________________________________________
-
-
-:class:`~DateArray` objects
-==================================
-
-A :class:`~DateArray` object is  are simply a :class:`numpy.ndarray` of
-:class:`~Date` objects.
-They accept the same methods as a :class:`~Date` object, with the addition of:
-
-:meth:`~DateArray.tovalue`
-   Converts the array to an array of integers.
-   Each integer is the internal representation of the corresponding date.
-:meth:`~DateArray.has_missing_dates`
-   Outputs a boolean on whether some dates are missing or not.
-:meth:`~DateArray.has_duplicated_dates`
-   Outputs a boolean on whether some dates are duplicated or not.
-
-
-Construction
-------------
-
-To construct a :class:`~DateArray` object, you can use the factory function
-:func:`~date_array` (preferred), or call the class directly.
-See the docstrings of :func:`~date_array` and :class:`~DateArray`
-for a more detailed presentation of the available parameters.
-
-
-_______________________________________________________________________________
-
-
 :class:`~TimeSeries` objects
 ====================================
 
@@ -220,14 +14,18 @@ Another very useful attribute is :attr:`~TimeSeries.series`, that gives you the 
 to directly access :attr:`~TimeSeries.data` and
 :attr:`~TimeSeries.mask` as a masked array.
 
+As :class:`TimeSeries` objects subclass :class:`~numpy.ma.MaskedArrays`, they
+inherit all their attributes and methods, as well as the attributes and methods
+of regular ndarrays.
 
 Construction
 ------------
 
 To construct a :class:`~TimeSeries`, you can use the factory function
 :func:`~time_series` (preferred) or call the class directly.
-See the docstrings of this function and this class for more details
-on the input parameters.
+
+.. autofunction:: time_series
+
 Even if it is recommended to use the factory function :func:`~time_series`,
 you can still use the class constructor if you need to bypass some of the overhead
 associated with the additional flexibility of the factory function.
@@ -474,28 +272,18 @@ that.
 TimeSeries Frequency Conversion
 -------------------------------
 
-To convert a :class:`~TimeSeries` to another frequency,
-use the :meth:`~TimeSeries.convert` method or is function equivalent.
-The optional argument ``func`` must be a function that acts on a
-1D masked array and returns a scalar.
+The following method converts :class:`TimeSeries` from one frequency to another.
 
-   >>> mseries = series.convert('M',func=ma.average)
+.. method:: TimeSeries.asfreq(freq)
 
-If ``func`` is None (the default value), the convert method/function returns a
-2D array, where each row corresponds to the new frequency, and the columns to
-the original data.
-In our example, :meth:`convert` will return a 2D array with 23 columns, as there
-are at most 23 business days per month.
-
-   >>> mseries_default = series.convert('M')
+   Returns a series whose :attr:`dates` has been converted to the new frequency ``freq``.
+   The :attr:`series` part remains unchanged.
+   Therefore, when converting to a lower frequency, the new series will have
+   duplicated dates, whereas when converting to a higher frequency, the new series
+   will have missing dates.
 
 
-When converting from a lower frequency to a higher frequency, an extra argument
-``position`` is used to determine the placement of values in the resulting series.
-The value of the argument is either ``'START'`` or ``'END'`` (``'END'`` by default).
-This will yield a series with a lot of masked values.
-To fill in these masked values, see the section
-`Interpolating Masked Values <interpolating>`_ below.
+.. automethod:: TimeSeries.convert
 
 .. warning::
    Be careful not to confuse the two methods :meth:`asfreq` and :meth:`convert`.
@@ -510,32 +298,82 @@ To fill in these masked values, see the section
      places the data from the original series into appropriate points in the new
      series.
 
+Attributes
+----------
 
-.. _interpolating:
+   .. attribute:: data
 
-Interpolating Masked Values
----------------------------
+      Returns a view of a :class:`TimeSeries` as a :class:`~numpy.ndarray`.
+      This attribute is read-only and cannot be directly set.
 
-The :mod:`~scikits.timeseries.lib.interpolate` sub-module contains several functions
-for filling in masked values in an array.
-Currently this includes:
+   .. attribute:: mask
 
-* :func:`~lib.interpolate.interp_masked1d`
-* :func:`~lib.interpolate.forward_fill`
-* :func:`~lib.interpolate.backward_fill`
+      Returns the mask of the object, as a boolean ndarray with the same shape
+      as :attr:`data`, or as the special value ``nomask`` (equivalent to ``False``).
+      This attribute is writable and can be modified.
 
-Let us take a monthly :class:`~TimeSeries` , convert it to business frequency,
-and then interpolate the resulting masked values.
+   .. attribute:: series
 
-   >>> import scikits.timeseries.lib.interpolate as itp
-   >>> mser = ts.time_series(np.arange(12, dtype=np.float_), start_date=ts.now('M'))
-   >>> bser = mser.convert("B", position='END')
-   >>> bser_ffill = itp.forward_fill(bser, maxgap=30)
-   >>> bser_bfill = itp.backward_fill(bser)
-   >>> bser_linear = itp.interp_masked1d(bser, kind='linear')
+      Returns a view of a :class:`TimeSeries` as a :class:`~numpy.ma.MaskedArray`.
+      This attribute is read-only and cannot be directly set
 
-The optional ``maxgap`` parameter for :func:`~lib.interpolate.forward_fill` and
-:func:`~lib.interpolate.backward_fill` will ensure that if there are more than
-``maxgap`` consecutive masked values, they will not be filled.
-Using ``maxgap=30`` like in our above example will ensure that missing months
-from our original monthly series are not filled in.
+   .. attribute:: dates
+
+      Returns the :class:`DateArray` object of the dates of the series.
+      This attribute is writable and can be modified.
+
+
+In addition, all the attributes of the :class:`DateArray` :attr:`dates` attributes
+are directly accessible by :class:`TimeSeries`.
+
+
+Methods
+-------
+
+The following methods access information about the :attr:`dates` attribute:
+
+.. automethod:: TimeSeries.isfull
+.. automethod:: TimeSeries.has_missing_dates
+.. automethod:: TimeSeries.has_duplicated_dates
+.. automethod:: TimeSeries.isvalid
+
+
+.. automethod:: TimeSeries.date_to_index
+
+
+Format conversions
+~~~~~~~~~~~~~~~~~~
+
+The following methods transform the :class:`TimeSeries` to different formats.
+
+.. automethod:: TimeSeries.tolist
+.. automethod:: TimeSeries.tofile
+.. automethod:: TimeSeries.asrecords
+
+
+.. automethod:: TimeSeries.split
+
+
+
+Functions
+---------
+
+.. autofunction:: adjust_endpoints
+.. autofunction:: align_series
+.. autofunction:: align_with
+
+.. autofunction:: tshift
+.. autofunction:: pct
+.. autofunction:: fill_missing_dates
+
+.. autofunction:: empty_like
+
+
+
+Exceptions
+----------
+
+.. autoexception:: TimeSeriesError
+   :show-inheritance:
+.. autoexception:: TimeSeriesCompatibilityError
+   :show-inheritance:

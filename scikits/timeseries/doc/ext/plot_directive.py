@@ -112,7 +112,7 @@ def run(arguments, options, state_machine, lineno):
     # change to doc directory if not already there
     for x in range(len(path_parts) - 1 - doc_idx): os.chdir('..')
 
-    srcdir = 'source/examples'
+    srcdir = 'source/lib'
     outdir = 'build/plots'
 
     outdir = os.path.abspath(outdir)
@@ -125,16 +125,12 @@ def run(arguments, options, state_machine, lineno):
     makefig(os.path.join(srcdir, reference), outdir)
 
     # Process the options
-    if options.pop('include-source', None) is not None:
-        codetemplate = ".. literalinclude:: %(srcdir)s/%(reference)s\n"\
-                       "   :language:python"
-        if options.pop('linenos', None):
-            codetemplate += "\n   :linenos:"
-        lines = [codetemplate % locals()]
+    if 'include-source' in options:
+        del options['include-source']
+        lines = [".. literalinclude:: %(srcdir)s/%(reference)s" % locals()]
     else:
         lines = []
-        if 'linenos' in options:
-            del options['linenos']
+
     options = ['      :%s: %s' % (k, v) for (k, v) in options.items()]
     options = "\n".join(options)
 
