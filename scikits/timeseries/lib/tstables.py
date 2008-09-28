@@ -143,6 +143,45 @@ from tables.file import _checkfilters
 from tables.parameters import EXPECTED_ROWS_TABLE
 
 
+_doc_parameters = dict(
+mareturn="""
+    Depending on the value of the ``field`` parameter, the method returns either
+    * a ndarray, if ``field=='_data'`` or if ``field=='_mask'``;
+    * a :class:`~numpy.ma.MaskedArray`, if ``field`` is None or a valid field.
+""",
+tsreturn="""
+    Depending on the value of the ``field`` parameter, the method returns:
+    
+    * a :class:`~scikits.timeseries.TimeSeries`, if ``field`` is None or a valid
+      field;
+    * a :class:`~scikits.timeseries.DateArray`, if ``field=='_dates'``;
+    * a ndarray, if ``field=='_data'`` or if ``field=='_mask'``;
+    * a :class:`~numpy.ma.MaskedArray`, if ``field=='_series'``.
+""",
+readinput="""
+    start : {None, int}, optional
+        Index of the first record to read.
+        If None, records will be read starting from the very first one.
+    stop : {None, int}, optional
+        Index of the last record to read.
+        If None, records will be read until the very last one.
+    step : {None, int}, optional
+        Increment between succesive records to read.
+        If None, all the records between ``start`` and ``stop`` will be read.
+    field : {None, str}, optional
+        Name of the field to read.
+        If None, all the fields from each record are read.
+""",
+readcoordinateinput="""
+    coords : sequence
+        A sequence of integers, corresponding to the indices of the rows to
+        retrieve
+    field : {None, str}, optional
+        Name of the field to read.
+        If None, all the fields from each record are read.
+""",
+)
+
 
 
 def _tabulate_masked_array(a):
@@ -159,12 +198,12 @@ def _tabulate_masked_array(a):
             pseudodtype = [('_data',(basedtype,nrep)), ('_mask',(bool,nrep))]
         else:
             pseudodtype = [('_data',basedtype),('_mask',bool)]
-        pseudo = itertools.izip(a.filled(), ma.getmaskarray(a))
+        pseudo = itertools.izip(ma.filled(a), ma.getmaskarray(a))
     else:
         pseudodtype = [(fname,[('_data',ftype), ('_mask',bool)])
                        for (fname,ftype) in basedtype.descr]
         fields = [a[f] for f in basenames]
-        pseudo = itertools.izip(*[zip(f.filled().flat,ma.getmaskarray(f).flat)
+        pseudo = itertools.izip(*[zip(ma.filled(f).flat,ma.getmaskarray(f).flat)
                                  for f in fields])
     return np.fromiter(pseudo, dtype=pseudodtype)
 
@@ -222,6 +261,7 @@ def tabulate(a):
     output : ndarray
         A ndarray with flexible dtype.
     """
+    a = np.asanyarray(a)
     if isinstance(a, TimeSeries):
         return _tabulate_time_series(a)
     else:
@@ -278,41 +318,18 @@ class MaskedTable(Table):
                              for name in field_names])
 
 
-    def read(self, start=None, stop=None, step=None, field=None):
+    def _reader(self, meth, *args, **kwargs):
         """
-    Reads the current :class:`MaskedTable`.
-    
-    Returns
-    -------
-    
-    Depending on the value of the ``field`` parameter, the method returns either
-    * a ndarray, if ``field=='_data'`` or if ``field=='_mask'``;
-    * a :class:`~numpy.ma.MaskedArray`, if ``field`` is None or a valid field.
-    
-    Parameters
-    ----------
-    start : {None, int}, optional
-        Index of the first record to read.
-        If None, records will be read starting from the very first one.
-    stop : {None, int}, optional
-        Index of the last record to read.
-        If None, records will be read until the very last one.
-    step : {None, int}, optional
-        Increment between succesive records to read.
-        If None, all the records between ``start`` and ``stop`` will be read.
-    field : {None, str}, optional
-        Name of the field to read.
-        If None, all the fields from each record are read.
-        The argument should be one of the field of the series, or one of the
-        following: ``'_data','_mask'``.
+    Private function that retransforms the output of Table.read and equivalent
+    to the proper type.
         """
-        data = Table.read(self, start=start, stop=stop, step=step,
-                          field=field)
+        data = meth(self, *args, **kwargs)
         special_attrs = getattr(self.attrs, 'special_attrs', {})
         fill_value = special_attrs.get('_fill_value', None)
         #
         ndtype = self._get_dtype()
         field_names = ndtype.names
+        field = kwargs.get('field', None)
         #
         if field in ['_data','_mask']:
             output = data
@@ -338,6 +355,48 @@ class MaskedTable(Table):
         if recshape != ():
             output.shape = tuple([-1,]+list(recshape))
         return output
+
+
+    def read(self, start=None, stop=None, step=None, field=None):
+        """
+    Reads the current :class:`MaskedTable`.
+    
+    Returns
+    -------
+    %(mareturn)s
+    
+    Parameters
+    ----------
+    %(readinput)s
+        """
+        args = ()
+        kwargs = dict(field=field, start=start, stop=stop, step=step)
+        return self._reader(Table.read, *args, **kwargs)
+    read.__doc__ = ((read.__doc__ or '') % _doc_parameters) or None
+
+
+    def readCoordinates(self, coords, field=None):
+        """
+    Reads a set of rows given their coordinates.
+
+    Parameters
+    ----------
+    %(readcoordinateinput)s
+    
+    Returns
+    -------
+    %(mareturn)s
+        """
+        args = (coords,)
+        kwargs = dict(field=field)
+        return self._reader(Table.readCoordinates, *args, **kwargs)
+    readCoordinates.__doc__ = ((readCoordinates.__doc__ or '') % _doc_parameters) or None
+
+    def append(self, rows):
+        """
+        """
+        rows = tabulate(rows)
+        Table.append(self, rows)
 
 
 class TimeSeriesTable(MaskedTable):
@@ -384,53 +443,126 @@ class TimeSeriesTable(MaskedTable):
                              for name in field_names])
 
 
-    def read(self, start=None, stop=None, step=None, field=None):
+#    def read(self, start=None, stop=None, step=None, field=None):
+#        """
+#    Reads the current :class:`TimeSeriesTable`.
+#    
+#    Returns
+#    -------
+#    
+#    Depending on the value of the ``field`` parameter, the method returns:
+#    
+#    * a :class:`~scikits.timeseries.TimeSeries`, if ``field`` is None or a valid
+#      field;
+#    * a :class:`~scikits.timeseries.DateArray`, if ``field=='_dates'``;
+#    * a ndarray, if ``field=='_data'`` or if ``field=='_mask'``;
+#    * a :class:`~numpy.ma.MaskedArray`, if ``field=='_series'``.
+#    
+#    
+#    Parameters
+#    ----------
+#    start : {None, int}, optional
+#        Index of the first record to read.
+#        If None, records will be read starting from the very first one.
+#    stop : {None, int}, optional
+#        Index of the last record to read.
+#        If None, records will be read until the very last one.
+#    step : {None, int}, optional
+#        Increment between succesive records to read.
+#        If None, all the records between ``start`` and ``stop`` will be read.
+#    field : {None, str}, optional
+#        Name of the field to read.
+#        If None, all the fields from each record are read.
+#        The argument should be one of the field of the series, or one of the
+#        following: ``'_data','_mask','_dates','_series'``.
+#        """
+##        data = Table.read(self, start=start, stop=stop, step=step,
+##                          field=field)
+#        special_attrs = getattr(self.attrs, 'special_attrs', {})
+#        fill_value = special_attrs.get('_fill_value', None)
+#        baseclass = special_attrs.get('_baseclass', np.ndarray)
+#        #
+#        position_keywords = dict(start=start, stop=stop, step=step)
+#        #
+#        ndtype = self._get_dtype()
+#        field_names = ndtype.names
+#        
+#        # Case 1. : Global read .................
+#        if field is None:
+#            data = Table.read(self, **position_keywords)
+#            dates = DateArray(data['_dates'],
+#                              freq=special_attrs.get('freq','U'))
+#            if field_names is None:
+#                output = time_series(data['_data'],
+#                                     dates = dates,
+#                                     mask=data['_mask'])
+#            else:
+#                output = ma.empty(data.shape, dtype=ndtype).view(TimeSeries)
+#                for name in field_names:
+#                    current = data[name]
+#                    output[name] = ma.array(current['_data'],
+#                                            mask=current['_mask'])
+#                output._dates = dates
+#            # Reset some attributes..................
+#            output._baseclass = baseclass
+#            output.fill_value = fill_value
+#            output._hardmask = special_attrs.get('_hardmask', False)
+#            output._optinfo = special_attrs.get('_optinfo', {})
+#        # Case 2. Partial reads..................
+#        elif field in ['_dates','_data','_mask']:
+#            output = Table.read(self, field=field, **position_keywords)
+#        # Case 3. The series as a masked array
+#        elif field == '_series':
+#            # Special case: read the table, but keep it as MaskedArray
+#            data = Table.read(self, field=None, **position_keywords)
+#            if field_names is None:
+#                output = ma.array(data['_data'], mask=data['_mask'])
+#            else:
+#                output = ma.empty(data.shape, dtype=ndtype)
+#                for name in field_names:
+#                    current = data[name]
+#                    output[name] = ma.array(current['_data'],
+#                                            mask=current['_mask'])
+#            output.fill_value = fill_value
+#            output._baseclass = baseclass
+#            output._hardmask = special_attrs.get('_hardmask', False)
+#            output._optinfo = special_attrs.get('_optinfo', {})
+#        # Case 4. Field read ....................
+#        elif field in field_names:
+#            data = Table.read(self, field=field, **position_keywords)
+#            dates = Table.read(self, field='_dates', **position_keywords)
+#            dates = DateArray(dates, freq=special_attrs.get('freq','U'))
+#            # Get the data part
+#            output = time_series(data['_data'],
+#                                 dates=dates,
+#                                 mask=data['_mask'],)
+#            output._baseclass = baseclass
+#            if fill_value is not None:
+#                output.fill_value = fill_value[field]
+#            output._hardmask = special_attrs.get('_hardmask', False)
+#            output._optinfo = special_attrs.get('_optinfo', {})
+#        else:
+#            raise KeyError("Unable to process field '%s'" % field)
+#        return output
+
+
+    def _reader(self, meth, *args, **kwargs):
         """
-    Reads the current :class:`TimeSeriesTable`.
-    
-    Returns
-    -------
-    
-    Depending on the value of the ``field`` parameter, the method returns:
-    
-    * a :class:`~scikits.timeseries.TimeSeries`, if ``field`` is None or a valid
-      field;
-    * a :class:`~scikits.timeseries.DateArray`, if ``field=='_dates'``;
-    * a ndarray, if ``field=='_data'`` or if ``field=='_mask'``;
-    * a :class:`~numpy.ma.MaskedArray`, if ``field=='_series'``.
-    
-    
-    Parameters
-    ----------
-    start : {None, int}, optional
-        Index of the first record to read.
-        If None, records will be read starting from the very first one.
-    stop : {None, int}, optional
-        Index of the last record to read.
-        If None, records will be read until the very last one.
-    step : {None, int}, optional
-        Increment between succesive records to read.
-        If None, all the records between ``start`` and ``stop`` will be read.
-    field : {None, str}, optional
-        Name of the field to read.
-        If None, all the fields from each record are read.
-        The argument should be one of the field of the series, or one of the
-        following: ``'_data','_mask','_dates','_series'``.
+    Private function that retransforms the output of Table.read and equivalent
+    to the proper type.
         """
-#        data = Table.read(self, start=start, stop=stop, step=step,
-#                          field=field)
+        # Get some of the special attributes
         special_attrs = getattr(self.attrs, 'special_attrs', {})
         fill_value = special_attrs.get('_fill_value', None)
         baseclass = special_attrs.get('_baseclass', np.ndarray)
-        #
-        position_keywords = dict(start=start, stop=stop, step=step)
-        #
+        # Get the dtype, in particular, the names of the fields.
         ndtype = self._get_dtype()
         field_names = ndtype.names
         
+        field = kwargs.get('field', None)
         # Case 1. : Global read .................
         if field is None:
-            data = Table.read(self, **position_keywords)
+            data = meth(self, *args, **kwargs)
             dates = DateArray(data['_dates'],
                               freq=special_attrs.get('freq','U'))
             if field_names is None:
@@ -451,11 +583,12 @@ class TimeSeriesTable(MaskedTable):
             output._optinfo = special_attrs.get('_optinfo', {})
         # Case 2. Partial reads..................
         elif field in ['_dates','_data','_mask']:
-            output = Table.read(self, field=field, **position_keywords)
+            output = meth(self, *args, **kwargs)
         # Case 3. The series as a masked array
         elif field == '_series':
             # Special case: read the table, but keep it as MaskedArray
-            data = Table.read(self, field=None, **position_keywords)
+            kwargs['field'] = None
+            data = meth(self, *args, **kwargs)
             if field_names is None:
                 output = ma.array(data['_data'], mask=data['_mask'])
             else:
@@ -470,8 +603,9 @@ class TimeSeriesTable(MaskedTable):
             output._optinfo = special_attrs.get('_optinfo', {})
         # Case 4. Field read ....................
         elif field in field_names:
-            data = Table.read(self, field=field, **position_keywords)
-            dates = Table.read(self, field='_dates', **position_keywords)
+            data = meth(self, *args, **kwargs)
+            kwargs['field'] = '_dates'
+            dates = meth(self, *args, **kwargs)
             dates = DateArray(dates, freq=special_attrs.get('freq','U'))
             # Get the data part
             output = time_series(data['_data'],
@@ -485,6 +619,42 @@ class TimeSeriesTable(MaskedTable):
         else:
             raise KeyError("Unable to process field '%s'" % field)
         return output
+
+
+    def readCoordinates(self, coords, field=None):
+        """
+    Reads a set of rows given their coordinates.
+
+    Parameters
+    ----------
+    %(readcoordinateinput)s
+    
+    Returns
+    -------
+    %(tsreturn)s
+        """
+        args = (coords,)
+        kwargs = dict(field=field)
+        return self._reader(Table.readCoordinates, *args, **kwargs)
+    readCoordinates.__doc__ = ((readCoordinates.__doc__ or '') % _doc_parameters) or None
+
+
+    def read(self, start=None, stop=None, step=None, field=None):
+        """
+    Reads the current :class:`TimeSeriesTable`.
+    
+    Returns
+    -------
+    %(tsreturn)s
+    
+    Parameters
+    ----------
+    %(readcoordinateinput)s
+        """
+        args = ()
+        kwargs = dict(field=field, start=start, stop=stop, step=step)
+        return self._reader(Table.read, *args, **kwargs)
+    read.__doc__ = ((read.__doc__ or '') % _doc_parameters) or None
 
 
 #-- File extensions -----------------------------------------------------------                       

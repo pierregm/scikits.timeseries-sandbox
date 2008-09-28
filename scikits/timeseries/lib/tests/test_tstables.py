@@ -8,9 +8,10 @@ import tempfile
 import numpy as np
 import numpy.ma as ma
 import numpy.ma.mrecords as mr
-from numpy.ma import masked_array, masked
+from numpy.ma import MaskedArray, masked_array, masked
 
 import scikits.timeseries as ts
+from scikits.timeseries import TimeSeries
 
 from numpy.testing import *
 from numpy.ma.testutils import assert_equal, assert_equal_records
@@ -337,6 +338,85 @@ class TestSpecialAttrs(TestCase):
         test = table.read()
         assert_equal(test._optinfo, data._optinfo)
         assert_equal(test._hardmask, data._hardmask)
+
+
+class TestTableRead(TestCase):
+    #
+    def __init__(self, *args, **kwds):
+        TestCase.__init__(self, *args, **kwds)
+        series = ts.time_series(zip(np.random.rand(10),
+                                    np.arange(10)),
+                                start_date=ts.now('M'),
+                                dtype=[('a',float),('b',int)])
+        series.mask[0] = (0,1)
+        series.mask[-1] = (1,0)
+        self.tseries = series
+        self.marray = series._series
+        self.file = tempfile.mktemp(".hdf5")
+        self.h5file = tables.openFile(self.file,'a')
+        self.populate()
+    #
+    def tearDown(self):
+        if self.h5file.isopen:
+            self.h5file.close()
+        os.remove(self.file)
+    #
+    def populate(self):
+        h5file = self.h5file
+        table = h5file.createMaskedTable('/', 'marray', self.marray, "")
+        h5file.flush()
+        table = h5file.createTimeSeriesTable('/', 'tseries', self.tseries, "")
+        h5file.flush()
+    #
+    def test_tseries_read(self):
+        "Test reading specific elements of a TimeSeriesTable"
+        table = self.h5file.root.tseries
+        series = self.tseries
+        #
+        test = table.read()
+        assert(isinstance(test, TimeSeries))
+        assert_equal_records(test, series)
+        #
+        test = table.read(field='a')
+        assert(isinstance(test, TimeSeries))
+        assert_equal(test, series['a'])
+        #
+        test = table.read(step=2)
+        assert(isinstance(test, TimeSeries))
+        assert_equal(test, series[::2])
+        #
+        test = table.readCoordinates([1,2,3])
+        assert(isinstance(test, TimeSeries))
+        assert_equal(test, series[[1,2,3]])
+        #
+        test = table.readCoordinates([1,2,3], field='a')
+        assert(isinstance(test, TimeSeries))
+        assert_equal(test, series['a'][[1,2,3]])
+    #
+    def test_marray_read(self):
+        "Test reading specific elements of a MaskedTable"
+        table = self.h5file.root.marray
+        data = self.marray
+        #
+        test = table.read()
+        assert(isinstance(test, MaskedArray))
+        assert_equal_records(test, data)
+        #
+        test = table.read(field='a')
+        assert(isinstance(test, MaskedArray))
+        assert_equal(test, data['a'])
+        #
+        test = table.read(step=2)
+        assert(isinstance(test, MaskedArray))
+        assert_equal(test, data[::2])
+        #
+        test = table.readCoordinates([1,2,3])
+        assert(isinstance(test, MaskedArray))
+        assert_equal(test, data[[1,2,3]])
+        #
+        test = table.readCoordinates([1,2,3], field='a')
+        assert(isinstance(test, MaskedArray))
+        assert_equal(test, data['a'][[1,2,3]])
 
 ###############################################################################
 #------------------------------------------------------------------------------
