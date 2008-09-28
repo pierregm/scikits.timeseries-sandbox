@@ -125,9 +125,7 @@ These methods transform a :class:`DateArray` to other formats.
 Functions
 =========
 
-.. autofunction:: fill_missing_dates
 .. autofunction:: period_break
-
 
 
 .. _date-exceptions :
