@@ -417,6 +417,32 @@ class TestTableRead(TestCase):
         test = table.readCoordinates([1,2,3], field='a')
         assert(isinstance(test, MaskedArray))
         assert_equal(test, data['a'][[1,2,3]])
+    #
+    def test_append_maskedarray(self):
+        "Test appending to a MaskedTable"
+        table = self.h5file.root.marray
+        data = self.marray
+        newdata = ma.array(zip(np.random.rand(3), np.arange(3)+10),
+                           mask=[(0,0),(1,0),(0,1)],
+                           dtype=data.dtype)
+        table.append(newdata)
+        test = table.read()
+        assert(isinstance(test, MaskedArray))
+        assert_equal_records(test, ma.mr_[data,newdata])
+    #
+    def test_append_timeseries(self):
+        "Test appending to a MaskedTable"
+        table = self.h5file.root.tseries
+        tseries = self.tseries
+        newdata = ts.time_series(zip(np.random.rand(3), np.arange(3)+10),
+                           mask=[(0,0),(1,0),(0,1)],
+                           dtype=tseries.dtype,
+                           start_date=tseries.dates[-1]+1)
+        table.append(newdata)
+        test = table.read()
+        assert(isinstance(test, TimeSeries))
+        assert_equal_records(test, ts.concatenate((tseries,newdata)))
+    
 
 ###############################################################################
 #------------------------------------------------------------------------------
