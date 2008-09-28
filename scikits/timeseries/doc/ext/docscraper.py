@@ -589,8 +589,13 @@ class NumpyDocString(Docstring):
         for line in self.section['See Also']:
             if not line.strip(): continue
             if ':' in line:
+                match = field_rgx.match(line)
+                if match:
+                    (func_role, current_func) = match.groups()
+                    current_func = current_func.replace("`", '')
+                    rest = None
                 if current_func:
-                    functions.append((current_func, rest))
+                    functions.append((current_func, rest, func_role))
                 r = line.split(':', 1)
                 current_func = r[0].strip()
                 r[1] = r[1].strip()
@@ -600,7 +605,7 @@ class NumpyDocString(Docstring):
                     rest = Docstring([])
             elif not line.startswith(' '):
                 if current_func:
-                    functions.append((current_func, rest))
+                    functions.append((current_func, rest, func_role))
                     current_func = None
                     rest = Docstring([])
                 if ',' in line:
@@ -613,11 +618,13 @@ class NumpyDocString(Docstring):
             elif current_func is not None:
                 rest.append(line.strip())
         if current_func:
-            functions.append((current_func, rest))
+            functions.append((current_func, rest, func_role))
+        #
+        print "DEBUG: functions", functions
         #
         output = []
         last_had_desc = True
-        for (func, desc) in functions:
+        for (func, desc, func_role) in functions:
             if func_role:
                 link = ":%s:`%s`" % (func_role, func)
             else:
