@@ -46,7 +46,7 @@ class TestCreation(TestCase):
         "Base data definition."
         (dlist, dates, data) = self.d
         series = time_series(data, dlist, freq='D')
-        assert(isinstance(series, TimeSeries))
+        self.failUnless(isinstance(series, TimeSeries))
         assert_equal(series._mask, [1,0,0,0,0]*3)
         assert_equal(series._series, data)
         assert_equal(series._dates, dates)
@@ -57,7 +57,7 @@ class TestCreation(TestCase):
         "Base data definition."
         (dlist, dates, data) = self.d
         series = time_series(data, start_date=dates[0])
-        assert(isinstance(series, TimeSeries))
+        self.failUnless(isinstance(series, TimeSeries))
         assert_equal(series._mask, [1,0,0,0,0]*3)
         assert_equal(series._series, data)
         assert_equal(series._dates, dates)
@@ -69,7 +69,7 @@ class TestCreation(TestCase):
         series = time_series(data, dlist, freq='D')
         dates = dates+15
         series = time_series(series, dates)
-        assert(isinstance(series, TimeSeries))
+        self.failUnless(isinstance(series, TimeSeries))
         assert_equal(series._mask, [1,0,0,0,0]*3)
         assert_equal(series._series, data)
         assert_equal(series._dates, dates)
@@ -82,7 +82,7 @@ class TestCreation(TestCase):
         data = dates
         #
         series = time_series(data, dates)
-        assert(isinstance(series, TimeSeries))
+        self.failUnless(isinstance(series, TimeSeries))
         assert_equal(series._dates, dates)
         assert_equal(series._data, data)
         assert_equal(series.freqstr, 'D')
@@ -185,25 +185,25 @@ class TestArithmetics(TestCase):
         (series, data) =self.d
         #
         nseries = series+1
-        assert(isinstance(nseries, TimeSeries))
+        self.failUnless(isinstance(nseries, TimeSeries))
         assert_equal(nseries._mask, [1,0,0,0,0]*3)
         assert_equal(nseries._series, data+1)
         assert_equal(nseries._dates, series._dates)
         #
         nseries = series-1
-        assert(isinstance(nseries, TimeSeries))
+        self.failUnless(isinstance(nseries, TimeSeries))
         assert_equal(nseries._mask, [1,0,0,0,0]*3)
         assert_equal(nseries._series, data-1)
         assert_equal(nseries._dates, series._dates)
         #
         nseries = series*1
-        assert(isinstance(nseries, TimeSeries))
+        self.failUnless(isinstance(nseries, TimeSeries))
         assert_equal(nseries._mask, [1,0,0,0,0]*3)
         assert_equal(nseries._series, data*1)
         assert_equal(nseries._dates, series._dates)
         #
         nseries = series/1.
-        assert(isinstance(nseries, TimeSeries))
+        self.failUnless(isinstance(nseries, TimeSeries))
         assert_equal(nseries._mask, [1,0,0,0,0]*3)
         assert_equal(nseries._series, data/1.)
         assert_equal(nseries._dates, series._dates)
@@ -216,28 +216,28 @@ class TestArithmetics(TestCase):
         data = data.astype(float_)
         #
         nseries += 1.
-        assert(isinstance(nseries, TimeSeries))
+        self.failUnless(isinstance(nseries, TimeSeries))
         assert_equal(nseries._mask, [1,0,0,0,0]*3)
         assert_equal(nseries._series, data+1.)
         assert_equal(nseries._dates, series._dates)
         assert_equal(id(nseries),idini)
         #
         nseries -= 1.
-        assert(isinstance(nseries, TimeSeries))
+        self.failUnless(isinstance(nseries, TimeSeries))
         assert_equal(nseries._mask, [1,0,0,0,0]*3)
         assert_equal(nseries._series, data)
         assert_equal(nseries._dates, series._dates)
         assert_equal(id(nseries),idini)
         #
         nseries *= 2.
-        assert(isinstance(nseries, TimeSeries))
+        self.failUnless(isinstance(nseries, TimeSeries))
         assert_equal(nseries._mask, [1,0,0,0,0]*3)
         assert_equal(nseries._series, data*2.)
         assert_equal(nseries._dates, series._dates)
         assert_equal(id(nseries),idini)
         #
         nseries /= 2.
-        assert(isinstance(nseries, TimeSeries))
+        self.failUnless(isinstance(nseries, TimeSeries))
         assert_equal(nseries._mask, [1,0,0,0,0]*3)
         assert_equal(nseries._series, data)
         assert_equal(nseries._dates, series._dates)
@@ -248,8 +248,8 @@ class TestArithmetics(TestCase):
         (series, data) =self.d
         assert_equal(series._mask, [1,0,0,0,0]*3)
         series.mask = nomask
-        assert(not series._mask.any())
-        assert(not series._series._mask.any())
+        self.failUnless(not series._mask.any())
+        self.failUnless(not series._series._mask.any())
         #series._series.mask = [1,0,0]*5
         series.mask = [1,0,0]*5
         assert_equal(series._mask, [1,0,0]*5)
@@ -261,9 +261,9 @@ class TestArithmetics(TestCase):
     def test_ismasked(self):
         "Checks checks on masked"
         (series, data) =self.d
-        assert(series._series[0] is masked)
+        self.failUnless(series._series[0] is masked)
         #!!!:... and of course, masked doesn't have a _series attribute
-#        assert(series[0]._series is masked)
+#        self.failUnless(series[0]._series is masked)
 
 
     def test_incompatible_dates(self):
@@ -272,7 +272,7 @@ incompatible dates"""
         (series, data) =self.d
         a, b = series[1:], series[:-1]
         result = a + b
-        assert(not isinstance(result, TimeSeries))
+        self.failUnless(not isinstance(result, TimeSeries))
         assert_equal(result.ndim, a.ndim)
         assert_equal(result.size, a.size)
 
@@ -302,28 +302,28 @@ class TestGetitem(TestCase):
     def test_with_integers(self):
         # 1D series .............................
         (series1D, data1D) = (self.series1D, self.data1D)
-        assert (series1D[0] is masked)
+        self.failUnless(series1D[0] is masked)
         test = series1D[-1]
         assert_equal(test, data1D[-1])
-        assert(not isinstance(test, TimeSeries))
+        self.failUnless(not isinstance(test, TimeSeries))
         # nV series ..............................
         (series3V, data3V) = (self.series3V, self.data3V)
         test = series3V[-1]
         assert_equal(test, data3V[-1])
         assert_equal(test.mask, [0,0,1])
-        assert(not isinstance(test, TimeSeries))
+        self.failUnless(not isinstance(test, TimeSeries))
         # 2D series ..............................
         (series2D, data2D) = (self.series2D, self.data2D)
         test = series2D[-1]
         assert_equal(test, data2D[-1].squeeze())
-        assert(not isinstance(test, TimeSeries))
+        self.failUnless(not isinstance(test, TimeSeries))
 
 
     def test_with_slices(self):
         "Tests __getitem__ w/ slices."
         def _wslice(series, data, dates):
             test = series[1:2]
-            assert(isinstance(test, TimeSeries))
+            self.failUnless(isinstance(test, TimeSeries))
             assert_equal(test._varshape, series._varshape)
             assert_equal(test._series, data[1:2])
             assert_equal(test._dates, dates[1:2])
@@ -331,7 +331,7 @@ class TestGetitem(TestCase):
             assert_equal(test.freq, dates.freq)
             #
             test = series[:3]
-            assert(isinstance(test, TimeSeries))
+            self.failUnless(isinstance(test, TimeSeries))
             test_series = test._series
             assert_equal(test_series._data, data[:3]._data)
             assert_equal(test_series._mask, data[:3]._mask)
@@ -349,12 +349,12 @@ class TestGetitem(TestCase):
         (series3V, data3V) = (self.series3V, self.data3V)
         #
         test = series3V[0,:]
-        assert(not isinstance(test, TimeSeries))
+        self.failUnless(not isinstance(test, TimeSeries))
         assert_equal(test, data3V[0,:])
         assert_equal(test._mask, data3V[0,:]._mask)
         #
         test = series3V[:,0]
-        assert(isinstance(test, TimeSeries))
+        self.failUnless(isinstance(test, TimeSeries))
         assert_equal(test, data3V[:,0])
         assert_equal(test._mask, data3V[:,0]._mask)
         assert_equal(test._varshape, ())
@@ -362,12 +362,12 @@ class TestGetitem(TestCase):
         #
         (series2D, data2D) = (self.series2D, self.data2D)
         test = series2D[0]
-        assert(not isinstance(test,TimeSeries))
+        self.failUnless(not isinstance(test,TimeSeries))
         assert_equal(test.shape, (4,5))
         assert_equal(test, data2D[0])
         #
         test = series2D[:,:,0]
-        assert(isinstance(test,TimeSeries))
+        self.failUnless(isinstance(test,TimeSeries))
         assert_equal(test, series2D._data[:,:,0])
         assert_equal(test._dates, series2D._dates)
 
@@ -376,7 +376,7 @@ class TestGetitem(TestCase):
         "Tests __getitem__ w/ list."
         def _wlist(series, data, dates):
             test = series[[0,1,-1]]
-            assert(isinstance(test, TimeSeries))
+            self.failUnless(isinstance(test, TimeSeries))
             assert_equal(test._series, data[[0,1,-1]])
             assert_equal(test._mask, data[[0,1,-1]]._mask)
             assert_equal(test._dates, dates[[0,1,-1]])
@@ -397,21 +397,21 @@ class TestGetitem(TestCase):
             test = series[dates[0]]
             assert_equal(test, data[0])
             assert_equal(test._mask, data[0]._mask)
-            assert(not isinstance(test, TimeSeries))
+            self.failUnless(not isinstance(test, TimeSeries))
             # Multiple dates as a date_array
             test = series[dates[[0,-1]]]
             assert_equal(test, data[[0,-1]])
-            assert(isinstance(test, TimeSeries))
+            self.failUnless(isinstance(test, TimeSeries))
             assert_equal(test.dates, dates[[0,-1]])
             # Multiple dates as a list
             test = series[[dates[0], dates[-1]]]
             assert_equal(test, data[[0,-1]])
-            assert(isinstance(test, TimeSeries))
+            self.failUnless(isinstance(test, TimeSeries))
             # Multiple dates as a slice
             dslice = slice(dates[1], None, None)
             test = series[dslice]
             assert_equal(test, data[1:])
-            assert(isinstance(test, TimeSeries))
+            self.failUnless(isinstance(test, TimeSeries))
         #........................................
         dates = self.dates
         (series1D, data1D) = (self.series1D, self.data1D)
@@ -450,7 +450,7 @@ class TestGetitem(TestCase):
             test = series[date]
             assert_equal(test, data[0])
             assert_equal(test._mask, data[0]._mask)
-            assert(not isinstance(test, TimeSeries))
+            self.failUnless(not isinstance(test, TimeSeries))
         #........................................
         (series1D, data1D) = (self.series1D, self.data1D)
         _wdates(series1D, data1D)
@@ -466,15 +466,15 @@ class TestGetitem(TestCase):
         trick = time_series(self.data1D.reshape(3,5),
                             dates=self.dates.reshape(3,5), freq='D')
         test = trick[0,0]
-        assert(not isinstance(test, TimeSeries))
-        assert (test is masked)
+        self.failUnless(not isinstance(test, TimeSeries))
+        self.failUnless(test is masked)
         #
         test = trick[-1,-1]
-        assert(not isinstance(test, TimeSeries))
+        self.failUnless(not isinstance(test, TimeSeries))
         assert_equal(test,14)
         #
         test = trick[0]
-        assert(isinstance(test, TimeSeries))
+        self.failUnless(isinstance(test, TimeSeries))
         assert_equal(test._varshape, ())
         assert_equal(test,trick._series[0])
         assert_equal(test._dates, trick._dates[0])
@@ -776,8 +776,8 @@ test_dates test suite.
         #
         assert_equal(filled_ser.start_date, _start)
         assert_equal(filled_ser.end_date, _end)
-        assert(filled_ser.isfull())
-        assert(not filled_ser.has_duplicated_dates())
+        self.failUnless(filled_ser.isfull())
+        self.failUnless(not filled_ser.has_duplicated_dates())
         assert_equal(filled_ser.size, _end - _start + 1)
         #
         data = np.arange(5*24).reshape(5,24)
@@ -815,7 +815,7 @@ test_dates test suite.
         assert_equal(series_pickled._dates, series._dates)
         assert_equal(series_pickled._data, series._data)
         assert_equal(series_pickled._mask, series._mask)
-        assert(isinstance(series_pickled._data, np.matrix))
+        self.failUnless(isinstance(series_pickled._data, np.matrix))
 
 
     def test_empty_timeseries(self):
@@ -841,28 +841,28 @@ test_dates test suite.
         seriesD_5_apr = time_series(np.arange(5),
                                     date_array(start_date=aprilsfool, length=5))
 
-        assert(tseries._timeseriescompat_multiple(seriesM_10, seriesM_10, seriesM_10))
+        self.failUnless(tseries._timeseriescompat_multiple(seriesM_10, seriesM_10, seriesM_10))
 
         try:
             tseries._timeseriescompat_multiple(seriesM_10, seriesD_10)
             exception = False
         except:
             exception = True
-        assert(exception)
+        self.failUnless(exception)
 
         try:
             tseries._timeseriescompat_multiple(seriesD_5, seriesD_10)
             exception = False
         except:
             exception = True
-        assert(exception)
+        self.failUnless(exception)
 
         try:
             tseries._timeseriescompat_multiple(seriesD_5, seriesD_5_apr)
             exception = False
         except:
             exception = True
-        assert(exception)
+        self.failUnless(exception)
 
     def test_compressed(self):
         "Tests compress"
@@ -918,14 +918,14 @@ test_dates test suite.
         series = time_series(np.arange(10), start_date=now('D'))
         smax = series.max()
         #!!!: Used to be a TimeSeries, now is only a scalar
-#        assert(isinstance(smax, TimeSeries))
+#        self.failUnless(isinstance(smax, TimeSeries))
 #        assert_equal(smax._dates, date_array(series._dates[-1]))
-        assert(not isinstance(smax, TimeSeries))
+        self.failUnless(not isinstance(smax, TimeSeries))
         assert_equal(smax, 9)
         #
         smin = series.min()
         #!!!: Used to be a TimeSeries, now is only a scalar
-#        assert(isinstance(smin, TimeSeries))
+#        self.failUnless(isinstance(smin, TimeSeries))
 #        assert_equal(smin._dates, date_array(series._dates[0]))
         assert_equal(smin, 0)
         #
@@ -947,7 +947,7 @@ test_dates test suite.
         assert_equal(_pct.dtype, np.dtype('d'))
         assert_equal(series.start_date, _pct.start_date)
         assert_equal(series.end_date, _pct.end_date)
-        assert(_pct[0] is masked)
+        self.failUnless(_pct[0] is masked)
         assert_equal(_pct[1], 1.0)
         assert_equal(_pct[2], 0.5)
 
@@ -959,7 +959,7 @@ class TestMisc(TestCase):
     def test_ma_ufuncs(self):
         a = time_series([-2,-1,0,1,2], start_date=now('D'))
         z = ma.sqrt(a)
-        assert(isinstance(z,TimeSeries))
+        self.failUnless(isinstance(z,TimeSeries))
         assert_equal(z, [1,1,0,1,np.sqrt(2)])
         assert_equal(z._mask, [1,1,0,0,0])
         assert_equal(z._dates, a._dates)
@@ -1058,12 +1058,12 @@ class TestMisc(TestCase):
         #
         test = fseries.view((float,3))
         assert_equal(test._series, dseries)
-        assert(test._varshape == (3,))
+        self.failUnless(test._varshape == (3,))
         #
-        assert(dseries._varshape == (3,))
+        self.failUnless(dseries._varshape == (3,))
         test = dseries.view(ndtype).squeeze()
         assert_equal(test, fseries)
-        assert(test._varshape == ())
+        self.failUnless(test._varshape == ())
 
 
 #------------------------------------------------------------------------------
@@ -1083,7 +1083,7 @@ class TestGenericMethods(TestCase):
         series = self.series
         for method in self.methodlist:
             test = getattr(series, method).__call__()
-            assert(isinstance(test,ts.TimeSeries))
+            self.failUnless(isinstance(test,ts.TimeSeries))
             assert_equal(test, getattr(series._series, method).__call__())
             assert_equal(test._dates, series._dates)
         #
@@ -1091,7 +1091,7 @@ class TestGenericMethods(TestCase):
         subseries = self.series.view(self.SubTimeSeries)
         for method in self.methodlist:
             test = getattr(subseries, method).__call__()
-            assert(isinstance(test, self.SubTimeSeries))
+            self.failUnless(isinstance(test, self.SubTimeSeries))
             assert_equal(test, getattr(subseries._series, method).__call__())
             assert_equal(test._dates, subseries._dates)
 
@@ -1114,25 +1114,25 @@ class TestFlexibleType(TestCase):
     def test_getitem_index(self):
         (data, series) = self.data
         test = series[0]
-        assert(isinstance(test, MaskedArray))
+        self.failUnless(isinstance(test, MaskedArray))
         assert_equal(test, data[0])
         test = series[1]
-        assert(isinstance(test, MaskedArray))
+        self.failUnless(isinstance(test, MaskedArray))
         assert_equal(test, data[1])
         test = series[2]
-        assert(isinstance(test, np.void))
+        self.failUnless(isinstance(test, np.void))
         assert_equal(test, data[2])
     #
     def test_getitem_dates(self):
         (data, series) = self.data
         test = series['2007-01']
-        assert(isinstance(test, MaskedArray))
+        self.failUnless(isinstance(test, MaskedArray))
         assert_equal(test, data[0])
         test = series['2007-02']
-        assert(isinstance(test, MaskedArray))
+        self.failUnless(isinstance(test, MaskedArray))
         assert_equal(test, data[1])
         test = series['2007-03']
-        assert(isinstance(test, np.void))
+        self.failUnless(isinstance(test, np.void))
         assert_equal(test, data[2])
 
 

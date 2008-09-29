@@ -37,7 +37,7 @@ class TestCMovAverage(TestCase):
         for width in [3,5,7]:
             k = (width-1)/2
             ravg = mf.cmov_average(data,width)
-            assert(isinstance(ravg, MaskedArray))
+            self.failUnless(isinstance(ravg, MaskedArray))
             assert_equal(ravg, data)
             assert_equal(ravg._mask, [1]*k+[0]*(len(data)-2*k)+[1]*k)
     #
@@ -46,7 +46,7 @@ class TestCMovAverage(TestCase):
         for width in [3,5,7]:
             k = (width-1)/2
             ravg = mf.cmov_average(data,width)
-            assert(isinstance(ravg, MaskedArray))
+            self.failUnless(isinstance(ravg, MaskedArray))
             assert_equal(ravg, data)
             m = np.zeros(len(data), bool)
             m[:k] = m[-k:] = m[10-k:10+k+1] = True
@@ -57,7 +57,7 @@ class TestCMovAverage(TestCase):
         for width in [3,5,7]:
             k = (width-1)/2
             ravg = mf.cmov_average(data,width)
-            assert(isinstance(ravg, MaskedArray))
+            self.failUnless(isinstance(ravg, MaskedArray))
             assert_equal(ravg, data)
             m = np.zeros(len(data), bool)
             m[:k] = m[-k:] = m[10-k:10+k+1] = True
@@ -71,7 +71,7 @@ class TestCMovAverage(TestCase):
         for width in [3,5,7]:
             k = (width-1)/2
             ravg = mf.cmov_average(data,width)
-            assert(isinstance(ravg, MaskedArray))
+            self.failUnless(isinstance(ravg, MaskedArray))
             #!!!: __getitem__[int] used to return a TimeSeries, now returns an array
 #            assert_almost_equal(ravg[18]._series.squeeze(),
 #                                data[18-k:18+k+1]._series.mean(0))
@@ -102,7 +102,7 @@ class TestMovFuncs(TestCase):
         for mfunc, nfunc in self.func_pairs:
             for k in [3,4,5]:
                 result = mfunc(data, k)
-                assert(isinstance(result, MaskedArray))
+                self.failUnless(isinstance(result, MaskedArray))
                 for x in range(len(data)-k+1):
                     assert_almost_equal(result[x+k-1], nfunc(data[x:x+k]))
                 assert_equal(result._mask, [1]*(k-1)+[0]*(len(data)-k+1))
@@ -114,7 +114,7 @@ class TestMovFuncs(TestCase):
         for Mfunc, Nfunc in self.func_pairs:
             for k in [3,4,5]:
                 result = Mfunc(data, k)
-                assert(isinstance(result, MaskedArray))
+                self.failUnless(isinstance(result, MaskedArray))
                 for x in range(len(data)-k+1):
                     if result[x+k-1] is not ma.masked:
                         assert_almost_equal(result[x+k-1], Nfunc(data[x:x+k]))
@@ -128,7 +128,7 @@ class TestMovFuncs(TestCase):
         for Mfunc, Nfunc in self.func_pairs:
             for k in [3,4,5]:
                 result = Mfunc(data, k)
-                assert(isinstance(result, MaskedArray))
+                self.failUnless(isinstance(result, MaskedArray))
                 for x in range(len(data)-k+1):
                     if result[x+k-1] is not ma.masked:
                         assert_almost_equal(
@@ -153,7 +153,7 @@ class TestMovFuncs(TestCase):
         for mfunc, nfunc in self.func_pairs:
             for k in [3,4,5]:
                 result = mfunc(data, k)
-                assert(isinstance(result, MaskedArray))
+                self.failUnless(isinstance(result, MaskedArray))
                 for x in range(len(data)-k+1):
                     assert_almost_equal(result[x+k-1], nfunc(data[x:x+k]))
                 assert_equal(result._mask, [1]*(k-1)+[0]*(len(data)-k+1))

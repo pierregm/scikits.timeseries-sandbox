@@ -52,8 +52,8 @@ class TestTimeSeriesRecords(TestCase):
     def test_get_fields(self):
         "Tests fields retrieval"
         [d, m, mrec, dlist, dates, mts, rts] = self.data
-        assert(isinstance(rts['f0'], TimeSeries))
-        assert(not isinstance(rts['f0'], TimeSeriesRecords))
+        self.failUnless(isinstance(rts['f0'], TimeSeries))
+        self.failUnless(not isinstance(rts['f0'], TimeSeriesRecords))
         assert_equal(rts['f0']._dates, dates)
         assert_equal(rts['f0']._data, d)
         assert_equal(rts['f0']._mask, m)
@@ -62,11 +62,11 @@ class TestTimeSeriesRecords(TestCase):
         "Tests index retrieval"
         [d, m, mrec, dlist, dates, mts, rts] = self.data
         test = rts[0]
-        assert(not (isinstance(test, TimeSeriesRecords)))
+        self.failUnless(not (isinstance(test, TimeSeriesRecords)))
         assert_equal_records(test, rts._data[0])
         assert_equal_records(test, mrec._data[0])
         # We can't use assert_equal here, as it tries to convert the tuple into a singleton
-#        assert(rts[0]._data.view(numpyndarray) == mrec[0])
+#        self.failUnless(rts[0]._data.view(numpyndarray) == mrec[0])
         assert_equal_records(rts._data[0], mrec[0])
         assert_equal(rts.mask[0], mrec.mask[0])
         assert_equal(test.mask, rts.mask[0])
@@ -76,22 +76,22 @@ class TestTimeSeriesRecords(TestCase):
         [d, m, mrec, dlist, dates, mts, rts] = self.data
         # Get item by dates w/ masked values
         test = rts['2007-01']
-        assert(isinstance(test, ma.MaskedArray))
-        assert(not isinstance(test, TimeSeries))
+        self.failUnless(isinstance(test, ma.MaskedArray))
+        self.failUnless(not isinstance(test, TimeSeries))
         assert_equal_records(test, mrec[0])
         # Get item by dates w/o masked values
         test = rts['2007-03']
-        assert(isinstance(test, np.void))
+        self.failUnless(isinstance(test, np.void))
         assert_equal_records(test, mrec[2])
 
     def test_get_field_asattribute(self):
         "Tests item retrieval"
         [d, m, mrec, dlist, dates, mts, rts] = self.data
-        assert(isinstance(rts.f0, TimeSeries))
-        assert(not isinstance(rts[0], TimeSeriesRecords))
+        self.failUnless(isinstance(rts.f0, TimeSeries))
+        self.failUnless(not isinstance(rts[0], TimeSeriesRecords))
         assert_equal(rts.f0, time_series(d, dates=dates, mask=m))
         assert_equal(rts.f1, time_series(d[::-1], dates=dates, mask=m[::-1]))
-        assert((rts._fieldmask == nr.fromarrays([m, m[::-1]])).all())
+        self.failUnless((rts._fieldmask == nr.fromarrays([m, m[::-1]])).all())
         # Was _mask, now is recordmask
         assert_equal(rts.recordmask, np.r_[[m,m[::-1]]].all(0))
         assert_equal(rts.f0[1], rts[1].f0)
@@ -99,7 +99,7 @@ class TestTimeSeriesRecords(TestCase):
     def test_get_slice(self):
         "Tests item retrieval"
         [d, m, mrec, dlist, dates, mts, rts] = self.data
-        assert(isinstance(rts[:2], TimeSeriesRecords))
+        self.failUnless(isinstance(rts[:2], TimeSeriesRecords))
         assert_equal(rts[:2]._data.f0, mrec[:2].f0)
         assert_equal(rts[:2]._data.f1, mrec[:2].f1)
         assert_equal(rts[:2]._dates, dates[:2])
@@ -163,14 +163,14 @@ class TestTimeSeriesRecords(TestCase):
         "Test hardmask"
         [d, m, mrec, dlist, dates, mts, rts] = self.data
         rts.harden_mask()
-        assert(rts._hardmask)
+        self.failUnless(rts._hardmask)
         rts._mask = nomask
         # Was _mask, now is recordmask
         assert_equal(rts.recordmask, np.r_[[m,m[::-1]]].all(0))
         rts.soften_mask()
-        assert(not rts._hardmask)
+        self.failUnless(not rts._hardmask)
         rts._mask = nomask
-        assert(rts['f1']._mask is nomask)
+        self.failUnless(rts['f1']._mask is nomask)
         assert_equal(rts['f0']._mask,rts['f1']._mask)
 
     def test_addfield(self):
@@ -219,7 +219,7 @@ class TestTimeSeriesRecords(TestCase):
         os.remove(tmp_fl)
         #
         dlist = ['2007-%02i' % i for i in (1,2,3,5)]
-        assert(isinstance(mrectxt, TimeSeriesRecords))
+        self.failUnless(isinstance(mrectxt, TimeSeriesRecords))
         assert_equal(mrectxt._dates, date_array(dlist,'M'))
         assert_equal(mrectxt.dtype.names, ['B','C','D','E','F','G'])
         assert_equal(mrectxt.G, [1,1,1,1])

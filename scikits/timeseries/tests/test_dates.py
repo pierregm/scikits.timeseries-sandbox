@@ -33,31 +33,28 @@ class TestCreation(TestCase):
 
     def test_fromstrings(self):
         "Tests creation from list of strings"
-        print "starting test_fromstrings..."
-
         # A simple case: daily data
         dlist = ['2007-01-%02i' % i for i in range(1,15)]
         dates = date_array(dlist, freq='D')
         assert_equal(dates.freqstr,'D')
-        assert(dates.isfull())
-        assert(not dates.has_duplicated_dates())
+        self.failUnless(dates.isfull())
+        self.failUnless(not dates.has_duplicated_dates())
         assert_equal(dates, 732677+np.arange(len(dlist)))
 
         # Still daily data, that we force to month
         dates = date_array(dlist, freq='M')
         assert_equal(dates.freqstr,'M')
-        assert(not dates.isfull())
-        assert(dates.has_duplicated_dates())
+        self.failUnless(not dates.isfull())
+        self.failUnless(dates.has_duplicated_dates())
         assert_equal(dates, [24073]*len(dlist))
 
         # Now, for monthly data
         dlist = ['2007-%02i' % i for i in range(1,13)]
         dates = date_array(dlist, freq='M')
         assert_equal(dates.freqstr,'M')
-        assert(dates.isfull())
-        assert(not dates.has_duplicated_dates())
+        self.failUnless(dates.isfull())
+        self.failUnless(not dates.has_duplicated_dates())
         assert_equal(dates, 24073 + np.arange(12))
-        print "finished test_fromstrings"
 
         # quarterly date
         assert_equal(
@@ -84,19 +81,19 @@ class TestCreation(TestCase):
         #
         dates = date_array(dlist)
         assert_equal(dates.freqstr,'U')
-        assert(not dates.isfull())
-        assert(not dates.has_duplicated_dates())
+        self.failUnless(not dates.isfull())
+        self.failUnless(not dates.has_duplicated_dates())
         assert_equal(dates.tovalue(), 732676 + np.array([1,2,4,5,7,8,10,11,13]))
         #
         ddates = date_array(dlist, freq='D')
         assert_equal(ddates.freqstr,'D')
-        assert(not ddates.isfull())
-        assert(not ddates.has_duplicated_dates())
+        self.failUnless(not ddates.isfull())
+        self.failUnless(not ddates.has_duplicated_dates())
         #
         mdates = date_array(dlist, freq='M')
         assert_equal(mdates.freqstr,'M')
-        assert(not mdates.isfull())
-        assert(mdates.has_duplicated_dates())
+        self.failUnless(not mdates.isfull())
+        self.failUnless(mdates.has_duplicated_dates())
 
 
     def test_fromsobjects(self):
@@ -1017,11 +1014,11 @@ class TestMethods(TestCase):
         #
         chosen = dates.date_to_index(choices[0])
         assert_equal(chosen, 2)
-        assert(isinstance(chosen, int))
+        self.failUnless(isinstance(chosen, int))
         #
         chosen = dates.date_to_index(choices[:-1])
         assert_equal(chosen, [2, 4, 6, 8])
-        assert(isinstance(chosen, np.ndarray))
+        self.failUnless(isinstance(chosen, np.ndarray))
         #
         try:
             assert_equal(dates.date_to_index(choices), [2, 4, 6, 8, -99])
@@ -1038,10 +1035,10 @@ class TestMethods(TestCase):
     def test_contains(self):
         dt = ts.now('d')
         darr = date_array(start_date=dt, length=5)
-        assert(dt in darr)
-        assert(dt-1 not in darr)
-        assert(dt.value in darr)
-        assert((dt-1).value not in darr)
+        self.failUnless(dt in darr)
+        self.failUnless(dt-1 not in darr)
+        self.failUnless(dt.value in darr)
+        self.failUnless((dt-1).value not in darr)
         #
         try:
             ts.now('b') in darr
@@ -1061,11 +1058,11 @@ class TestMethods(TestCase):
         #
         chosen = dates_invalid.date_to_index(choices[0])
         assert_equal(chosen, 2)
-        assert(isinstance(chosen, int))
+        self.failUnless(isinstance(chosen, int))
         #
         chosen = dates_invalid.date_to_index(choices[:-1])
         assert_equal(chosen, [2, 4, 6, 8])
-        assert(isinstance(chosen, np.ndarray))
+        self.failUnless(isinstance(chosen, np.ndarray))
         #
         try:
             assert_equal(dates_invalid.date_to_index(choices),

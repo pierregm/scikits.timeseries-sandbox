@@ -374,23 +374,23 @@ class TestTableRead(TestCase):
         series = self.tseries
         #
         test = table.read()
-        assert(isinstance(test, TimeSeries))
+        self.failUnless(isinstance(test, TimeSeries))
         assert_equal_records(test, series)
         #
         test = table.read(field='a')
-        assert(isinstance(test, TimeSeries))
+        self.failUnless(isinstance(test, TimeSeries))
         assert_equal(test, series['a'])
         #
         test = table.read(step=2)
-        assert(isinstance(test, TimeSeries))
+        self.failUnless(isinstance(test, TimeSeries))
         assert_equal(test, series[::2])
         #
         test = table.readCoordinates([1,2,3])
-        assert(isinstance(test, TimeSeries))
+        self.failUnless(isinstance(test, TimeSeries))
         assert_equal(test, series[[1,2,3]])
         #
         test = table.readCoordinates([1,2,3], field='a')
-        assert(isinstance(test, TimeSeries))
+        self.failUnless(isinstance(test, TimeSeries))
         assert_equal(test, series['a'][[1,2,3]])
     #
     def test_marray_read(self):
@@ -399,23 +399,23 @@ class TestTableRead(TestCase):
         data = self.marray
         #
         test = table.read()
-        assert(isinstance(test, MaskedArray))
+        self.failUnless(isinstance(test, MaskedArray))
         assert_equal_records(test, data)
         #
         test = table.read(field='a')
-        assert(isinstance(test, MaskedArray))
+        self.failUnless(isinstance(test, MaskedArray))
         assert_equal(test, data['a'])
         #
         test = table.read(step=2)
-        assert(isinstance(test, MaskedArray))
+        self.failUnless(isinstance(test, MaskedArray))
         assert_equal(test, data[::2])
         #
         test = table.readCoordinates([1,2,3])
-        assert(isinstance(test, MaskedArray))
+        self.failUnless(isinstance(test, MaskedArray))
         assert_equal(test, data[[1,2,3]])
         #
         test = table.readCoordinates([1,2,3], field='a')
-        assert(isinstance(test, MaskedArray))
+        self.failUnless(isinstance(test, MaskedArray))
         assert_equal(test, data['a'][[1,2,3]])
     #
     def test_append_maskedarray(self):
@@ -427,7 +427,7 @@ class TestTableRead(TestCase):
                            dtype=data.dtype)
         table.append(newdata)
         test = table.read()
-        assert(isinstance(test, MaskedArray))
+        self.failUnless(isinstance(test, MaskedArray))
         assert_equal_records(test, ma.mr_[data,newdata])
     #
     def test_append_timeseries(self):
@@ -440,9 +440,9 @@ class TestTableRead(TestCase):
                            start_date=tseries.dates[-1]+1)
         table.append(newdata)
         test = table.read()
-        assert(isinstance(test, TimeSeries))
+        self.failUnless(isinstance(test, TimeSeries))
         assert_equal_records(test, ts.concatenate((tseries,newdata)))
-    
+    #
 
 ###############################################################################
 #------------------------------------------------------------------------------
