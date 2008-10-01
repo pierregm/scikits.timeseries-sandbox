@@ -464,7 +464,7 @@ class TimeSeries(MaskedArray, object):
         newdates = getattr(obj, '_dates', nodates)
         # Only update the dates if we don't have any
         if not getattr(_dates, 'size', 0):
-            self._dates = newdates
+            self.__setdates__(newdates)
         MaskedArray._update_from(self, obj)
 
     def view(self, dtype=None, type=None):
@@ -635,11 +635,13 @@ Sets item described by index. If value is masked, masks those locations.
 
     def __setattr__(self, attr, value):
         if attr in ['_dates','dates']:
-            self.__setdates__(value)
+            return self.__setdates__(value)
         elif attr == 'shape':
             if self._varshape:
                 err_msg = "Reshaping a nV/nD series is not implemented yet !"
                 raise NotImplementedError(err_msg)
+            else:
+                self._dates.shape = value
         return ndarray.__setattr__(self, attr, value)
 
 
@@ -667,7 +669,8 @@ Sets item described by index. If value is masked, masks those locations.
                                                "dates: %s" % tsize)
         elif not varshape:
             # The data is 1D
-            value.shape = self.shape
+            value = value.reshape(self.shape)
+#            value.shape = self.shape
         return super(TimeSeries, self).__setattr__('_dates', value)
 
     dates = property(fget=lambda self:self._dates,
@@ -1595,9 +1598,7 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
 
     newseries = tmpdata.view(type(series))
     newseries._varshape = newvarshape
-    newseries._dates = date_array(start_date=start_date,
-                                  length=len(newseries),
-                                  freq=to_freq)
+    newseries._dates = newdates
     newseries._update_from(series)
     return newseries
 

@@ -600,12 +600,16 @@ class TestTimeSeriesMethods(TestCase):
         assert_equal(test1D.shape, newshape)
         assert_equal(test1D._series.shape, newshape)
         assert_equal(test1D._dates.shape, newshape)
+        # Make sure we haven't propagated the new shape
+        self.failUnless(test1D.shape != series1D.shape)
+        self.failUnless(test1D._dates.shape != series1D._dates.shape)
         # Using .shape
         test1D = series1D.copy()
         test1D.shape = newshape
         assert_equal(test1D.shape, newshape)
         assert_equal(test1D._series.shape, newshape)
         assert_equal(test1D._dates.shape, newshape)
+        self.failUnless(series1D._dates.shape != newshape)
         # Using multiple args
         test1D = series1D.reshape(*newshape)
         assert_equal(test1D.shape, newshape)
