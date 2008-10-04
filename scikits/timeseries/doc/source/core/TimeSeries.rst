@@ -150,7 +150,7 @@ multiple times.
 Here we will set all Wednesday and Fridays to 100.
 
    >>> weekdays = series.weekday
-   >>> series[(weekdays == 2)  (weekdays == 4)] = 100
+   >>> series[(weekdays == 2) | (weekdays == 4)] = 100
 
 You should keep in mind that :class:`~TimeSeries` are basically :class:`numpy.ma.MaskedArrays`.
 If some data of an array are masked, you will not be able to use this array as index,
