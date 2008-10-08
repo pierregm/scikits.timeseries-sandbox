@@ -366,6 +366,9 @@ Functions
 .. autofunction:: pct
 .. autofunction:: fill_missing_dates
 
+.. autofunction:: first_unmasked_val
+.. autofunction:: last_unmasked_val
+
 .. autofunction:: empty_like
 
 

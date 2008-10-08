@@ -93,7 +93,8 @@ def first_unmasked_val(marray):
     return _unmasked_val(marray, 0)
 
 def last_unmasked_val(marray):
-    """Retrieve the last unmasked value in a 1d MaskedArray.
+    """
+    Retrieve the last unmasked value in a 1d MaskedArray.
 
     Parameters
     ----------
@@ -243,8 +244,8 @@ def get_varshape(data, dates):
 
     Raises
     ------
-        A TimeSeriesCompatibilityError exception is raised if something goes
-        wrong.
+    A TimeSeriesCompatibilityError exception is raised if something goes
+    wrong.
 
     """
 
@@ -909,28 +910,17 @@ timeseries(%(data)s,
 
     Returns
     -------
-    TimeSeries:
-<<<<<<< .mine
-        A new TimeSeries with the `.dates` attribute at the specified frequency
-        (the :meth:`.asfreq` method of the :attr:`.dates`
-=======
-        A new TimeSeries with the :attr:`.dates` :class:`DateArray` at the
-        specified frequency (the :meth`.asfreq` method of the :attr:`.dates`
->>>>>>> .r1253
-        property will be called).
-        The data in the resulting series will be a VIEW of the original series.
+    A new TimeSeries with the :attr:`.dates` :class:`DateArray` at the
+    specified frequency (the :meth`.asfreq` method of the :attr:`.dates`
+    property will be called).
+    The data in the resulting series will be a VIEW of the original series.
 
     Notes
     -----
-<<<<<<< .mine
     The parameters are the exact same as for
-    :meth:`~scikit.timeseries.tdates.DateArray.asfreq`.
-    Please see the docstring for that method for details on the parameters and
-=======
-    The parameters are the exact same as for :meth:`DateArray.asfreq`, please
-    see the `__doc__` string for that method for details on the parameters and
->>>>>>> .r1253
-    how the actual conversion is performed.
+    :meth:`~scikit.timeseries.DateArray.asfreq`. Please see the docstring for
+    that method for details on the parameters and how the actual conversion is
+    performed.
 
     """
         if freq is None: return self
@@ -1606,20 +1596,9 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
     """
     Converts a series from one frequency to another, by manipulating both the
     `data` and `dates` attributes.
-    The input series should not have any missing nor duplicated dates.
 
-    When converting from one frequency to a lower one, use the ``func`` parameter
-    to control how data sharing the same new date should be handled. For example,
-    when converting a daily series to a monthly series, use ``numpy.ma.mean``
-    to get a series of monthly averages.
-    If ``func`` is not given, the output series group the points of the initial
-    series that share the same new date. For example, if the initial series has
-    a daily frequency and is 1D, the output series is 2D.
-
-    When converting to a higher frequency, use the ``position`` parameter to
-    determine where the points should fall in the new period.
-    For example, when converting a monthly series to daily, set ``precision``
-    to ``'START'`` to force the points to fall on the first of each month.
+    If the input series has any missing dates, it will first be filled in with
+    masked values prior to doing the conversion.
 
     Parameters
     ----------
@@ -1629,16 +1608,25 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
     freq : freq_spec
         Frequency to convert the TimeSeries to. Accepts any valid frequency
         specification (string or integer)
-    func : {None,function}, optional
-        Function controlling how data sharing the same new dates should be
-        manipulated.
-        This function should handle masked values appropriately.
-        If ``func`` is None (default), the output series groups the points of the
-        initial series that share the same new date.
-        The parameter is used only when converting to a lower frequency.
+    func : function, optional
+        When converting a series to a lower frequency, you can use the
+        ``func`` parameter to perform a calculation on each period of values
+        to aggregate results.
+        For example, when converting a daily series to a monthly series, use
+        :func:`numpy.ma.mean` to get a series of monthly averages. If you wish
+        to get the first or last value from a period, use the functions
+        :func:`scikits.timeseries.first_unmasked_val` and
+        :func:`scikits.timeseries.last_unmasked_val`.
+        If ``func`` is not given, the output series group the points of the
+        initial series that share the same new date. For example, if the
+        initial series has a daily frequency and is 1D, the output series is
+        2D.
     position : {'END', 'START'}, optional
-        Determines whether the points should fall at the beginning (``'START'``)
-        or at the end (``'END'``) of the new period.
+        When converting a series to a higher frequency, use this parameter to
+        determine where the points should fall in the new period.
+        For example, when converting a monthly series to daily, specifying
+        position='START' will cause the values to fall on the first day of
+        each month (with all other values being masked).
     *args : {extra arguments for func parameter}, optional
         Additional mandatory parameters of the ``func`` function.
     **kwargs : {extra keyword arguments for func parameter}, optional
