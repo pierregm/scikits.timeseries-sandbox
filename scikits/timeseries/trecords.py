@@ -98,8 +98,6 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
     slice
         return a :class:`TimeSeriesRecords`.
     """
-    _defaultfieldmask = nomask
-    _defaulthardmask = False
     def __new__(cls, shape, dtype=None, buf=None, offset=0, strides=None,
                 formats=None, names=None, titles=None,
                 byteorder=None, aligned=False,
@@ -118,7 +116,6 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
                              start_date=start_date,freq=freq)
         _data._dates = newdates
         _data._observed = observed
-        cls._defaultfieldmask = _data._fieldmask
         #
         return _data
 
@@ -145,6 +142,8 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
     def __getattribute__(self, attr):
         getattribute = MaskedRecords.__getattribute__
         _dict = getattribute(self,'__dict__')
+        if attr == '_dict':
+            return _dict
         _names = ndarray.__getattribute__(self,'dtype').names
         if attr in (_names or []):
             obj = getattribute(self,attr).view(TimeSeries)
@@ -171,7 +170,7 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
         if indx in ndarray.__getattribute__(self, 'dtype').names:
             obj = self._data[indx].view(TimeSeries)
             obj._dates = _localdict['_dates']
-            obj._mask = make_mask(_localdict['_fieldmask'][indx])
+            obj._mask = make_mask(_localdict['_mask'][indx])
             return obj
         # We want some elements ..
         obj = TimeSeries.__getitem__(self, indx)
@@ -188,8 +187,8 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
     #......................................................
     def __str__(self):
         """x.__str__() <==> str(x)
-Calculates the string representation, using masked for fill if it is enabled.
-Otherwise, fills with fill value.
+    Calculates the string representation, using masked for fill if it is enabled.
+    Otherwise, fills with fill value.
         """
         if self.size > 1:
             mstr = ["(%s)" % ",".join([str(i) for i in s])
@@ -204,8 +203,8 @@ Otherwise, fills with fill value.
 
     def __repr__(self):
         """x.__repr__() <==> repr(x)
-Calculates the repr representation, using masked for fill if it is enabled.
-Otherwise fill with fill value.
+    Calculates the repr representation, using masked for fill if it is enabled.
+    Otherwise fill with fill value.
         """
         _names = self.dtype.names
         _dates = self._dates
@@ -217,18 +216,21 @@ Otherwise fill with fill value.
         reprstr = [fmt % (f,getattr(self,f)) for f in self.dtype.names]
         reprstr.insert(0,'TimeSeriesRecords(')
         reprstr.extend([fmt % ('dates', timestr),
-                        fmt % ('    fill_value', self._fill_value),
+                        fmt % ('    fill_value', self.fill_value),
                          '               )'])
         return str("\n".join(reprstr))
-    #.............................................
+
+
     def copy(self):
         "Returns a copy of the argument."
         copied = MaskedRecords.copy(self)
         copied._dates = self._dates.copy()
         return copied
-    #.............................................
+
+
     def convert(self, freq, func=None, position='END', *args, **kwargs):
-        """Converts a series to a frequency. Private function called by convert
+        """
+    Converts a series to another frequency.
 
     Parameters
     ----------

@@ -91,7 +91,7 @@ class TestTimeSeriesRecords(TestCase):
         self.failUnless(not isinstance(rts[0], TimeSeriesRecords))
         assert_equal(rts.f0, time_series(d, dates=dates, mask=m))
         assert_equal(rts.f1, time_series(d[::-1], dates=dates, mask=m[::-1]))
-        self.failUnless((rts._fieldmask == nr.fromarrays([m, m[::-1]])).all())
+        self.failUnless((rts._mask == nr.fromarrays([m, m[::-1]])).all())
         # Was _mask, now is recordmask
         assert_equal(rts.recordmask, np.r_[[m,m[::-1]]].all(0))
         assert_equal(rts.f0[1], rts[1].f0)
@@ -116,10 +116,10 @@ class TestTimeSeriesRecords(TestCase):
         rts.f1 = ma.masked
         assert_equal(rts.f1.mask, [1]*5)
         assert_equal(ma.getmaskarray(rts['f1']), [1]*5)
-        rts._mask = ma.masked
+        rts.mask = ma.masked
         assert_equal(ma.getmaskarray(rts['f1']), [1]*5)
         assert_equal(rts['f0']._mask, rts['f1']._mask)
-        rts._mask = ma.nomask
+        rts.mask = ma.nomask
         assert_equal(ma.getmaskarray(rts['f1']), [0]*5)
         assert_equal(rts['f0']._mask, rts['f1']._mask)
 
@@ -164,12 +164,12 @@ class TestTimeSeriesRecords(TestCase):
         [d, m, mrec, dlist, dates, mts, rts] = self.data
         rts.harden_mask()
         self.failUnless(rts._hardmask)
-        rts._mask = nomask
+        rts.mask = nomask
         # Was _mask, now is recordmask
         assert_equal(rts.recordmask, np.r_[[m,m[::-1]]].all(0))
         rts.soften_mask()
         self.failUnless(not rts._hardmask)
-        rts._mask = nomask
+        rts.mask = nomask
         self.failUnless(rts['f1']._mask is nomask)
         assert_equal(rts['f0']._mask,rts['f1']._mask)
 
@@ -257,6 +257,42 @@ class TestTimeSeriesRecords_Functions(TestCase):
         for key in ('a','b','c'):
             assert_equal(a_trec[key], base[key].convert('A', ma.mean))
 
+
+class TestViewTS(TestCase):
+    #
+    def setUp(self):
+        (a, b) = (np.arange(10), np.random.rand(10))
+        ndtype = [('a',np.float), ('b',np.float)]
+        tarr = ts.time_series(np.array(zip(a,b), dtype=ndtype), 
+                              start_date=ts.now('M'))
+        tarr.mask[3] = (False, True)
+        self.data = (tarr, a, b)
+    #
+    def test_view_by_itself(self):
+        (tarr, a, b) = self.data
+        test = tarr.view()
+        self.failUnless(isinstance(test, TimeSeries))
+        assert_equal_records(test, tarr)
+        assert_equal_records(test._mask, tarr._mask)
+    #
+    def test_view_simple_dtype(self):
+        (tarr, a, b) = self.data
+        ntype = (np.float, 2)
+        test = tarr.view(ntype)
+        self.failUnless(isinstance(test, TimeSeries))
+        assert_equal(test, np.array(zip(a,b), dtype=np.float))
+        self.failUnless(test[3,1] is ma.masked)
+    #
+    def test_view_flexible_type(self):
+        (tarr, a, b) = self.data
+        arr = tarr._series
+        alttype = [('A',np.float), ('B',np.float)]
+        test = tarr.view(alttype)
+        self.failUnless(isinstance(test, TimeSeries))
+        assert_equal_records(test, arr.view(alttype))
+        self.failUnless(test['B'][3] is ma.masked)
+        assert_equal(test.dtype, np.dtype(alttype))
+        self.failUnless(test._fill_value is None)
 
 ###############################################################################
 #------------------------------------------------------------------------------

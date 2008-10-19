@@ -470,9 +470,9 @@ class TimeSeries(MaskedArray, object):
 
     def view(self, dtype=None, type=None):
         try:
-            output = MaskedArray.view(self, dtype=dtype, type=type)
+            output = super(TimeSeries, self).view(dtype=dtype, type=type)
         except ValueError:
-            output = MaskedArray.view(self, dtype)
+            output = super(TimeSeries, self).view(dtype)
         if isinstance(output, TimeSeries):
             if output.dtype.fields:
                 output._varshape = ()

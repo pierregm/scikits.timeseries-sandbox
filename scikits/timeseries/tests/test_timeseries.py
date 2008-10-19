@@ -16,7 +16,8 @@ from numpy.testing import *
 
 import numpy.ma as ma
 from numpy.ma import MaskedArray, masked, nomask
-from numpy.ma.testutils import assert_equal, assert_array_equal, assert_not_equal
+from numpy.ma.testutils import assert_equal, assert_array_equal, assert_not_equal,\
+                               assert_equal_records
 
 import scikits.timeseries as ts
 
@@ -1139,6 +1140,42 @@ class TestFlexibleType(TestCase):
         self.failUnless(isinstance(test, np.void))
         assert_equal(test, data[2])
 
+
+class TestViewTS(TestCase):
+    #
+    def setUp(self):
+        (a, b) = (np.arange(10), np.random.rand(10))
+        ndtype = [('a',np.float), ('b',np.float)]
+        tarr = ts.time_series(np.array(zip(a,b), dtype=ndtype), 
+                              start_date=ts.now('M'))
+        tarr.mask[3] = (False, True)
+        self.data = (tarr, a, b)
+    #
+    def test_view_by_itself(self):
+        (tarr, a, b) = self.data
+        test = tarr.view()
+        self.failUnless(isinstance(test, ts.TimeSeries))
+        assert_equal_records(test, tarr)
+        assert_equal_records(test._mask, tarr._mask)
+    #
+    def test_view_simple_dtype(self):
+        (tarr, a, b) = self.data
+        ntype = (np.float, 2)
+        test = tarr.view(ntype)
+        self.failUnless(isinstance(test, TimeSeries))
+        assert_equal(test, np.array(zip(a,b), dtype=np.float))
+        self.failUnless(test[3,1] is ma.masked)
+    #
+    def test_view_flexible_type(self):
+        (tarr, a, b) = self.data
+        arr = tarr._series
+        alttype = [('A',np.float), ('B',np.float)]
+        test = tarr.view(alttype)
+        self.failUnless(isinstance(test, TimeSeries))
+        assert_equal_records(test, arr.view(alttype))
+        self.failUnless(test['B'][3] is masked)
+        assert_equal(test.dtype, np.dtype(alttype))
+        self.failUnless(test._fill_value is None)
 
 ###############################################################################
 #------------------------------------------------------------------------------
