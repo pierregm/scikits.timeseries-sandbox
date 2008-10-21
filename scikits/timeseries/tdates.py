@@ -134,6 +134,18 @@ def prevbusday(day_end_hour=18, day_end_min=0):
 #####---------------------------------------------------------------------------
 #---- --- DateArray ---
 #####---------------------------------------------------------------------------
+def _check_chronological_order(dates):
+    """
+    Checks whether dates are in the chronological order.
+    If not, output the indices corresponding to the chronological order.
+    Otherwise, output None.
+    """
+    idx = dates.argsort()
+    if (idx[1:] - idx[:-1] < 0).any():
+        return idx.view(ndarray)
+    return
+
+
 ufunc_dateOK = ['add','subtract',
                 'equal','not_equal','less','less_equal', 'greater','greater_equal',
                 'isnan']
@@ -221,7 +233,6 @@ class DateArray(ndarray):
             _dates.shape = (1,)
         _dates = _dates.view(cls)
         _dates.freq = _freq
-        _dates._unsorted = None
         return _dates
 
     def __array_wrap__(self, obj, context=None):
@@ -232,12 +243,17 @@ class DateArray(ndarray):
 
     def __array_finalize__(self, obj):
         self.freq = getattr(obj, 'freq', _c.FR_UND)
-        self._unsorted = getattr(obj,'_unsorted',None)
         self._cachedinfo = dict(toobj=None, tostr=None, toord=None,
-                                steps=None, full=None, hasdups=None)
-        if hasattr(obj,'_cachedinfo'):
-            self._cachedinfo.update(obj._cachedinfo)
+                                steps=None, full=None, hasdups=None,
+                                unsorted=None)
+        self._cachedinfo.update(getattr(obj, '_cachedinfo', {}))
         return
+
+    def _get_unsorted(self):
+        return self._cachedinfo['unsorted']
+    def _set_unsorted(self, value):
+        self._cachedinfo.update({'unsorted': value})
+    _unsorted = property(fget=_get_unsorted, fset=_set_unsorted)
 
     def __getitem__(self, indx):
         reset_full = True
@@ -262,7 +278,7 @@ class DateArray(ndarray):
         # Case 1. A simple integer
         if isinstance(r, (generic, int)):
             return Date(self.freq, value=r)
-        elif hasattr(r, 'ndim') and r.ndim == 0:
+        elif not getattr(r, 'ndim', 1):
             # need to check if it has a ndim attribute for situations
             # like when the datearray is the data for a maskedarray
             # or some other subclass of ndarray with wierd getitem
@@ -349,7 +365,6 @@ class DateArray(ndarray):
     For non-quarterly dates, this simply returns the year of the date.
 
     """
-
         return self.__getdateinfo__('F')
     @property
     def second(self):
@@ -383,7 +398,7 @@ class DateArray(ndarray):
         return np.asarray(cseries.DA_getDateInfo(np.asarray(self),
                                                  self.freq, info,
                                                  int(self.isfull())),
-                               dtype=int_)
+                          dtype=int_)
     __getDateInfo = __getdateinfo__
     #.... Conversion methods ....................
     #
@@ -617,10 +632,11 @@ DateArray.fill_missing_dates = fill_missing_dates
 
 nodates = DateArray([])
 
+
 #####---------------------------------------------------------------------------
 #---- --- DateArray functions ---
 #####---------------------------------------------------------------------------
-def _listparser(dlist, freq=None):
+def _listparser(dlist, freq=None, autosort=True):
     "Constructs a DateArray from a list."
     dlist = np.array(dlist, copy=False, ndmin=1)
 
@@ -631,11 +647,14 @@ def _listparser(dlist, freq=None):
         dlist = np.array(dvals, copy=False, ndmin=1)
 
     # Make sure that the list is sorted (save the original order if needed)
-    idx = dlist.argsort()
-    if (idx[1:] - idx[:-1] < 0).any():
-        dlist = dlist[idx]
+    if autosort:
+        idx = dlist.argsort()
+        if (idx[1:] - idx[:-1] < 0).any():
+            dlist = dlist[idx]
+        else:
+            idx = None
     else:
-        idx = None
+        idx = np.arange(len(dlist), dtype=np.int)
 
     # Case #2: dates as numbers .................
     if dlist.dtype.kind in 'if':
@@ -656,11 +675,11 @@ def _listparser(dlist, freq=None):
             dates = [Date(freq, datetime=d) for d in dlist]
     #
     result = DateArray(dates, freq)
-    result._unsorted = idx
+    result._cachedinfo.update(dict(unsorted=idx))
     return result
 
 def date_array(dlist=None, start_date=None, end_date=None, length=None,
-               freq=None):
+               freq=None, autosort=True):
     """
     Factory function for constructing a DateArray.
 
@@ -681,6 +700,9 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
     length : {int} (optional)
         Length of the output. Specify this parameter or
         `end_date` in combination with `start_date` for a continuous DateArray.
+    autosort : {True, False}, optional
+        Whether to sort the dates in chronological order.
+    
 
     Returns
     -------
@@ -694,10 +716,13 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
             if (freq != _c.FR_UND) and (dlist.freq != check_freq(freq)):
                 return dlist.asfreq(freq)
             else:
+                # Taking a view will make sure we won't propagate modifications..
+                # ... in _cachedinfo.
+                dlist = dlist.view()
                 return dlist
         # Make sure it's a sequence, else that's a start_date
         if hasattr(dlist,'__len__'):
-            return _listparser(dlist, freq)
+            return _listparser(dlist, freq=freq, autosort=autosort)
         elif start_date is not None:
             if end_date is not None:
                 dmsg = "What starting date should be used ? '%s' or '%s' ?"

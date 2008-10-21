@@ -1328,7 +1328,10 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
     if dates is None:
         _dates = getattr(data, '_dates', None)
     elif isinstance(dates, (Date, DateArray)):
-        _dates = date_array(dates)
+        if copy:
+            _dates = date_array(dates).copy()
+        else:
+            _dates = date_array(dates)
     elif isinstance(dates, (tuple, list, ndarray)):
         _dates = date_array(dlist=dates, freq=freq)
     else:

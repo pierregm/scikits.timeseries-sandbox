@@ -121,6 +121,23 @@ class TestCreation(TestCase):
         series = time_series(data, dlist, freq='D')
         assert_equal(series._mask,[0,0,1])
 
+    def test_unsorted_w_datearray(self):
+        "Tests that the data are properly sorted along the dates."
+        dlist = ['2007-01-%02i' % i for i in (3,2,1)]
+        data = [10,20,30]
+        dates = date_array(dlist, freq='D')
+        self.failUnless(dates._unsorted is not None)
+        #
+        series = time_series(data, dates=dates)
+        assert_equal(series._data,[30,20,10])
+        self.failUnless(dates._unsorted is not None)
+        self.failUnless(series._dates._unsorted is None)
+        #
+        series = time_series(data, dates=dates)
+        assert_equal(series._data,[30,20,10])
+        self.failUnless(series._dates._unsorted is None)
+
+
     def test_setdates(self):
         "Tests setting the dates of a series."
         (dlist, dates, data) = self.d
@@ -169,6 +186,21 @@ class TestCreation(TestCase):
         assert_equal(test_series._dates, reference._dates)
         assert_equal(test_series._dates.shape, test_series.shape)
 
+
+    def test_copy(self):
+        "Tests the creation of a timeseries with copy=True"
+        dlist = ['2007-01-%02i' % i for i in range(1,16)]
+        dates = date_array(dlist, freq='D')
+        data = ma.array(np.arange(15), mask=[1,0,0,0,0]*3)
+        series = time_series(data, dates)
+        assert_equal(series.dates.ctypes.data, dates.ctypes.data)
+        assert_equal(series._data.ctypes.data, data._data.ctypes.data)
+        assert_equal(series._mask.ctypes.data, data._mask.ctypes.data)
+        #
+        series = time_series(data, dates, copy=True)
+        assert_not_equal(series.dates.ctypes.data, dates.ctypes.data)
+        assert_not_equal(series._data.ctypes.data, data._data.ctypes.data)
+        assert_not_equal(series._mask.ctypes.data, data._mask.ctypes.data)
 
 #------------------------------------------------------------------------------
 
