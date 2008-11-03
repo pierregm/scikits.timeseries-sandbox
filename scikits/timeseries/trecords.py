@@ -181,7 +181,7 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
 
     def __setslice__(self, i, j, value):
         """Sets the slice described by [i,j] to `value`."""
-        self.view(mrecarray).__setitem__(slice(i,j),value)
+        MaskedRecords.__setitem__(self, slice(i,j), value)
         return
 
     #......................................................
@@ -277,11 +277,48 @@ trecarray = TimeSeriesRecords
 #---- --- Constructors ---
 #####---------------------------------------------------------------------------
 
-def time_records(mrecord, dates=None):
-    trecords = np.array(mrecord, subok=True).view(trecarray)
-    if dates is not None:
-        trecords._dates = dates
-    return trecords
+def time_records(data, dates=None, start_date=None, freq=None, mask=nomask,
+                dtype=None, copy=False, fill_value=None, keep_mask=True,
+                hard_mask=False):
+    """
+    Creates a TimeSeriesRecords object.
+
+    Parameters
+    ----------
+    data : array_like
+        Data portion of the array. Any data that is valid for constructing a
+        MaskedArray can be used here. May also be a TimeSeries object.
+    dates : {None, DateArray}, optional
+        A sequence of dates corresponding to each entry.
+        If None, the dates will be constructed as a DateArray with the same
+        length as ``data``, starting at ``start_date`` with frequency ``freq``.
+    start_date : {Date}, optional
+        Date corresponding to the first entry of the data (index 0).
+        This parameter must be a valid Date object, and is mandatory if ``dates``
+        is None and if ``data`` has a length greater or equal to 1.
+    freq : {freq_spec}, optional
+        A valid frequency specification, as a string or an integer.
+        This parameter is mandatory if ``dates`` is None.
+
+    Notes
+    -----
+    * All other parameters that are accepted by the :func:`numpy.ma.array`
+      function in the :mod:`numpy.ma` module are also accepted by this function.
+    * The date portion of the time series must be specified in one of the
+      following ways:
+
+       * specify a TimeSeries object for the ``data`` parameter.
+       * pass a DateArray for the ``dates`` parameter.
+       * specify a start_date (a continuous DateArray will be automatically
+         constructed for the dates portion).
+       * specify just a frequency (for TimeSeries of size zero).
+
+    """
+    series =  time_series(data, dates=dates, start_date=start_date, freq=freq,
+                          mask=mask, dtype=dtype, copy=copy,
+                          fill_value=fill_value, keep_mask=keep_mask,
+                          hard_mask=hard_mask)
+    return series.view(TimeSeriesRecords)
 
 #!!!: * The docstrings of the following functions need some serious work ;)
 #!!!: * We should try to have a list of TimeSeries sufficient to build a record...
@@ -329,10 +366,15 @@ def fromarrays(arraylist, dates=None, start_date=None, freq='U',
     _array = mrecfromarrays(arraylist, dtype=dtype, shape=shape, formats=formats,
                             names=names, titles=titles, aligned=aligned,
                             byteorder=byteorder, fill_value=fill_value)
-    _array = _array.view(trecarray)
-    _array._dates = _getdates(dates, length=len(_array),
-                              start_date=start_date,freq=freq)
-    return _array
+    _dates = _getdates(dates, length=len(_array), start_date=start_date, 
+                       freq=freq)
+    if _dates._unsorted is not None:
+        idx = _dates._unsorted
+        _array = _array[idx]
+        _dates._unsorted = None
+    result = _array.view(trecarray)
+    result._dates = _dates
+    return result
 
 
 #..............................................................................
@@ -365,12 +407,17 @@ def fromrecords(reclist, dates=None, freq=None, start_date=None,
                                     if t[0] not in reserved ])
         _data = mrecfromarrays([_data[n] for n in _names], dtype=_dtype)
     #
-    result = _data.view(trecarray)
     if dates is None:
         dates = getattr(reclist, '_dates', None)
-    result._dates = _getdates(dates=dates, newdates=newdates, length=len(_data),
-                              freq=freq, start_date=start_date)
+    _dates = _getdates(dates=dates, newdates=newdates, length=len(_data),
+                       freq=freq, start_date=start_date)
+    if _dates._unsorted is not None:
+        idx = _dates._unsorted
+        _data = _data[idx]
+        _dates._unsorted = None
     #
+    result = _data.view(trecarray)
+    result._dates = _dates
     return result
 
 

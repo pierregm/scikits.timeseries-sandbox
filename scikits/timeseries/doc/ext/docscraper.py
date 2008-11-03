@@ -150,9 +150,12 @@ class Docstring(list):
             rawdoc = text
         # Use autodoc.prepare_docstring on strings
         elif isinstance(text, basestring):
+            print "text", text
             rawdoc = autodoc.prepare_docstring(text)
+            print "rawdoc", len(rawdoc), rawdoc
             # Careful: prepare_docstring adds an extra blank line...
-            rawdoc.pop(-1)
+            if rawdoc:
+                rawdoc.pop(-1)
         # A StringList or a list: make sure that we don't start with empty lines
         elif isinstance(text, (list, StringList)):
             rawdoc = text
@@ -534,7 +537,7 @@ class NumpyDocString(Docstring):
                     output.append("%s" % (self.name_format % v_name))
                 (desc, _) = contents.get_indented(start=i+1, 
                                                   until_blank=True)
-                output += desc.indent(3)
+                output += desc.indent(self.tab)
                 # If desc == [] we still need to increment.
                 i += len(desc) or 1
             else:
@@ -635,7 +638,7 @@ class NumpyDocString(Docstring):
             else:
                 output[-1] += ", %s" % link
             if desc:
-                output += desc.indent(4)
+                output += desc.indent(self.tab)
                 last_had_desc = True
             else:
                 last_had_desc = False
@@ -856,14 +859,14 @@ class SphinxDocString(NumpyDocString):
         out = []
         if self['Warnings']:
             out = ['.. warning::']
-            out += self['Warnings'].indent(3)
+            out += self['Warnings'].indent(self.tab)
         return out
 
     def _format_see_also(self):
         out = []
         if self['See Also']:
             out = ['.. seealso::']
-            out += self['See Also'].indent(3)
+            out += self['See Also'].indent(self.tab)
         return out
     
     def _format_index(self):

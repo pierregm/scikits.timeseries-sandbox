@@ -1,5 +1,6 @@
 #-*- coding: latin-1 -*-
-""" Date/Time string parsing module.
+""" 
+Date/Time string parsing module.
 
 This code is a slightly modified version of Parser.py found in mx.DateTime
 version 3.0.0
@@ -321,37 +322,36 @@ def add_century(year):
 
 
 def _parse_date(text):
+    """
+    Parses the date part given in text and returns a tuple
+    (text,day,month,year,style) with the following meanings:
 
-    """ Parses the date part given in text and returns a tuple
-        (text,day,month,year,style) with the following
-        meanings:
+    * text gives the original text without the date part
 
-        * text gives the original text without the date part
+    * day,month,year give the parsed date
 
-        * day,month,year give the parsed date
+    * style gives information about which parser was successful:
+      'euro' - the European date parser
+      'us' - the US date parser
+      'altus' - the alternative US date parser (with '-' instead of '/')
+      'iso' - the ISO date parser
+      'altiso' - the alternative ISO date parser (without '-')
+      'usiso' - US style ISO date parser (yyyy/mm/dd)
+      'lit' - the US literal date parser
+      'altlit' - the alternative US literal date parser
+      'eurlit' - the Eurpean literal date parser
+      'unknown' - no date part was found, defaultdate was used
 
-        * style gives information about which parser was successful:
-          'euro' - the European date parser
-          'us' - the US date parser
-          'altus' - the alternative US date parser (with '-' instead of '/')
-          'iso' - the ISO date parser
-          'altiso' - the alternative ISO date parser (without '-')
-          'usiso' - US style ISO date parser (yyyy/mm/dd)
-          'lit' - the US literal date parser
-          'altlit' - the alternative US literal date parser
-          'eurlit' - the Eurpean literal date parser
-          'unknown' - no date part was found, defaultdate was used
+    Formats may be set to a tuple of style strings specifying which of the above
+    parsers to use and in which order to try them.
+    Default is to try all of them in the above order.
 
-        formats may be set to a tuple of style strings specifying
-        which of the above parsers to use and in which order to try
-        them. Default is to try all of them in the above order.
+    ``defaultdate`` provides the defaults to use in case no date part is found.
+    Most other parsers default to the current year January 1 if some of these
+    date parts are missing.
 
-        defaultdate provides the defaults to use in case no date part
-        is found. Most other parsers default to the current year
-        January 1 if some of these date parts are missing.
-
-        If 'unknown' is not given in formats and the date cannot be
-        parsed, a ValueError is raised.
+    If ``'unknown'`` is not given in formats and the date cannot be parsed,
+    a :exc:`ValueError` is raised.
 
     """
     match = None

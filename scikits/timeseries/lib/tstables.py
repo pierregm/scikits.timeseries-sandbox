@@ -138,7 +138,7 @@ from numpy.ma import MaskedArray, masked
 from scikits.timeseries import TimeSeries, DateArray, time_series
 
 import tables
-from tables import File, Table
+from tables import File, Table, openFile
 from tables.file import _checkfilters
 from tables.parameters import EXPECTED_ROWS_TABLE
 

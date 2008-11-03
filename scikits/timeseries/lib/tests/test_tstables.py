@@ -51,9 +51,9 @@ def common_ma_setup():
                             np.arange(5),
                             ('A','B','C','D','E')],
                            dtype=dtype5R)
-    data5R._fieldmask['a'][0]=True
-    data5R._fieldmask['b'][2]=True
-    data5R._fieldmask['c'][-1]=True
+    data5R._mask['a'][0]=True
+    data5R._mask['b'][2]=True
+    data5R._mask['c'][-1]=True
     return dict(data1D=data1D, 
                 data2D=data2D,
                 data5N=data5N,

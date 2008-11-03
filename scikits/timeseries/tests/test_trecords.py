@@ -225,6 +225,33 @@ class TestTimeSeriesRecords(TestCase):
         assert_equal(mrectxt.G, [1,1,1,1])
         assert_equal(mrectxt.F._mask, [1,1,1,1])
         assert_equal(mrectxt.D, [1,2,3.e+5,-1e-10])
+    #
+    def test_sorted(self):
+        dates = [ts.Date('D',string='2007-01-%02i' % i) for i in (3,2,1)]
+        (a,b) = zip(*[(3.,30), (2.,20), (1.,10),])
+        ndtype = [('a', np.float), ('b',np.int)]
+        controldates = date_array(dates, freq='D')
+        series = time_series(zip(*(a,b)), dates, freq='D',dtype=ndtype)
+        assert_equal(series._data.tolist(), [(1.,10), (2.,20), (3.,30)])
+        assert_equal(series._dates, controldates)
+        #
+        trec = time_records(zip(*(a,b)), dates, freq='D',dtype=ndtype)
+        assert_equal(trec._data.tolist(), [(1.,10), (2.,20), (3.,30)])
+        assert_equal(trec._dates, controldates)
+        assert_equal(trec['a'], [1., 2., 3.])
+        assert_equal(trec.a, [1., 2., 3.])
+        #
+        trec = fromrecords(zip(a,b), dates, names=('a','b'))
+        assert_equal(trec._data.tolist(), [(1.,10), (2.,20), (3.,30)])
+        assert_equal(trec._dates, controldates)
+        assert_equal(trec['a'], [1., 2., 3.])
+        assert_equal(trec.a, [1., 2., 3.])
+        #
+        trec = fromarrays([a,b], dates, names=('a','b'))
+        assert_equal(trec._data.tolist(), [(1.,10), (2.,20), (3.,30)])
+        assert_equal(trec._dates, controldates)
+        assert_equal(trec['a'], [1., 2., 3.])
+        assert_equal(trec.a, [1., 2., 3.])
 
 
 #..............................................................................
