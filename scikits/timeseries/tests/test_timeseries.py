@@ -147,6 +147,7 @@ class TestCreation(TestCase):
         test_series._dates = dates
         assert_equal(test_series._dates, reference._dates)
 
+
     def test_set_dates_asndarray(self):
         "Tests settinf the dates as a ndarray."
         (dlist, dates, data) = self.d
@@ -160,6 +161,7 @@ class TestCreation(TestCase):
         else:
             err_msg = "Dates shouldn't be set as basic ndarrays"
             raise TimeSeriesError(err_msg)
+
 
     def test_setdates_with_autoreshape(self):
         "Tests the automatic reshaping of dates."
@@ -185,6 +187,42 @@ class TestCreation(TestCase):
         test_series._dates = test_dates
         assert_equal(test_series._dates, reference._dates)
         assert_equal(test_series._dates.shape, test_series.shape)
+
+
+    def test_setdates_unsorted_basic(self):
+        "Test automatic sorting when setting dates - 1D case."
+        dates = date_array([ts.Date('D',
+                                    '2001-01-%02i' % _) for _ in (4,3,2,1)])
+        a = np.array((4,3,2,1), dtype=float)
+        series = a.view(ts.TimeSeries)
+        assert_equal(series._dates, [])
+        assert_equal(series, (4,3,2,1))
+        #
+        series._dates = dates
+        assert_equal(series, (1,2,3,4))
+
+
+    def test_setdates_unsorted_reshaped(self):
+        "Test automatic sorting when setting dates - 1D case reshaped to nD."
+        dates = date_array([ts.Date('D',
+                                    '2001-01-%02i' % _) for _ in (4,3,2,1)])
+        a = np.array([[4., 3.],[2., 1.]], dtype=float)
+        series = a.view(TimeSeries)
+        series._dates = dates
+        assert_equal(series, [[1., 2.], [3., 4.]])
+
+
+    def test_setdates_unsorted_2D(self):
+        "Test automatic sorting when setting dates - 1D case reshaped to nD."
+        dates = date_array([ts.Date('D',
+                                    '2001-01-%02i' % _) for _ in (4,3,2,1)])
+        a = np.arange(12).reshape(4,3)
+        series = a.view(TimeSeries)
+        series._dates = dates
+        assert_equal(series, [[ 9., 10., 11.],
+                              [ 6.,  7.,  8.],
+                              [ 3.,  4.,  5.],
+                              [ 0.,  1.,  2.]])
 
 
     def test_copy(self):

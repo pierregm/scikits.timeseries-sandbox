@@ -668,7 +668,23 @@ Sets item described by index. If value is masked, masks those locations.
             raise TimeSeriesCompatibilityError("size",
                                                "data: %s" % dsize,
                                                "dates: %s" % tsize)
-        elif not varshape:
+        # Check whether the dates are already sorted
+        idx = value._unsorted
+        if idx is not None:
+            _series = self._series
+            if not varshape:
+                if self.ndim > 1:
+                    _series.ravel()[:] = _series.ravel()[idx]
+                else:
+                    _series[:] = _series[idx]
+            else:
+                inishape = self.shape
+                _series.shape = tuple([-1,]+list(varshape))
+                _series[:] = _series[idx]
+                _series.shape = inishape
+            value._unsorted = None
+        #
+        if not varshape and (value.shape != self.shape):
             # The data is 1D
             value = value.reshape(self.shape)
 #            value.shape = self.shape
