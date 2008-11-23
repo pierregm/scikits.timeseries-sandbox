@@ -1690,53 +1690,6 @@ DateObject_asfreq(DateObject *self, PyObject *args, PyObject *kwds)
 
 }
 
-// helper function for date property funcs
-static int
-DateObject_set_date_info_wtime(DateObject *self, struct date_info *dinfo) {
-    PyObject *daily_obj = DateObject_toordinal(self);
-    long absdate = PyInt_AsLong(daily_obj);
-    double abstime;
-
-    Py_DECREF(daily_obj);
-
-    abstime = getAbsTime(self->freq, absdate, self->value);
-
-    if(dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime,
-                                    GREGORIAN_CALENDAR)) return -1;
-
-    return 0;
-}
-
-static PyObject *
-DateObject_datetime(DateObject *self, void *closure) {
-    PyObject *datetime;
-    int hour=0, minute=0, second=0;
-    int freq_group;
-    struct date_info dinfo;
-
-    if(DateObject_set_date_info_wtime(self, &dinfo) == -1) return NULL;
-    freq_group = get_freq_group(self->freq);
-
-    switch(freq_group) {
-        case FR_HR:
-            hour = dinfo.hour;
-            break;
-        case FR_MIN:
-            hour = dinfo.hour;
-            minute = dinfo.minute;
-            break;
-        case FR_SEC:
-            hour = dinfo.hour;
-            minute = dinfo.minute;
-            second = (int)dinfo.second;
-            break;
-    }
-
-    datetime = PyDateTime_FromDateAndTime(
-                dinfo.year, dinfo.month, dinfo.day, hour, minute, second, 0);
-    return datetime;
-}
-
 static char DateObject_strfmt_doc[] =
 "Deprecated alias for strftime method";
 
@@ -1762,6 +1715,7 @@ DateObject_strftime(DateObject *self, PyObject *args)
 {
 
     char *orig_fmt_str, *fmt_str;
+    char *result;
 
     int num_extra_fmts = 3;
 
@@ -1771,18 +1725,40 @@ DateObject_strftime(DateObject *self, PyObject *args)
 
     int extra_fmts_found[3] = {0,0,0};
     int extra_fmts_found_one = 0;
+    struct tm c_date;
+    struct date_info tempDate;
     long absdate;
-    int i;
-    PyObject *py_result, *py_datetime;
+    double abstime;
+    int i, result_len;
+    PyObject *py_result;
 
     long (*toDaily)(long, char, asfreq_info*) = NULL;
     asfreq_info af_info;
 
-    if (!PyArg_ParseTuple(args, "s:strftime(fmt)", &orig_fmt_str)) { return NULL; }
+    if (!PyArg_ParseTuple(args, "s:strftime(fmt)", &orig_fmt_str)) return NULL;
 
     toDaily = get_asfreq_func(self->freq, FR_DAY, 0);
     get_asfreq_info(self->freq, FR_DAY, &af_info);
+
     absdate = toDaily(self->value, 'E', &af_info);
+    abstime = getAbsTime(self->freq, absdate, self->value);
+
+    if(dInfoCalc_SetFromAbsDateTime(&tempDate, absdate, abstime,
+                                    GREGORIAN_CALENDAR)) return NULL;
+
+    // populate standard C date struct with info from our date_info struct
+    c_date.tm_sec = (int)tempDate.second;
+    c_date.tm_min = tempDate.minute;
+    c_date.tm_hour = tempDate.hour;
+    c_date.tm_mday = tempDate.day;
+    c_date.tm_mon = tempDate.month - 1;
+    c_date.tm_year = tempDate.year - 1900;
+    c_date.tm_wday = (tempDate.day_of_week + 1) % 7;
+    c_date.tm_yday = tempDate.day_of_year;
+    c_date.tm_isdst = -1;
+
+    result_len = strlen(orig_fmt_str) + 50;
+    if ((result = PyArray_malloc(result_len * sizeof(char))) == NULL) {return PyErr_NoMemory();}
 
     fmt_str = orig_fmt_str;
 
@@ -1804,17 +1780,13 @@ DateObject_strftime(DateObject *self, PyObject *args)
         }
     }
 
-    py_datetime = DateObject_datetime(self, NULL);
-    py_result = PyObject_CallMethod(
-        py_datetime, "strftime", "s", fmt_str) ;
-    Py_DECREF(py_datetime);
-
+    strftime(result, result_len, fmt_str, &c_date);
     if (extra_fmts_found_one) { free(fmt_str); }
 
     // replace any place holders with the appropriate value
     for(i=0; i < num_extra_fmts; i++) {
         if (extra_fmts_found[i]) {
-            PyObject *temp_result;
+            char *tmp_str = result;
             char *extra_str;
 
             if (strcmp(extra_fmts[i][0], "%q") == 0 ||
@@ -1834,7 +1806,7 @@ DateObject_strftime(DateObject *self, PyObject *args)
 
                 if(strcmp(extra_fmts[i][0], "%q") == 0) {
                     if ((extra_str = PyArray_malloc(2 * sizeof(char))) == NULL) {
-                        Py_DECREF(py_result);
+                        free(tmp_str);
                         return PyErr_NoMemory();
                     }
                     sprintf(extra_str, "%i", quarter);
@@ -1847,7 +1819,7 @@ DateObject_strftime(DateObject *self, PyObject *args)
                     } else { year_len = 4; }
 
                     if ((extra_str = PyArray_malloc((year_len+1) * sizeof(char))) == NULL) {
-                        Py_DECREF(py_result);
+                        free(tmp_str);
                         return PyErr_NoMemory();
                     }
 
@@ -1861,15 +1833,15 @@ DateObject_strftime(DateObject *self, PyObject *args)
                 return NULL;
             }
 
-            temp_result = PyObject_CallMethod(
-                py_result, "replace", "ss", extra_fmts[i][1], extra_str);
-            Py_DECREF(py_result);
-            py_result = temp_result;
-
+            result = str_replace(result, extra_fmts[i][1], extra_str);
+            free(tmp_str);
             free(extra_str);
-            if (py_result == NULL) { return NULL; }
+            if (result == NULL) { return NULL; }
         }
     }
+
+    py_result = PyString_FromString(result);
+    free(result);
 
     return py_result;
 }
@@ -2120,6 +2092,23 @@ DateObject_set_date_info(DateObject *self, struct date_info *dinfo) {
     return 0;
 }
 
+// helper function for date property funcs
+static int
+DateObject_set_date_info_wtime(DateObject *self, struct date_info *dinfo) {
+    PyObject *daily_obj = DateObject_toordinal(self);
+    long absdate = PyInt_AsLong(daily_obj);
+    double abstime;
+
+    Py_DECREF(daily_obj);
+
+    abstime = getAbsTime(self->freq, absdate, self->value);
+
+    if(dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime,
+                                    GREGORIAN_CALENDAR)) return -1;
+
+    return 0;
+}
+
 static PyObject *
 DateObject_year(DateObject *self, void *closure) {
     struct date_info dinfo;
@@ -2222,6 +2211,36 @@ DateObject_second(DateObject *self, void *closure) {
     struct date_info dinfo;
     if(DateObject_set_date_info_wtime(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong((int)dinfo.second);
+}
+
+static PyObject *
+DateObject_datetime(DateObject *self, void *closure) {
+    PyObject *datetime;
+    int hour=0, minute=0, second=0;
+    int freq_group;
+    struct date_info dinfo;
+
+    if(DateObject_set_date_info_wtime(self, &dinfo) == -1) return NULL;
+    freq_group = get_freq_group(self->freq);
+
+    switch(freq_group) {
+        case FR_HR:
+            hour = dinfo.hour;
+            break;
+        case FR_MIN:
+            hour = dinfo.hour;
+            minute = dinfo.minute;
+            break;
+        case FR_SEC:
+            hour = dinfo.hour;
+            minute = dinfo.minute;
+            second = (int)dinfo.second;
+            break;
+    }
+
+    datetime = PyDateTime_FromDateAndTime(
+                dinfo.year, dinfo.month, dinfo.day, hour, minute, second, 0);
+    return datetime;
 }
 
 static int
