@@ -1706,8 +1706,8 @@ def tshift(series, nper, copy=True):
     copy : {True, False}, optional
         copies the data if True, returns a view if False.
 
-    Example
-    -------
+    Examples
+    --------
     >>> series = time_series([0,1,2,3], start_date=Date(freq='A', year=2005))
     >>> series
     timeseries(data  = [0 1 2 3],
@@ -1937,8 +1937,8 @@ def concatenate(series, axis=0, remove_duplicates=True, fill_missing=False):
     fill_missing : {False, True}, optional
         Whether to fill the missing dates with missing values.
 
-    Example
-    -------
+    Examples
+    --------
     >>> a = time_series([1,2,3], start_date=now('D'))
     >>> b = time_series([10,20,30], start_date=now('D')+1)
     >>> c = concatenate((a,b))

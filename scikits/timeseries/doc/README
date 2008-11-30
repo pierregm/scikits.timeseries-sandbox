@@ -1,0 +1,17 @@
+
+Building
+--------
+
+* On linux/unix systems, use the included makefile in this directory to build
+  the docs.
+* On windows systems, use make.py to build the docs.
+
+Sphinx Extensions
+-----------------
+
+The directory sphinxext_numpy is a direct copy of the sphinxext directory from
+the numpy doc directory. DO NOT modify files in this directory directly.
+
+The directory sphinxext_ts contains extensions specific to the timeseries
+module. Eventually we would like to eliminate this directory and use only the
+numpy sphinx extensions.
