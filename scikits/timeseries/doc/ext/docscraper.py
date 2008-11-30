@@ -69,7 +69,7 @@ synonyms = {'attribute': 'Attributes',
             'returns': 'Returns',
             #
             'see also': 'See Also',
-            'seealso': 'See Also', 
+            'seealso': 'See Also',
             #
             'summary':'Summary',
             'extended summary': 'Extended Summary',
@@ -89,7 +89,7 @@ class BlockFormatter(object):
     An instance is initialized by giving a type of output (`block_type`) and
     optionally a delimitor.
     The instance can then be called with a header and some contents.
-    
+
     :Attributes:
        **block_type** : {'topic','rubric','describe','field','section'}, string
            Output type for a block. For example, 'section' will output each block
@@ -98,7 +98,7 @@ class BlockFormatter(object):
         **delimitor**: {'~'}, string
            Character used for the delimitation of the header and the content for
            a section.
-    
+
     """
     #
     def __init__(self, block_type, delimitor='~'):
@@ -140,9 +140,13 @@ class Docstring(list):
     """A subclass of the standard Python list, with some improved functionalities.
     Basically, this class is a simpler version of ``docutils.StringList``, without
     parent tracking.
-    
+
     """
     #
+
+    # default tab for doc strings
+    tab = 3
+
     def __init__(self, text):
         #
         # Skip the pre-processing if we already have a Docstring
@@ -150,9 +154,7 @@ class Docstring(list):
             rawdoc = text
         # Use autodoc.prepare_docstring on strings
         elif isinstance(text, basestring):
-            print "text", text
             rawdoc = autodoc.prepare_docstring(text)
-            print "rawdoc", len(rawdoc), rawdoc
             # Careful: prepare_docstring adds an extra blank line...
             if rawdoc:
                 rawdoc.pop(-1)
@@ -168,12 +170,12 @@ class Docstring(list):
         return "\n".join(self)
     #
     def __getslice__(self, start, end):
-        # When slicing a Docstring, we must get a Docstring 
+        # When slicing a Docstring, we must get a Docstring
         return Docstring(list.__getslice__(self, start, end))
-    #    
+    #
     def first_non_empty(self, start=0):
         """Finds the first non empty line after the line `start` (included).
-        
+
         """
         i = start
         while (i < len(self)-1) and empty_rgx.match(self[i]):
@@ -184,7 +186,7 @@ class Docstring(list):
         """
         Removes the first `n` spaces from the beginning of each line between
         `start` and `end`.
-        
+
         :param n: Number of spaces to remove. If ``None``, defaults to the number
                   of spaces of the first non-empty line.
         """
@@ -206,7 +208,7 @@ class Docstring(list):
     def indent(self, n=0, start=0, end=None):
         """
     Adds `n` spaces at the beginning of each line, **in place**.
-    
+
     :Parameters:
         **n** : int, optional
             Number of space to add.
@@ -358,7 +360,7 @@ class Docstring(list):
 
 class NumpyDocString(Docstring):
     """
-    
+
     """
     #
     name_format = default_name_format
@@ -404,7 +406,7 @@ class NumpyDocString(Docstring):
     def __getitem__(self, item):
         if isinstance(item, basestring):
             return self.section[item]
-        #print "NUmpyDocString[%s]:%s" % (item, '\n'.join(self))
+
         try:
             return Docstring.__getitem__(self, item)
         except IndexError:
@@ -429,13 +431,13 @@ class NumpyDocString(Docstring):
     remove the first two lines from the docstring and return the argument list.
     If no signature is found, return the docstring as is and None as the
     argument list.
-    
+
     :param docstring: A StringList object containing the docstring.
     :return: (docstring, argument list)
         """
         sig = pysig_rgx.match(self[0].strip())
         empty = (len(self) == 1) or (self[1].strip() == '')
-        
+
         # Now check if the arguments are valid.
         if sig and empty:
             # Get the arguments
@@ -531,11 +533,11 @@ class NumpyDocString(Docstring):
                 (v_name, v_type) = match.groups()
                 output.append('')
                 if v_type:
-                    output.append("%s : %s" % (self.name_format % v_name, 
+                    output.append("%s : %s" % (self.name_format % v_name,
                                                self.type_format % v_type))
                 else:
                     output.append("%s" % (self.name_format % v_name))
-                (desc, _) = contents.get_indented(start=i+1, 
+                (desc, _) = contents.get_indented(start=i+1,
                                                   until_blank=True)
                 output += desc.indent(self.tab)
                 # If desc == [] we still need to increment.
@@ -622,9 +624,7 @@ class NumpyDocString(Docstring):
                 rest.append(line.strip())
         if current_func:
             functions.append((current_func, rest, func_role))
-        #
-        print "DEBUG: functions", functions
-        #
+
         output = []
         last_had_desc = True
         for (func, desc, func_role) in functions:
@@ -752,7 +752,7 @@ class FunctionDoc(NumpyDocString):
                  block_format=None, list_format=None):
         self._f = func
         try:
-            NumpyDocString.__init__(self, inspect.getdoc(func) or '', 
+            NumpyDocString.__init__(self, inspect.getdoc(func) or '',
                                     role=role,
                                     block_format=block_format,
                                     list_format=list_format)
@@ -760,9 +760,6 @@ class FunctionDoc(NumpyDocString):
             print '*'*78
             print "ERROR: '%s' while parsing `%s`" % (e, self._f)
             print '*'*78
-            #print "Docstring follows:"
-            #print doclines
-            #print '='*78
 
     def _get_signature(self):
         try:
@@ -841,7 +838,7 @@ class SphinxDocString(NumpyDocString):
 
     default_block_format = default_block_format
     default_list_format = default_list_format
-    
+
     def _fix_references(self):
         references = self['References']
         for (i,line) in enumerate(references):
@@ -868,12 +865,12 @@ class SphinxDocString(NumpyDocString):
             out = ['.. seealso::']
             out += self['See Also'].indent(self.tab)
         return out
-    
+
     def _format_index(self):
         idx = self._split_index()
         if not idx:
             return []
-        
+
         out = []
         out += ['.. index:: %s' % idx.get('default','')]
         for section, references in idx.iteritems():

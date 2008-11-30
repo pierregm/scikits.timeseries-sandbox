@@ -62,13 +62,10 @@ def makefig(fullpath, outdir):
     all_exists = True
 
     if basedir != outdir:
-        print "DEBUG: current directory:", os.getcwd()
-        print "DEBUG: fullpath:%s \nDEBUG: outdirnm:%s\n" % (fullpath, os.path.join(outdir, fname))
         shutil.copyfile(fullpath, os.path.join(outdir, fname))
 
     for (format, dpi) in formats:
         outname = os.path.join(outdir, '%s.%s' % (basename, format))
-        print outname
         if not os.path.exists(outname):
             all_exists = False
             break
