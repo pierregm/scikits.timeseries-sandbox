@@ -1006,7 +1006,8 @@ class TimeSeriesPlot(Subplot, object):
 
         # when adding a right axis (using add_yaxis), for some reason the
         # x axis limits don't get properly set. This gets around the problem
-        if self.get_xlim().tolist() == [0., 1.]:
+        xlim = self.get_xlim()
+        if xlim[0] == 0.0 and xlim[1] == 1.0:
             # if xlim still at default values, autoscale the axis
             self.autoscale_view()
         self.reset_datelimits()
