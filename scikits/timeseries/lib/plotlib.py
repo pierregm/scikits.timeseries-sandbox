@@ -256,7 +256,7 @@ def has_level_label(label_flags):
     if label_flags.size == 0: return False
     else:                     return True
 
-def _daily_finder(vmin, vmax, freq, asformatter):
+def _daily_finder(vmin, vmax, freq):
 
     periodsperday = -1
 
@@ -314,13 +314,13 @@ def _daily_finder(vmin, vmax, freq, asformatter):
 
             info['maj'][day_start] = True
             info['min'][hour_start & (_hour % label_interval == 0)] = True
-            if asformatter:
-                year_start = period_break(dates_,'year')
-                info['fmt'][hour_start & (_hour % label_interval == 0)] = '%H:%M'
-                info['fmt'][day_start] = '%H:%M\n%d-%b'
-                info['fmt'][year_start] = '%H:%M\n%d-%b\n%Y'
-                if force_year_start and not has_level_label(year_start):
-                    info['fmt'][first_label(day_start)] = '%H:%M\n%d-%b\n%Y'
+
+            year_start = period_break(dates_,'year')
+            info['fmt'][hour_start & (_hour % label_interval == 0)] = '%H:%M'
+            info['fmt'][day_start] = '%H:%M\n%d-%b'
+            info['fmt'][year_start] = '%H:%M\n%d-%b\n%Y'
+            if force_year_start and not has_level_label(year_start):
+                info['fmt'][first_label(day_start)] = '%H:%M\n%d-%b\n%Y'
 
         def _minute_finder(label_interval):
             hour_start = period_break(dates_,'hour')
@@ -331,11 +331,11 @@ def _daily_finder(vmin, vmax, freq, asformatter):
 
             info['maj'][hour_start] = True
             info['min'][minute_start & (_minute % label_interval == 0)] = True
-            if asformatter:
-                year_start = period_break(dates_,'year')
-                info['fmt'][minute_start & (_minute % label_interval == 0)] = '%H:%M'
-                info['fmt'][day_start] = '%H:%M\n%d-%b'
-                info['fmt'][year_start] = '%H:%M\n%d-%b\n%Y'
+
+            year_start = period_break(dates_,'year')
+            info['fmt'][minute_start & (_minute % label_interval == 0)] = '%H:%M'
+            info['fmt'][day_start] = '%H:%M\n%d-%b'
+            info['fmt'][year_start] = '%H:%M\n%d-%b\n%Y'
 
         def _second_finder(label_interval):
             minute_start = period_break(dates_,'minute')
@@ -346,11 +346,11 @@ def _daily_finder(vmin, vmax, freq, asformatter):
 
             info['maj'][minute_start] = True
             info['min'][second_start & (_second % label_interval == 0)] = True
-            if asformatter:
-                year_start = period_break(dates_,'year')
-                info['fmt'][second_start & (_second % label_interval == 0)] = '%H:%M:%S'
-                info['fmt'][day_start] = '%H:%M:%S\n%d-%b'
-                info['fmt'][year_start] = '%H:%M:%S\n%d-%b\n%Y'
+
+            year_start = period_break(dates_,'year')
+            info['fmt'][second_start & (_second % label_interval == 0)] = '%H:%M:%S'
+            info['fmt'][day_start] = '%H:%M:%S\n%d-%b'
+            info['fmt'][year_start] = '%H:%M:%S\n%d-%b\n%Y'
 
         if span < periodsperday/12000.0: _second_finder(1)
         elif span < periodsperday/6000.0: _second_finder(2)
@@ -371,16 +371,16 @@ def _daily_finder(vmin, vmax, freq, asformatter):
         else:
             info['maj'][month_start] = True
             info['min'][day_start] = True
-            if asformatter:
-                year_start = period_break(dates_,'year')
-                info['fmt'][day_start] = '%d'
-                info['fmt'][month_start] = '%d\n%b'
-                info['fmt'][year_start] = '%d\n%b\n%Y'
-                if not has_level_label(year_start):
-                    if not has_level_label(month_start):
-                        info['fmt'][first_label(day_start)] = '%d\n%b\n%Y'
-                    else:
-                        info['fmt'][first_label(month_start)] = '%d\n%b\n%Y'
+
+            year_start = period_break(dates_,'year')
+            info['fmt'][day_start] = '%d'
+            info['fmt'][month_start] = '%d\n%b'
+            info['fmt'][year_start] = '%d\n%b\n%Y'
+            if not has_level_label(year_start):
+                if not has_level_label(month_start):
+                    info['fmt'][first_label(day_start)] = '%d\n%b\n%Y'
+                else:
+                    info['fmt'][first_label(month_start)] = '%d\n%b\n%Y'
 
     # Case 2. Less than three months
     elif span <= periodsperyear//4:
@@ -392,18 +392,17 @@ def _daily_finder(vmin, vmax, freq, asformatter):
             day_start = period_break(dates_,'day')
             info['min'][day_start] = True
 
-        if asformatter:
-            week_start = period_break(dates_,'week')
-            year_start = period_break(dates_,'year')
+        week_start = period_break(dates_,'week')
+        year_start = period_break(dates_,'year')
 
-            info['fmt'][week_start] = '%d'
-            info['fmt'][month_start] = '\n\n%b'
-            info['fmt'][year_start] = '\n\n%b\n%Y'
-            if not has_level_label(year_start):
-                if not has_level_label(month_start):
-                    info['fmt'][first_label(week_start)] = '\n\n%b\n%Y'
-                else:
-                    info['fmt'][first_label(month_start)] = '\n\n%b\n%Y'
+        info['fmt'][week_start] = '%d'
+        info['fmt'][month_start] = '\n\n%b'
+        info['fmt'][year_start] = '\n\n%b\n%Y'
+        if not has_level_label(year_start):
+            if not has_level_label(month_start):
+                info['fmt'][first_label(week_start)] = '\n\n%b\n%Y'
+            else:
+                info['fmt'][first_label(month_start)] = '\n\n%b\n%Y'
     # Case 3. Less than 14 months ...............
     elif span <= 1.15 * periodsperyear:
         year_start = period_break(dates_,'year')
@@ -413,11 +412,11 @@ def _daily_finder(vmin, vmax, freq, asformatter):
         info['min'][week_start] = True
         info['min'][year_start] = False
         info['min'][month_start] = False
-        if asformatter:
-            info['fmt'][month_start] = '%b'
-            info['fmt'][year_start] = '%b\n%Y'
-            if not has_level_label(year_start):
-                info['fmt'][first_label(month_start)] = '%b\n%Y'
+
+        info['fmt'][month_start] = '%b'
+        info['fmt'][year_start] = '%b\n%Y'
+        if not has_level_label(year_start):
+            info['fmt'][first_label(month_start)] = '%b\n%Y'
     # Case 4. Less than 2.5 years ...............
     elif span <= 2.5 * periodsperyear:
         year_start = period_break(dates_,'year')
@@ -425,9 +424,9 @@ def _daily_finder(vmin, vmax, freq, asformatter):
         month_start = period_break(dates_, 'month')
         info['maj'][quarter_start] = True
         info['min'][month_start] = True
-        if asformatter:
-            info['fmt'][quarter_start] = '%b'
-            info['fmt'][year_start] = '%b\n%Y'
+
+        info['fmt'][quarter_start] = '%b'
+        info['fmt'][year_start] = '%b\n%Y'
     # Case 4. Less than 4 years .................
     elif span <= 4 * periodsperyear:
         year_start = period_break(dates_,'year')
@@ -435,11 +434,11 @@ def _daily_finder(vmin, vmax, freq, asformatter):
         info['maj'][year_start] = True
         info['min'][month_start] = True
         info['min'][year_start] = False
-        if asformatter:
-            month_break = dates_[month_start].month
-            jan_or_jul = month_start[(month_break == 1) | (month_break == 7)]
-            info['fmt'][jan_or_jul] = '%b'
-            info['fmt'][year_start] = '%b\n%Y'
+
+        month_break = dates_[month_start].month
+        jan_or_jul = month_start[(month_break == 1) | (month_break == 7)]
+        info['fmt'][jan_or_jul] = '%b'
+        info['fmt'][year_start] = '%b\n%Y'
     # Case 5. Less than 11 years ................
     elif span <= 11 * periodsperyear:
         year_start = period_break(dates_,'year')
@@ -447,8 +446,8 @@ def _daily_finder(vmin, vmax, freq, asformatter):
         info['maj'][year_start] = True
         info['min'][quarter_start] = True
         info['min'][year_start] = False
-        if asformatter:
-            info['fmt'][year_start] = '%Y'
+
+        info['fmt'][year_start] = '%Y'
     # Case 6. More than 12 years ................
     else:
         year_start = period_break(dates_,'year')
@@ -459,12 +458,12 @@ def _daily_finder(vmin, vmax, freq, asformatter):
         info['maj'][major_idx] = True
         minor_idx = year_start[(year_break % min_anndef == 0)]
         info['min'][minor_idx] = True
-        if asformatter:
-            info['fmt'][major_idx] = '%Y'
+
+        info['fmt'][major_idx] = '%Y'
     #............................................
     return info
 #...............................................................................
-def _monthly_finder(vmin, vmax, freq, asformatter):
+def _monthly_finder(vmin, vmax, freq):
     if freq != _c.FR_MTH:
         raise ValueError("Unexpected frequency")
     periodsperyear = 12
@@ -483,40 +482,40 @@ def _monthly_finder(vmin, vmax, freq, asformatter):
     if span <= 1.15 * periodsperyear:
         info['maj'][year_start] = True
         info['min'] = True
-        if asformatter:
-            info['fmt'][:] = '%b'
-            info['fmt'][year_start] = '%b\n%Y'
 
-            if not has_level_label(year_start):
-                if dates_.size > 1:
-                    idx = 1
-                else:
-                    idx = 0
-                info['fmt'][idx] = '%b\n%Y'
+        info['fmt'][:] = '%b'
+        info['fmt'][year_start] = '%b\n%Y'
+
+        if not has_level_label(year_start):
+            if dates_.size > 1:
+                idx = 1
+            else:
+                idx = 0
+            info['fmt'][idx] = '%b\n%Y'
     #........................
     elif span <= 2.5 * periodsperyear:
         quarter_start = (dates_ % 3 == 1).nonzero()
         info['maj'][year_start] = True
         info['fmt'][quarter_start] = True
         info['min'] = True
-        if asformatter:
-            info['fmt'][quarter_start] = '%b'
-            info['fmt'][year_start] = '%b\n%Y'
+
+        info['fmt'][quarter_start] = '%b'
+        info['fmt'][year_start] = '%b\n%Y'
     #.......................
     elif span <= 4 * periodsperyear:
         info['maj'][year_start] = True
         info['min'] = True
-        if asformatter:
-            jan_or_jul = (dates_ % 12 == 1) | (dates_ % 12 == 7)
-            info['fmt'][jan_or_jul] = '%b'
-            info['fmt'][year_start] = '%b\n%Y'
+
+        jan_or_jul = (dates_ % 12 == 1) | (dates_ % 12 == 7)
+        info['fmt'][jan_or_jul] = '%b'
+        info['fmt'][year_start] = '%b\n%Y'
     #........................
     elif span <= 11 * periodsperyear:
         quarter_start = (dates_ % 3 == 1).nonzero()
         info['maj'][year_start] = True
         info['min'][quarter_start] = True
-        if asformatter:
-            info['fmt'][year_start] = '%Y'
+
+        info['fmt'][year_start] = '%Y'
    #.........................
     else:
         nyears = span/periodsperyear
@@ -525,12 +524,12 @@ def _monthly_finder(vmin, vmax, freq, asformatter):
         major_idx = year_start[(years % maj_anndef == 0)]
         info['maj'][major_idx] = True
         info['min'][year_start[(years % min_anndef == 0)]] = True
-        if asformatter:
-            info['fmt'][major_idx] = '%Y'
+
+        info['fmt'][major_idx] = '%Y'
     #........................
     return info
 #...............................................................................
-def _quarterly_finder(vmin, vmax, freq, asformatter):
+def _quarterly_finder(vmin, vmax, freq):
     if get_freq_group(freq) != _c.FR_QTR:
         raise ValueError("Unexpected frequency")
     periodsperyear = 4
@@ -547,21 +546,20 @@ def _quarterly_finder(vmin, vmax, freq, asformatter):
     if span <= 3.5 * periodsperyear:
         info['maj'][year_start] = True
         info['min'] = True
-        if asformatter:
-            info['fmt'][:] = 'Q%q'
-            info['fmt'][year_start] = 'Q%q\n%F'
-            if not has_level_label(year_start):
-                if dates_.size > 1:
-                    idx = 1
-                else:
-                    idx = 0
-                info['fmt'][idx] = 'Q%q\n%F'
+
+        info['fmt'][:] = 'Q%q'
+        info['fmt'][year_start] = 'Q%q\n%F'
+        if not has_level_label(year_start):
+            if dates_.size > 1:
+                idx = 1
+            else:
+                idx = 0
+            info['fmt'][idx] = 'Q%q\n%F'
     #............................................
     elif span <= 11 * periodsperyear:
         info['maj'][year_start] = True
         info['min'] = True
-        if asformatter:
-            info['fmt'][year_start] = '%F'
+        info['fmt'][year_start] = '%F'
     #............................................
     else:
         years = dates_[year_start]//4 + 1
@@ -570,12 +568,11 @@ def _quarterly_finder(vmin, vmax, freq, asformatter):
         major_idx = year_start[(years % maj_anndef == 0)]
         info['maj'][major_idx] = True
         info['min'][year_start[(years % min_anndef == 0)]] = True
-        if asformatter:
-            info['fmt'][major_idx] = '%F'
+        info['fmt'][major_idx] = '%F'
     #............................................
     return info
 #...............................................................................
-def _annual_finder(vmin, vmax, freq, asformatter):
+def _annual_finder(vmin, vmax, freq):
     if get_freq_group(freq) != _c.FR_ANN:
         raise ValueError("Unexpected frequency")
     (vmin, vmax) = (int(vmin), int(vmax+1))
@@ -591,8 +588,7 @@ def _annual_finder(vmin, vmax, freq, asformatter):
     major_idx = dates_ % maj_anndef == 0
     info['maj'][major_idx] = True
     info['min'][(dates_ % min_anndef == 0)] = True
-    if asformatter:
-        info['fmt'][major_idx] = '%Y'
+    info['fmt'][major_idx] = '%Y'
     #............................................
     return info
 
@@ -616,7 +612,7 @@ class TimeSeries_DateLocator(Locator):
     """
 
     def __init__(self, freq, minor_locator=False, dynamic_mode=True,
-                 base=1, quarter=1, month=1, day=1):
+                 base=1, quarter=1, month=1, day=1, plot_obj=None):
         self.freq = freq
         self.base = base
         fgroup = get_freq_group(freq)
@@ -624,6 +620,7 @@ class TimeSeries_DateLocator(Locator):
         self.isminor = minor_locator
         self.isdynamic = dynamic_mode
         self.offset = 0
+        self.plot_obj = plot_obj
         #.....
         if fgroup == _c.FR_ANN:
             self.finder = _annual_finder
@@ -652,7 +649,11 @@ class TimeSeries_DateLocator(Locator):
 
     def _get_default_locs(self, vmin, vmax):
         "Returns the default locations of ticks."
-        locator = self.finder(vmin, vmax, self.freq, False)
+        if not self.isminor:
+            self.plot_obj.date_axis_info = self.finder(vmin, vmax, self.freq)
+
+        locator = self.plot_obj.date_axis_info
+
         if self.isminor:
             return np.compress(locator['min'], locator['val'])
         return np.compress(locator['maj'], locator['val'])
@@ -706,7 +707,7 @@ class TimeSeries_DateFormatter(Formatter):
         Whether the formatter works in dynamic mode or not.
     """
 
-    def __init__(self, freq, minor_locator=False, dynamic_mode=True,):
+    def __init__(self, freq, minor_locator=False, dynamic_mode=True, plot_obj=None):
         self.format = None
         self.freq = freq
         self.locs = []
@@ -714,22 +715,7 @@ class TimeSeries_DateFormatter(Formatter):
         self.isminor = minor_locator
         self.isdynamic = dynamic_mode
         self.offset = 0
-        fgroup = get_freq_group(freq)
-        #.....
-        if fgroup == _c.FR_ANN:
-            self.finder = _annual_finder
-        elif fgroup == _c.FR_QTR:
-            self.finder = _quarterly_finder
-        elif freq == _c.FR_MTH:
-            self.finder = _monthly_finder
-        elif freq in (
-            _c.FR_BUS, _c.FR_DAY, _c.FR_HR, _c.FR_MIN, _c.FR_SEC) or \
-            fgroup == _c.FR_WK:
-
-            self.finder = _daily_finder
-        else:
-            raise NotImplementedError(
-                "Unsupported frequency: %s" % check_freq_str(freq))
+        self.plot_obj = plot_obj
 
     def asminor(self):
         "Returns the formatter set to minor mode."
@@ -744,7 +730,7 @@ class TimeSeries_DateFormatter(Formatter):
     def _set_default_format(self, vmin, vmax):
         "Returns the default ticks spacing."
 
-        info = self.finder(vmin, vmax, self.freq, True)
+        info = self.plot_obj.date_axis_info
         if self.isminor:
             format = np.compress(info['min'] & np.logical_not(info['maj']),
                                  info)
@@ -842,6 +828,9 @@ class TimeSeriesPlot(Subplot, object):
         # Get the data to plot
         self.legendsymbols = []
         self.legendlabels = []
+
+        self.date_axis_info = None
+
     #......................................................
     def set_series(self, series=None):
         """
@@ -1033,17 +1022,17 @@ class TimeSeriesPlot(Subplot, object):
     axis will intelligently change the positions of the ticks.
         """
         # Get the locator class .................
-        majlocator = TimeSeries_DateLocator(self.freq, dynamic_mode=True,
-                                            minor_locator=False)
-        minlocator = TimeSeries_DateLocator(self.freq, dynamic_mode=True,
-                                            minor_locator=True)
+        majlocator = TimeSeries_DateLocator(
+            self.freq, dynamic_mode=True, minor_locator=False, plot_obj=self)
+        minlocator = TimeSeries_DateLocator(
+            self.freq, dynamic_mode=True, minor_locator=True, plot_obj=self)
         self.xaxis.set_major_locator(majlocator)
         self.xaxis.set_minor_locator(minlocator)
         # Get the formatter .....................
-        majformatter = TimeSeries_DateFormatter(self.freq, dynamic_mode=True,
-                                                minor_locator=False)
-        minformatter = TimeSeries_DateFormatter(self.freq, dynamic_mode=True,
-                                                minor_locator=True)
+        majformatter = TimeSeries_DateFormatter(
+            self.freq, dynamic_mode=True, minor_locator=False, plot_obj=self)
+        minformatter = TimeSeries_DateFormatter(
+            self.freq, dynamic_mode=True, minor_locator=True, plot_obj=self)
         self.xaxis.set_major_formatter(majformatter)
         self.xaxis.set_minor_formatter(minformatter)
         pylab.draw_if_interactive()
