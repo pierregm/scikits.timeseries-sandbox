@@ -122,7 +122,7 @@ figsize="""figsize : {None, tuple}
         If None, defaults to rc figure.figsize.
     """,
 dpi="""dpi : {None, int}, optional
-        Resolution in dots per inches. 
+        Resolution in dots per inches.
         If None, defaults to rc figure.dpi
     """,
 facecolor="""facecolor : {None, string}, optional
@@ -157,7 +157,7 @@ mandatoryplotargs="""args : var
 
 def add_generic_subplot(figure_instance, *args, **kwargs):
     """
-    Generalizes the :meth:`~Figure.add_subplot` method 
+    Generalizes the :meth:`~Figure.add_subplot` method
     of :class:`~matplotlib.figure.Figure` to generic subplots.
     The specific Subplot object class to add is given through the keywords
     ``SubplotClass`` or ``class``.
@@ -169,9 +169,9 @@ def add_generic_subplot(figure_instance, *args, **kwargs):
     args : {var}
         Miscellaneous arguments to the subplot.
     kwargs : {Dictionary}
-        Optional keywords. 
+        Optional keywords.
         The same keywords as ``Subplot`` are recognized, with the addition of:
-        
+
         + *SubplotClass* : {string}
           Type of subplot.
         + *subclass* : {string}
@@ -253,11 +253,8 @@ def has_level_label(label_flags):
     Returns true if the ``label_flags`` indicate there is at least one label
     for this level.
     """
-    if label_flags.size == 0 or \
-       (label_flags.size == 1 and label_flags[0] == 0):
-        return False
-    else:
-        return True
+    if label_flags.size == 0: return False
+    else:                     return True
 
 def _daily_finder(vmin, vmax, freq, asformatter):
 
@@ -697,13 +694,13 @@ class TimeSeries_DateLocator(Locator):
 class TimeSeries_DateFormatter(Formatter):
     """
     Formats the ticks along a DateArray axis.
-    
+
     Parameters
     ----------
     freq : {int, string}
         Valid frequency specifier.
     minor_locator : {False, True}
-        Whether the current formatter should apply to minor ticks (True) or 
+        Whether the current formatter should apply to minor ticks (True) or
         major ticks (False).
     dynamic_mode : {True, False}
         Whether the formatter works in dynamic mode or not.
@@ -849,7 +846,7 @@ class TimeSeriesPlot(Subplot, object):
     def set_series(self, series=None):
         """
     Sets the time series associated with the plot.
-    If ``series`` is a valid :class:`~scikits.timeseries.TimeSeries` object, 
+    If ``series`` is a valid :class:`~scikits.timeseries.TimeSeries` object,
     the :attr:`xdata` attribute is updated to the ``_dates`` part of ``series``.
         """
         #if self._series is not None:
@@ -861,7 +858,7 @@ class TimeSeriesPlot(Subplot, object):
     #....
     def get_series(self):
         """
-    Returns the data part of the time series associated with the plot, as a 
+    Returns the data part of the time series associated with the plot, as a
     (subclass of) :class:`MaskedArray`.
     """
         return self._series
@@ -977,19 +974,19 @@ class TimeSeriesPlot(Subplot, object):
 
     The argument ``args`` is a variable length argument, allowing for multiple
     data to be plotted at once. Acceptable combinations are:
-    
+
     * No arguments or a format string:
       The time series associated with the subplot is plotted with the given format:
       If no format string is given, the default format is used instead.
-      For example, to plot the underlying time series with the default format, 
+      For example, to plot the underlying time series with the default format,
       use:
-      
+
          >>> tsplot()
-      
+
       To plot the underlying time series with a red solid line, use the command:
-      
+
          >>> tsplot('r-')
-      
+
     * a :class:`~scikits.timeseries.TimeSeries` object or one of its subclass
       with or without a format string:
       The given time series is plotted with the given format.
@@ -1029,7 +1026,7 @@ class TimeSeriesPlot(Subplot, object):
     def format_dateaxis(self):
         """
     Pretty-formats the date axis (x-axis).
-    
+
     Major and minor ticks are automatically set for the frequency of the current
     underlying series.
     As the dynamic mode is activated by default, changing the limits of the x
@@ -1062,7 +1059,7 @@ class TimeSeriesPlot(Subplot, object):
     start_date : {var}
         Starting date of the plot. If None, the current left limit (earliest
         date) is used.
-    end_date : {var} 
+    end_date : {var}
         Ending date of the plot. If None, the current right limit (latest date)
         is used.
         """
@@ -1101,7 +1098,7 @@ class TimeSeriesPlot(Subplot, object):
 
     def reset_datelimits(self):
         """
-    Reset the date range of the x axis to the date range of the underlying 
+    Reset the date range of the x axis to the date range of the underlying
     time series.
         """
         return self.set_xlim(self.xdata[[0,-1]].tovalue())
@@ -1212,7 +1209,7 @@ class TimeSeriesFigure(Figure):
         Size of the figure, as a tuple (width, height) in inches.
         If None, defaults to rc figure.figsize.
     dpi : {None, int}, optional
-        Resolution in dots per inches. 
+        Resolution in dots per inches.
         If None, defaults to rc figure.dpi
     facecolor : {None, string}, optional
         Background color.
@@ -1246,7 +1243,7 @@ class TimeSeriesFigure(Figure):
             kwargs.update(series=self._series)
         return add_generic_subplot(self, *args, **kwargs)
     add_tsplot.__doc__ = ((add_tsplot.__doc__ or '') % _doc_parameters) or None
-    
+
     add_subplot = add_tsplot
 TSFigure = TimeSeriesFigure
 
@@ -1280,7 +1277,7 @@ def tsfigure(num=None, figsize=None, dpi=None, facecolor=None, edgecolor=None,
 def add_tsplot(axes, *args, **kwargs):
     """
     Adds a :class:`TimeSeriesPlot` to the current figure.
-    
+
     Parameters
     ----------
     %(mandatoryplotargs)s
