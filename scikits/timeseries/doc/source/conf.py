@@ -20,7 +20,7 @@ from scikits.timeseries import __version__ as ts_version
 sys.path.extend([
 
     # numpy standard doc extensions
-    os.path.join(os.path.dirname(__file__), '..', 'sphinxext_numpy'),
+    os.path.join(os.path.dirname(__file__), '..', 'sphinxext'),
 
     # timeseries specific doc extensions
     os.path.join(os.path.dirname(__file__), '..', 'sphinxext_ts')

@@ -592,6 +592,22 @@ def _annual_finder(vmin, vmax, freq):
     #............................................
     return info
 
+def get_finder(freq):
+    fgroup = get_freq_group(freq)
+
+    if fgroup == _c.FR_ANN:
+        return _annual_finder
+    elif fgroup == _c.FR_QTR:
+        return _quarterly_finder
+    elif freq == _c.FR_MTH:
+        return _monthly_finder
+    elif freq in (
+        _c.FR_BUS, _c.FR_DAY, _c.FR_HR, _c.FR_MIN, _c.FR_SEC) or \
+        fgroup == _c.FR_WK:
+        return _daily_finder
+    else:
+        raise NotImplementedError(
+            "Unsupported frequency: %s" % check_freq_str(freq))
 #...............................................................................
 class TimeSeries_DateLocator(Locator):
     """
@@ -615,27 +631,12 @@ class TimeSeries_DateLocator(Locator):
                  base=1, quarter=1, month=1, day=1, plot_obj=None):
         self.freq = freq
         self.base = base
-        fgroup = get_freq_group(freq)
         (self.quarter, self.month, self.day) = (quarter, month, day)
         self.isminor = minor_locator
         self.isdynamic = dynamic_mode
         self.offset = 0
         self.plot_obj = plot_obj
-        #.....
-        if fgroup == _c.FR_ANN:
-            self.finder = _annual_finder
-        elif fgroup == _c.FR_QTR:
-            self.finder = _quarterly_finder
-        elif freq == _c.FR_MTH:
-            self.finder = _monthly_finder
-        elif freq in (
-            _c.FR_BUS, _c.FR_DAY, _c.FR_HR, _c.FR_MIN, _c.FR_SEC) or \
-            fgroup == _c.FR_WK:
-
-            self.finder = _daily_finder
-        else:
-            raise NotImplementedError(
-                "Unsupported frequency: %s" % check_freq_str(freq))
+        self.finder = get_finder(freq)
 
     def asminor(self):
         "Returns the locator set to minor mode."
@@ -649,7 +650,8 @@ class TimeSeries_DateLocator(Locator):
 
     def _get_default_locs(self, vmin, vmax):
         "Returns the default locations of ticks."
-        if not self.isminor:
+
+        if self.plot_obj.date_axis_info is None:
             self.plot_obj.date_axis_info = self.finder(vmin, vmax, self.freq)
 
         locator = self.plot_obj.date_axis_info
@@ -661,8 +663,11 @@ class TimeSeries_DateLocator(Locator):
     def __call__(self):
         'Return the locations of the ticks.'
 
-        # requires matplotlib >= 0.98.0
-        (vmin, vmax) = self.axis.get_view_interval()
+        vi = tuple(self.axis.get_view_interval())
+        if vi != self.plot_obj.view_interval:
+            self.plot_obj.date_axis_info = None
+        self.plot_obj.view_interval = vi
+        vmin, vmax = vi
 
         if vmax < vmin:
             vmin, vmax = vmax, vmin
@@ -716,6 +721,7 @@ class TimeSeries_DateFormatter(Formatter):
         self.isdynamic = dynamic_mode
         self.offset = 0
         self.plot_obj = plot_obj
+        self.finder = get_finder(freq)
 
     def asminor(self):
         "Returns the formatter set to minor mode."
@@ -730,7 +736,10 @@ class TimeSeries_DateFormatter(Formatter):
     def _set_default_format(self, vmin, vmax):
         "Returns the default ticks spacing."
 
+        if self.plot_obj.date_axis_info is None:
+            self.plot_obj.date_axis_info = self.finder(vmin, vmax, self.freq)
         info = self.plot_obj.date_axis_info
+
         if self.isminor:
             format = np.compress(info['min'] & np.logical_not(info['maj']),
                                  info)
@@ -745,7 +754,12 @@ class TimeSeries_DateFormatter(Formatter):
         # matplotlib. Force to use vmin, vmax
         self.locs = locs
 
-        (vmin, vmax) = self.axis.get_view_interval()
+        vi = tuple(self.axis.get_view_interval())
+        if vi != self.plot_obj.view_interval:
+            self.plot_obj.date_axis_info = None
+        self.plot_obj.view_interval = vi
+        vmin, vmax = vi
+
         if vmax < vmin:
             vmin, vmax = vmax, vmin
 
@@ -829,7 +843,12 @@ class TimeSeriesPlot(Subplot, object):
         self.legendsymbols = []
         self.legendlabels = []
 
+        # keep track of axis format and tick info
         self.date_axis_info = None
+
+        # used to keep track of current view interval to determine if we need
+        # to reset date_axis_info
+        self.view_interval = None
 
     #......................................................
     def set_series(self, series=None):

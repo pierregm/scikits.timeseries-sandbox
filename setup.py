@@ -3,9 +3,9 @@ setuptools must be installed first. If you do not have setuptools installed
 please download and install it from http://pypi.python.org/pypi/setuptools
 """
 
-version = '0.67.0'
+version = '0.90.0'
 
-classifiers = ['Development Status :: 0.67.0 - Beta',
+classifiers = ['Development Status :: 0.90.0 - Beta',
                'Intended Audience :: Science/Research',
                'Intended Audience :: Developers',
                'Programming Language :: C',
