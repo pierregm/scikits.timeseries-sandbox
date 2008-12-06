@@ -248,13 +248,21 @@ def period_break(dates, period):
     previous = getattr(dates-1, period)
     return (current - previous).nonzero()[0]
 
-def has_level_label(label_flags):
+def has_level_label(label_flags, vmin):
     """
     Returns true if the ``label_flags`` indicate there is at least one label
     for this level.
+
+    if the minimum view limit is not an exact integer, then the first tick
+    label won't be shown, so we must adjust for that.
     """
-    if label_flags.size == 0: return False
-    else:                     return True
+    if label_flags.size == 0 or \
+       (label_flags.size == 1 and \
+        label_flags[0] == 0 and \
+        (vmin % 1) > 0.0):
+        return False
+    else:
+        return True
 
 def _daily_finder(vmin, vmax, freq):
 
@@ -284,6 +292,9 @@ def _daily_finder(vmin, vmax, freq):
     else:
         raise ValueError("unexpected frequency")
 
+    # save this for later usage
+    vmin_orig = vmin
+
     (vmin, vmax) = (int(vmin), int(vmax))
     span = vmax - vmin + 1
     dates_ = date_array(start_date=Date(freq,vmin),
@@ -296,7 +307,7 @@ def _daily_finder(vmin, vmax, freq):
     info['maj'][[0,-1]] = True
 
     def first_label(label_flags):
-        if label_flags[0] == 0 and label_flags.size > 1:
+        if label_flags[0] == 0 and label_flags.size > 1 and (vmin_orig % 1) > 0.0:
             return label_flags[1]
         else:
             return label_flags[0]
@@ -319,7 +330,7 @@ def _daily_finder(vmin, vmax, freq):
             info['fmt'][hour_start & (_hour % label_interval == 0)] = '%H:%M'
             info['fmt'][day_start] = '%H:%M\n%d-%b'
             info['fmt'][year_start] = '%H:%M\n%d-%b\n%Y'
-            if force_year_start and not has_level_label(year_start):
+            if force_year_start and not has_level_label(year_start, vmin_orig):
                 info['fmt'][first_label(day_start)] = '%H:%M\n%d-%b\n%Y'
 
         def _minute_finder(label_interval):
@@ -376,8 +387,8 @@ def _daily_finder(vmin, vmax, freq):
             info['fmt'][day_start] = '%d'
             info['fmt'][month_start] = '%d\n%b'
             info['fmt'][year_start] = '%d\n%b\n%Y'
-            if not has_level_label(year_start):
-                if not has_level_label(month_start):
+            if not has_level_label(year_start, vmin_orig):
+                if not has_level_label(month_start, vmin_orig):
                     info['fmt'][first_label(day_start)] = '%d\n%b\n%Y'
                 else:
                     info['fmt'][first_label(month_start)] = '%d\n%b\n%Y'
@@ -398,8 +409,8 @@ def _daily_finder(vmin, vmax, freq):
         info['fmt'][week_start] = '%d'
         info['fmt'][month_start] = '\n\n%b'
         info['fmt'][year_start] = '\n\n%b\n%Y'
-        if not has_level_label(year_start):
-            if not has_level_label(month_start):
+        if not has_level_label(year_start, vmin_orig):
+            if not has_level_label(month_start, vmin_orig):
                 info['fmt'][first_label(week_start)] = '\n\n%b\n%Y'
             else:
                 info['fmt'][first_label(month_start)] = '\n\n%b\n%Y'
@@ -415,7 +426,7 @@ def _daily_finder(vmin, vmax, freq):
 
         info['fmt'][month_start] = '%b'
         info['fmt'][year_start] = '%b\n%Y'
-        if not has_level_label(year_start):
+        if not has_level_label(year_start, vmin_orig):
             info['fmt'][first_label(month_start)] = '%b\n%Y'
     # Case 4. Less than 2.5 years ...............
     elif span <= 2.5 * periodsperyear:
@@ -468,6 +479,7 @@ def _monthly_finder(vmin, vmax, freq):
         raise ValueError("Unexpected frequency")
     periodsperyear = 12
 
+    vmin_orig = vmin
     (vmin, vmax) = (int(vmin), int(vmax))
     span = vmax - vmin + 1
     #............................................
@@ -486,7 +498,7 @@ def _monthly_finder(vmin, vmax, freq):
         info['fmt'][:] = '%b'
         info['fmt'][year_start] = '%b\n%Y'
 
-        if not has_level_label(year_start):
+        if not has_level_label(year_start, vmin_orig):
             if dates_.size > 1:
                 idx = 1
             else:
@@ -533,6 +545,7 @@ def _quarterly_finder(vmin, vmax, freq):
     if get_freq_group(freq) != _c.FR_QTR:
         raise ValueError("Unexpected frequency")
     periodsperyear = 4
+    vmin_orig = vmin
     (vmin, vmax) = (int(vmin), int(vmax))
     span = vmax - vmin + 1
     #............................................
@@ -549,7 +562,7 @@ def _quarterly_finder(vmin, vmax, freq):
 
         info['fmt'][:] = 'Q%q'
         info['fmt'][year_start] = 'Q%q\n%F'
-        if not has_level_label(year_start):
+        if not has_level_label(year_start, vmin_orig):
             if dates_.size > 1:
                 idx = 1
             else:
