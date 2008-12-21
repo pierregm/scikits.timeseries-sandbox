@@ -4,7 +4,7 @@ lib / extras
 .. toctree::
 
    interpolation
-   filtering
+   moving_funcs
    plotting
    report
    database

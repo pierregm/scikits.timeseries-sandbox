@@ -1,8 +1,7 @@
 """
-A collection of interpolation tools for timeseries.
-
-:author: Pierre GF Gerard-Marchant & Matt Knox
-:contact: pierregm_at_uga_dot_edu - mattknox_ca_at_hotmail_dot_com
+The :mod:`scikits.timeseries.lib.interpolate` submodule contains functions for
+interpolating and filling missing values in MaskedArray's and TimeSeries
+objects.
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author$)"
 __revision__ = "$Revision$"
@@ -21,18 +20,18 @@ __all__ = ['forward_fill', 'backward_fill', 'interp_masked1d',
 #####---------------------------------------------------------------------------
 #---- --- Functions for filling in masked values in a masked array ---
 #####---------------------------------------------------------------------------
-def forward_fill(a, maxgap=None):
+def forward_fill(marr, maxgap=None):
     """
     Forward fills masked values in a 1-d array when there are less ``maxgap``
     consecutive masked values.
 
     Parameters
     ----------
-    a : MaskedArray
+    marr : MaskedArray
         Series to fill
-    maxgap : {None, int}, optional
+    maxgap : {int}, optional
         Maximum gap between consecutive masked values.
-        If ``maxgap`` is None, all masked values are forward-filled.
+        If ``maxgap`` is not specified, all masked values are forward-filled.
 
 
     Examples
@@ -47,9 +46,9 @@ def forward_fill(a, maxgap=None):
     """
     # !!!: We should probably port that to C.
     # Initialization ..................
-    if np.ndim(a) > 1:
+    if np.ndim(marr) > 1:
         raise ValueError,"The input array should be 1D only!"
-    a = ma.array(a, copy=True)
+    a = ma.array(marr, copy=True)
     amask = getmask(a)
     if amask is nomask or a.size == 0:
         return a
@@ -87,9 +86,9 @@ def backward_fill(marr, maxgap=None):
     ----------
     marr : MaskedArray
         Series to fill
-    maxgap : {None, int}, optional
+    maxgap : {int}, optional
         Maximum gap between consecutive masked values.
-        If ``maxgap`` is None, all masked values are backward-filled.
+        If ``maxgap`` is not specified, all masked values are backward-filled.
 
     Examples
     --------

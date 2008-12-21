@@ -1,10 +1,10 @@
 """
+The :mod:`scikits.timeseries.lib.moving_funcs` submodule contains an
+assortment of functions for doing moving window calculations such as moving
+averages, moving standard deviation, moving correlation, moving median, etc.
 
-A collection of moving functions for masked arrays and time series
-
-:author: Pierre GF Gerard-Marchant & Matt Knox
-:contact: pierregm_at_uga_dot_edu - mattknox_ca_at_hotmail_dot_com
-
+These functions are implemented in C and are much more efficient than what is
+possible using a brute force approach in pure Python.
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author$)"
 __revision__ = "$Revision$"
@@ -29,31 +29,31 @@ from scikits.timeseries.cseries import \
 
 
 _doc_parameters = dict(
-data="""    data : array-like
+data="""data : array-like
         Input data, as a sequence or (subclass of) ndarray.
         Masked arrays and TimeSeries objects are also accepted.
         The input array should be 1D or 2D at most.
         If the input array is 2D, the function is applied on each column.
 """,
-span="""    span : int
+span="""span : int
         Size of the filtering window.
 """,
-dtype="""    dtype: dtype
-        Dta-type of the result.
+dtype="""dtype : dtype, optional
+        Data type of the result.
 """,
-ddof="""    ddof : {0, integer}, optional
+ddof="""ddof : {0, integer}, optional
         Means Delta Degrees of Freedom.
-        The divisor used in calculations of variance or standard deviation is 
+        The divisor used in calculations of variance or standard deviation is
         ``N-ddof``.
         For biased estimates of the variance/standard deviation, use ``ddof=0``.
         For unbiased estimates, use ``ddof=1``.
 """,
-x="""    x : array-like
+x="""x : array-like
         First array to be included in the calculation.
         x must be a ndarray or a subclass of ndarray, such as MaskedArray or
         TimeSeries objects. In that case, the type is saved.
 """,
-y="""    y : array-like
+y="""y : array-like
         Second array to be included in the calculation.
         x must be a ndarray or a subclass of ndarray, such as MaskedArray or
         TimeSeries objects. In that case, the type is saved.
@@ -65,7 +65,7 @@ movfuncresults="""
         The result is always a masked array (preserves subclass attributes).
         The result at index i uses values from ``[i-span:i+1]``, and will be masked
         for the first ``span`` values.
-        The result will also be masked at i if any of the input values in the slice 
+        The result will also be masked at i if any of the input values in the slice
         ``[i-span:i+1]`` are masked.
     """
 
@@ -346,21 +346,21 @@ def cmov_window(data, span, window_type):
     Parameters
     ----------
     %(data)s
-    $(span)s
+    %(span)s
     window_type : {string/tuple/float}
         Window type (see Notes)
 
     Returns
     -------
-    A (subclass of) MaskedArray. 
+    A (subclass of) MaskedArray.
     Noting ``k=span//2``, the ``k`` first and ``k`` last data are always masked.
     If ``data`` has a missing value at position ``i``, then the result has
     missing values in the interval ``[i-k:i+k+1]``.
 
     Notes
     -----
-    The recognized window types are: 
-    
+    The recognized window types are:
+
     * ``boxcar``
     * ``triang``
     * ``blackman``
@@ -375,9 +375,9 @@ def cmov_window(data, span, window_type):
     * ``gaussian`` (needs std)
     * ``general_gaussian`` (needs power, width)
     * ``slepian`` (needs width).
-    
+
     If the window requires special parameters, the ``window_type`` argument
-    should be a tuple with the first argument the string name of the window, 
+    should be a tuple with the first argument the string name of the window,
     and the next arguments the needed parameters.
     If ``window_type`` is a floating point number, it is interpreted as the beta
     parameter of the ``kaiser`` window.
@@ -420,7 +420,7 @@ def cmov_average(data, span):
 
     Returns
     -------
-    A (subclass of) MaskedArray. 
+    A (subclass of) MaskedArray.
     Noting ``k=span//2``, the ``k`` first and ``k`` last data are always masked.
     If ``data`` has a missing value at position ``i``, then the result has
     missing values in the interval ``[i-k:i+k+1]``.
@@ -429,16 +429,7 @@ def cmov_average(data, span):
 
 cmov_mean = cmov_average
 
-
-
 if __doc__ is not None:
-    mov_sum.__doc__ = mov_sum.__doc__ % _doc_parameters
-    mov_median.__doc__ = mov_median.__doc__ % _doc_parameters
-    mov_min.__doc__ = mov_min.__doc__ % _doc_parameters
-    mov_max.__doc__ = mov_max.__doc__ % _doc_parameters
-    mov_average.__doc__ = mov_average.__doc__ % _doc_parameters
-    mov_std.__doc__ = mov_var.__doc__ % _doc_parameters
-    mov_cov.__doc__ = mov_cov.__doc__ % _doc_parameters
-    mov_corr.__doc__ = mov_corr.__doc__ % _doc_parameters
-
-
+    for mf in __all__:
+        mf_obj = locals()[mf]
+        mf_obj.__doc__ = mf_obj.__doc__ % _doc_parameters
