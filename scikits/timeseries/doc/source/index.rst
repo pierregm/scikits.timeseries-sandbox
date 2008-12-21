@@ -10,7 +10,7 @@
 .. toctree::
    :maxdepth: 2
 
-   intro
+   about
    installing
    core/index
    lib/index
