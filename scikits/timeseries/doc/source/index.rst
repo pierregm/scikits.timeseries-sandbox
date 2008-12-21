@@ -14,6 +14,7 @@
    installing
    core/index
    lib/index
+   support
 
 .. htmlonly::
 
