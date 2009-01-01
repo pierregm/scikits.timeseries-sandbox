@@ -1408,7 +1408,7 @@ def compressed(series):
     return series[keeper]
 TimeSeries.compressed = compressed
 #...............................................................................
-def adjust_endpoints(a, start_date=None, end_date=None):
+def adjust_endpoints(a, start_date=None, end_date=None, copy=False):
     """
     Returns a TimeSeries going from `start_date` to `end_date`.
     If `start_date` and `end_date` both fall into the initial range of dates,
@@ -1418,10 +1418,12 @@ def adjust_endpoints(a, start_date=None, end_date=None):
     ----------
     a : TimeSeries
         TimeSeries object whose dates must be adjusted
-    start_date : Date object
-        New starting date. If None, the current starting date is used.
-    end_date : Date object
-        New ending date. If None, the current ending date is used.
+    start_date : Date, optional
+        New starting date. If not specified, the current starting date is used.
+    end_date : Date, optional
+        New ending date. If not specified, the current ending date is used.
+    copy : {False, True}, optional
+
     """
     # Series validity tests .....................
     if not isinstance(a, TimeSeries):
@@ -1470,9 +1472,15 @@ def adjust_endpoints(a, start_date=None, end_date=None):
     # Check if the new range is included in the old one
     if start_lag >= 0:
         if end_lag == 0:
-            return a[start_lag:]
+            if not copy:
+                return a[start_lag:]
+            else:
+                return a[start_lag:].copy()
         elif end_lag < 0:
-            return a[start_lag:end_lag]
+            if not copy:
+                return a[start_lag:end_lag]
+            else:
+                return a[start_lag:end_lag].copy()
     # Create a new series .......................
     newdates = date_array(start_date=start_date, end_date=end_date)
 
@@ -1488,8 +1496,12 @@ def adjust_endpoints(a, start_date=None, end_date=None):
     if dstart is not None:
         start_date = max(start_date, dstart)
         end_date = min(end_date, dend) + 1
-        newseries[start_date:end_date] = a[start_date:end_date]
+        if not copy:
+            newseries[start_date:end_date] = a[start_date:end_date]
+        else:
+            newseries[start_date:end_date] = a[start_date:end_date].copy()
     return newseries
+TimeSeries.adjust_endpoints = adjust_endpoints
 #.....................................................
 def align_series(*series, **kwargs):
     """

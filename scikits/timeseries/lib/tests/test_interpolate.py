@@ -14,6 +14,7 @@ from numpy.ma import masked_array, masked
 from numpy.testing import *
 from numpy.ma.testutils import assert_equal, assert_almost_equal
 
+import scikits.timeseries as ts
 from scikits.timeseries.lib.interpolate import \
      backward_fill, forward_fill, interp_masked1d
 
@@ -85,6 +86,21 @@ class TestFuncs(TestCase):
                             10,10,10,10,10,15,15,15,15,15])
         assert_equal(test._mask, [1,1,1,1,1,0,1,1,1,1,
                                   0,1,1,1,1,0,1,1,1,1,])
+
+    def test_forward_fill_non_contiguous(self):
+        # this used to fail at some point in the past (based on a failure
+        # I encountered with an older version), but seems to work now.
+
+        x = ts.time_series(ma.arange(10), start_date=ts.now('m'))
+        x = x.adjust_endpoints(start_date=x.start_date-3)
+        x[-3:] = ts.masked
+        test = forward_fill(x)
+
+        # first three points masked
+        assert_equal(test.mask[:3].sum(), 3)
+
+        # last three points == 6
+        assert_equal((test[-3:] == 6).sum(), 3)
 
 ###############################################################################
 #------------------------------------------------------------------------------
