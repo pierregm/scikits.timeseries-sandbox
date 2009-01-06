@@ -297,6 +297,36 @@ frequencies.
 ##### ------------------------------------------------------------------------
 ##--- ... Time Series ...
 ##### ------------------------------------------------------------------------
+_print_templates = dict(desc = """\
+timeseries(
+ %(data)s,
+    dates =
+ %(time)s,
+    freq  = %(freq)s)
+""",
+                        desc_short = """\
+timeseries(%(data)s,
+   dates = %(time)s,
+   freq  = %(freq)s)
+""",
+                        desc_flx = """\
+timeseries(
+ %(data)s,
+   dtype = %(dtype)s,
+   dates =
+ %(time)s,
+   freq  = %(freq)s)
+""",
+                        desc_flx_short = """\
+timeseries(%(data)s,
+   dtype = %(dtype)s,
+   dates = %(time)s,
+   freq  = %(freq)s)
+"""
+)
+
+
+
 class _tsmathmethod(object):
     """
     Defines a wrapper for arithmetic array methods (add, mul...).
@@ -698,33 +728,24 @@ Sets item described by index. If value is masked, masks those locations.
         """Returns a string representation of self (w/o the dates...)"""
         return str(self._series)
     def __repr__(self):
-        """Calculates the repr representation, using masked for fill if it is
-enabled. Otherwise fill with fill value.
-"""
-        desc = """\
-timeseries(
- %(data)s,
-           dates =
- %(time)s,
-           freq  = %(freq)s)
-"""
-        desc_short = """\
-timeseries(%(data)s,
-           dates = %(time)s,
-           freq  = %(freq)s)
-"""
+        """
+    Calculates the repr representation, using masked for fill if it is
+    enabled. Otherwise fill with fill value.
+    """
         if np.size(self._dates) > 2 and self.isvalid():
             timestr = "[%s ... %s]" % (str(self._dates[0]),str(self._dates[-1]))
         else:
             timestr = str(self.dates)
-
+        kwargs = {'data': str(self._series), 'time': timestr,
+                  'freq': self.freqstr, 'dtype': self.dtype}
+        names = kwargs['dtype'].names
         if self.ndim <= 1:
-            return desc_short % {'data': str(self._series),
-                                 'time': timestr,
-                                 'freq': self.freqstr, }
-        return desc % {'data': str(self._series),
-                       'time': timestr,
-                       'freq': self.freqstr, }
+            if names:
+                return _print_templates['desc_flx_short'] % kwargs
+            return _print_templates['desc_short'] % kwargs
+        if names:
+            return _print_templates['desc_flx'] % kwargs
+        return _print_templates['desc'] % kwargs
     #............................................
     __add__ = _tsmathmethod('__add__')
     __radd__ = _tsmathmethod('__add__')
