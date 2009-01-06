@@ -595,6 +595,21 @@ class DateArray(ndarray):
             return self[-1]
         return None
 
+    #-----------------------------
+
+    def argsort(self, axis=-1, kind='quicksort', order=None):
+        """
+        Returns the indices that would sort the DateArray.
+        Refer to `numpy.argsort` for full documentation
+        
+        See Also
+        --------
+        numpy.argsort : equivalent function
+        """
+        return self.view(ndarray).argsort(axis=axis, kind=kind, order=order)
+
+
+
 def fill_missing_dates(dates, freq=None):
     """
     Finds and fills the missing dates in a :class:`DateArray`.

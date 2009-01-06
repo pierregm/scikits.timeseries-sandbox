@@ -1073,6 +1073,16 @@ class TestMethods(TestCase):
             raise IndexError("An invalid indexed has been accepted !")
 
 
+    def test_argsort(self):
+        "Test argsort"
+        dates = date_array(['2001-03', '2001-02', '2001-01'],
+                           freq='M', autosort=False)
+        test = dates.argsort()
+        self.failUnless(isinstance(test, np.ndarray))
+        self.failUnless(not isinstance(test, DateArray))
+        assert_equal(test, [2, 1, 0])
+
+
 ###############################################################################
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
