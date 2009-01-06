@@ -1130,8 +1130,8 @@ class TimeSeriesPlot(Subplot, object):
         """
     Returns the limits of the x axis as a :class:`~scikits.timeseries.DateArray`.
         """
-        xlims = self.get_xlims()
-        return ts.DateArray(xlims, freq=self.freq)
+        xlims = self.get_xlim()
+        return DateArray(xlims, freq=self.freq)
     #
     def get_datelims(self):
         """
