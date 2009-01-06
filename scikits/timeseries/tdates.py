@@ -405,6 +405,7 @@ class DateArray(ndarray):
     def tovalue(self):
         "Converts the dates to integer values."
         return np.asarray(self)
+    tovalues = values = tovalue
     #
     def toordinal(self):
         "Converts the dates from values to ordinals."
@@ -417,6 +418,7 @@ class DateArray(ndarray):
             toord = np.fromiter(diter, dtype=float_)
             self._cachedinfo['toord'] = toord
         return self._cachedinfo['toord']
+    toordinals = toordinal
     #
     def tolist(self):
         """Returns a hierarchical python list of standard datetime objects."""
