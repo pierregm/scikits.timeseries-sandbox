@@ -11,18 +11,28 @@ __date__     = '$Date$'
 
 
 import numpy as np
+import numpy.ma as ma
 from numpy.ma import masked
 
 import const as _c
-from tseries import TimeSeries
+from tdates import Date, date_array
+from tseries import TimeSeries, time_series
 
-__all__ = ['isleapyear', 'count_missing', 'accept_atmost_missing', 'guess_freq']
+from _preview import genfromtxt
+
+__all__ = ['accept_atmost_missing',
+           'count_missing',
+           'guess_freq',
+           'isleapyear',
+           'tsfromtxt']
 
 #..............................................................................
 def isleapyear(year):
-    """Returns true if year is a leap year.
+    """
+    Returns true if year is a leap year.
 
-:Input:
+    Parameters
+    ----------
     year : integer / sequence
         A given (list of) year(s).
     """
@@ -32,17 +42,17 @@ def isleapyear(year):
 
 #..............................................................................
 def count_missing(series):
-    """Returns the number of missing data per period.
+    """
+    Returns the number of missing data per period.
 
+    Notes
+    -----
+    This function is designed to return the actual number of missing values when
+    a series has been converted from one frequency to a smaller frequency.
 
-Notes
------
-This function is designed to return the actual number of missing values when
-a series has been converted from one frequency to a smaller frequency.
-
-For example, converting a 12-month-long daily series to months will yield
-a (12x31) array, with missing values in February, April, June...
-count_missing will discard these extra missing values.
+    For example, converting a 12-month-long daily series to months will yield
+    a (12x31) array, with missing values in February, April, June...
+    count_missing will discard these extra missing values.
     """
     if not isinstance(series, TimeSeries):
         raise TypeError, "The input data should be a valid TimeSeries object! "\
@@ -87,17 +97,25 @@ count_missing will discard these extra missing values.
 
 #.............................................................................
 def accept_atmost_missing(series, max_missing, strict=False):
-    """Masks the rows of the series that contains more than max_missing missing data.
+    """
+    Masks the rows of `series` that contain more than `max_missing` missing data.
     Returns a new masked series.
 
-:Inputs:
+    Parameters
+    ----------
     series : TimeSeries
         Input time series.
     max_missing : float
         Number of maximum acceptable missing values per row (if larger than 1),
         or maximum acceptable percentage of missing values (if lower than 1).
     strict : boolean *[False]*
-        Whether the
+        Whether the number of missing values should be strictly greater than
+        `max_missing` or not.
+
+    Returns
+    -------
+    output : TimeSeries
+        A new TimeSeries object
     """
     series = np.array(series, copy=True, subok=True)
     if not isinstance(series, TimeSeries):
@@ -118,10 +136,12 @@ def accept_atmost_missing(series, max_missing, strict=False):
 
 
 def guess_freq(dates):
-    """Tries to estimate the frequency of a list of dates or datetime objects
-by checking the steps between consecutive dates. The steps should be in days.
-Returns a frequency code.
-"""
+    """
+    Tries to estimate the frequency of a list of dates or datetime objects
+    by checking the steps between consecutive dates.
+    The steps should be in days.
+    Returns a frequency code.
+    """
     # To do: consolidate currently separate logic for dates being datetime
     # objects vs timeseries dates or ints
 
@@ -185,3 +205,137 @@ Returns a frequency code.
             fcode = _c.FR_UND
 
     return fcode
+
+
+
+
+def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
+              skiprows=0, converters=None, missing='', missing_values=None,
+              usecols=None, datecols=None,
+              names=None, excludelist=None, deletechars=None,
+              case_sensitive=True, unpack=None, usemask=False, loose=True,
+              asrecarray=False):
+    """
+    Load a TimeSeries from a text file.
+
+
+    Parameters
+    ----------
+    fname : file or string
+        File or filename to read.  If the filename extension is `.gz` or `.bz2`,
+        the file is first decompressed.
+    dtype : data-type
+        Data type of the resulting array.  If this is a flexible data-type,
+        the resulting array will be 1-dimensional, and each row will be
+        interpreted as an element of the array. In this case, the number
+        of columns used must match the number of fields in the data-type,
+        and the names of each field will be set by the corresponding name
+        of the dtype.
+        If None, the dtypes will be determined by the contents of each
+        column, individually.
+    comments : {string}, optional
+        The character used to indicate the start of a comment.
+        All the characters occurring on a line after a comment are discarded
+    delimiter : {string}, optional
+        The string used to separate values.  By default, any consecutive
+        whitespace act as delimiter.
+    skiprows : {int}, optional
+        Numbers of lines to skip at the beginning of the file.
+    converters : {None, dictionary}, optional
+        A dictionary mapping column number to a function that will convert
+        values in the column to a number. Converters can also be used to
+        provide a default value for missing data:
+        ``converters = {3: lambda s: float(s or 0)}``.
+    missing : {string}, optional
+        A string representing a missing value, irrespective of the column where
+        it appears (e.g., `'missing'` or `'unused'`).
+    missing_values : {None, dictionary}, optional
+        A dictionary mapping a column number to a string indicating whether the
+        corresponding field should be masked.
+    usecols : {None, sequence}, optional
+        Which columns to read, with 0 being the first.  For example,
+        ``usecols = (1,4,5)`` will extract the 2nd, 5th and 6th columns.
+    names : {None, True, string, sequence}, optional
+        If `names` is True, the field names are read from the first valid line
+        after the first `skiprows` lines.
+        If `names` is a sequence or a single-string of comma-separated names,
+        the names will be used to define the field names in a flexible dtype.
+        If `names` is None, the names of the dtype fields will be used, if any.
+    excludelist : {sequence}, optional
+        A list of names to exclude. This list is appended to the default list
+        ['return','file','print']. Excluded names are appended an underscore:
+        for example, `file` would become `file_`.
+    deletechars : {string}, optional
+        A string combining invalid characters that must be deleted from the names.
+    case_sensitive : {True, False], optional
+        Whether names are case sensitive. If not, names are transformed to 
+        upper case.
+    unpack : {bool}, optional
+        If True, the returned array is transposed, so that arguments may be
+        unpacked using ``x, y, z = loadtxt(...)``
+    usemask : {bool}, optional
+        If True, returns a masked array.
+        If False, return a regular standard array.
+    asrecarray : {False, True}
+        Whether to return a TimeSeriesRecords or a series with flexible dtype.
+
+    Returns
+    -------
+    out : MaskedArray
+        Data read from the text file.
+
+    Notes
+    --------
+    * When spaces are used as delimiters, or when no delimiter has been given
+      as input, there should not be any missing data between two fields.
+    * When the variable are named (either by a flexible dtype or with `names`,
+      there must not be any header in the file (else a :exc:ValueError exception
+      is raised).
+
+
+    """
+    kwargs = dict(dtype=dtype, comments=comments, delimiter=delimiter, 
+                  skiprows=skiprows, converters=converters,
+                  missing=missing, missing_values=missing_values,
+                  usecols=usecols, unpack=unpack, names=names, 
+                  excludelist=excludelist, deletechars=deletechars,
+                  case_sensitive=case_sensitive,
+                  usemask=True)
+    # Update the converter
+    if converters is not None:
+        dateconv = converters['dates']
+        del(converters['dates'])
+    else:
+        dateconv = lambda s: Date(freq, string=s)
+    mrec = genfromtxt(fname, **kwargs)
+    #
+    names = mrec.dtype.names
+    if datecols is None:
+        import re
+        datespattern = re.compile("'?_?dates?'?", re.IGNORECASE)
+        datecols = [i for (i, name) in enumerate(names)
+                     if datespattern.search(name)]
+        if not datecols:
+            raise TypeError("No column selected for the dates!")
+    elif isinstance(datecols, (np.int, np.float)):
+        datecols = (datecols,)
+    dateinfo = [mrec[names[i]].filled() for i in datecols]
+    if len(dateinfo) == 1:
+        dates = date_array([dateconv(args) for args in dateinfo[0]])
+    else:
+        dates = date_array([dateconv(*args) for args in zip(*dateinfo)])
+    #
+    newdescr = [descr for (i, descr) in enumerate(mrec.dtype.descr)
+                if i not in datecols]
+    output = time_series(ma.empty((len(mrec),), dtype=newdescr),
+                         dates=dates)
+    for name in output.dtype.names:
+        output[name] = mrec[name]
+    #
+    if asrecarray:
+        from trecords import TimeSeriesRecords
+        return output.view(TimeSeriesRecords)
+    return output
+
+
+

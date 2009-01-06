@@ -10,12 +10,15 @@ __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author: matthew.brett@gmai
 __revision__ = "$Revision: 3836 $"
 __date__     = '$Date: 2008-01-15 08:09:03 -0500 (Tue, 15 Jan 2008) $'
 
+import StringIO
+
 import numpy as np
 from numpy.testing import *
 from numpy.ma import masked
 from numpy.ma.testutils import assert_equal, assert_almost_equal
 
-from scikits.timeseries import time_series, Date, extras
+from scikits.timeseries import Date, TimeSeries, date_array, time_series
+import scikits.timeseries.extras
 from scikits.timeseries.extras import *
 
 #..............................................................................
@@ -72,6 +75,82 @@ class TestCountmissing(TestCase):
         assert_equal(result._mask.all(-1), [1,1])
         result = accept_atmost_missing(series.convert('A'),0.05,True)
         assert_equal(result._mask.all(-1), [1,1])
+
+
+
+class TestFromTxt(TestCase):
+    "Test tsfromtxt"
+    #
+    def test_nodateinfo(self):
+        # No dates column specified: crash.
+        "Test no date info"
+        fcontent = StringIO.StringIO("""#
+'Dates', 'One (S)','Two (I)','Three (F)','Four (M)','Five (-)','Six (C)'
+'2007-01', 'strings',1,1.0,'mixed column',,1
+'2007-02', 'with embedded "double quotes"',2,2.0,1.0,,1
+'2007-03', 'strings',3,3.0E5,3,,1
+'2007-05','strings',4,-1e-10,,,1
+""")
+        try:
+            test = tsfromtxt(fcontent, delimiter=",", names="A,B,C,D,E,F,G")
+        except TypeError:
+            pass
+    #
+    def test_with_names(self):
+        "Tests w/ names"
+        fcontent = StringIO.StringIO("""#
+'Dates', 'One (S)','Two (I)','Three (F)','Four (M)','Five (-)','Six (C)'
+'2007-01', 'strings',1,1.0,'mixed column',,1
+'2007-02', 'with embedded "double quotes"',2,2.0,1.0,,1
+'2007-03', 'strings',3,3.0E5,3,,1
+'2007-05','strings',4,-1e-10,,,1
+""")
+        test = tsfromtxt(fcontent, delimiter=",", datecols=0, skiprows=2,
+                         names="A,B,C,D,E,F,G", freq='M')
+        assert(isinstance(test, TimeSeries))
+        dlist = ['2007-%02i' % i for i in (1,2,3,5)]
+        assert_equal(test.dates.tovalue(), date_array(dlist,freq='M').tovalue())
+        assert_equal(test.dtype.names, ['B','C','D','E','F','G'])
+        assert_equal(test['G'], [1,1,1,1])
+        assert_equal(test['F'].mask, [1,1,1,1])
+        assert_equal(test['D'], [1,2,3.e+5,-1e-10])
+    #
+    def test_without_names(self):
+        "Test w/o names"
+        fcontent = StringIO.StringIO("""#
+'Dates', 'One (S)','Two (I)','Three (F)','Four (M)','Five (-)','Six (C)'
+'2007-01', 'strings',1,1.0,'mixed column',,1
+'2007-02', 'with embedded "double quotes"',2,2.0,1.0,,1
+'2007-03', 'strings',3,3.0E5,3,,1
+'2007-05','strings',4,-1e-10,,,1
+""")
+        test = tsfromtxt(fcontent, delimiter=",", skiprows=1, names=True,
+                         freq='M')
+        assert(isinstance(test, TimeSeries))
+        dlist = ['2007-%02i' % i for i in (1,2,3,5)]
+        assert_equal(test.dates.tovalue(), date_array(dlist,freq='M').tovalue())
+        assert_equal(test.dtype.names,
+                     ['One_S', 'Two_I', 'Three_F', 'Four_M', 'Five_', 'Six_C'])
+        assert_equal(test['Six_C'], [1,1,1,1])
+        assert_equal(test['Five_'].mask, [1,1,1,1])
+        assert_equal(test['Three_F'], [1,2,3.e+5,-1e-10])
+    #
+    def test_with_datecols(self):
+        "Test two datecols"
+        fcontent = StringIO.StringIO("""
+year, month, A, B
+2009, 01, 1, 1.
+2009, 03, 3, 3.
+""")
+        dateconv = lambda y, m: Date("M", year=int(y), month=int(m))
+        test = tsfromtxt(fcontent, delimiter=",", skiprows=1, names=True,
+                         converters={'dates': dateconv}, datecols=(0,1))
+        dates = date_array(['2009-01', '2009-03'], freq='M')
+        assert_equal(test.dates.tovalue(), dates)
+        assert_equal(test['A'], [1, 3])
+        assert_equal(test['B'], [1., 3.])
+        assert_equal(test.dtype, np.dtype([('A', int), ('B', float)]))
+
 
 
 ###############################################################################

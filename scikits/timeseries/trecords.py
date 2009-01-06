@@ -1,6 +1,8 @@
 # pylint: disable-msg=W0201, W0212
 """
-Support for multi-variable time series, through masked recarrays.
+Support for multi-variable time series, through masked record arrays.
+
+Individual fields can be accessed as keys or attributes.
 
 :author: Pierre GF Gerard-Marchant & Matt Knox
 :contact: pierregm_at_uga_dot_edu - mattknox_ca_at_hotmail_dot_com
@@ -34,6 +36,7 @@ from numpy.ma.mrecords import _checknames, \
 from tseries import TimeSeries, TimeSeriesCompatibilityError, \
     time_series, _getdatalength, nodates, get_varshape
 from tdates import Date, DateArray, date_array
+from extras import tsfromtxt
 
 _byteorderconv = numpy.core.records._byteorderconv
 _typestr = ntypes._typestr
@@ -48,8 +51,9 @@ __all__ = [
 ]
 
 def _getformats(data):
-    """Returns the formats of each array of arraylist as a comma-separated
-    string."""
+    """
+    Returns the formats of each array of arraylist as a comma-separated string.
+    """
     if isinstance(data, record):
         return ",".join([desc[1] for desc in data.dtype.descr])
 
@@ -65,7 +69,9 @@ def _getformats(data):
 
 def _getdates(dates=None, newdates=None, length=None, freq=None,
               start_date=None):
-    """Determines new dates (private function not meant to be used)."""
+    """
+    Determines new dates (private function not meant to be used).
+    """
     if dates is None:
         if newdates is not None:
             if not hasattr(newdates, 'freq'):
@@ -82,12 +88,12 @@ def _getdates(dates=None, newdates=None, length=None, freq=None,
 
 class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
     """
-    MaskedRecords with support for time-indexing
+    MaskedRecords with support for time-indexing.
 
-    Fields can be retrieved either with ``__getitem__`` (the standard indexing
-    scheme) or with ``__getattribute__``.
+    Fields can be retrieved either as indices (using the indexing scheme
+    based on `__getitem__`) or as attributes (using `__getattribute__`).
 
-    The type of the output of __getitem__ is variable:
+    The type of the output of `__getitem__` is variable:
     
     field
        returns a :class:`TimeSeries` object.
@@ -241,11 +247,10 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
         Frequency to convert the TimeSeries to. Accepts any valid frequency
         specification (string or integer)
     func : {None,function}, optional
-        When converting to a lower frequency, func is a function that acts on
-        one date's worth of data. func should handle masked values appropriately.
-        If func is None, then each data point in the resulting series will a
-        group of data points that fall into the date at the lower frequency.
-
+        When converting to a lower frequency, `func` is a function that acts on
+        one date's worth of data. `func` should handle masked values appropriately.
+        If `func` is None, then each entry of the resulting series is the group
+        of data points that fall into the date at the lower frequency.
         For example, if converting from monthly to daily and you wanted each
         data point in the resulting series to be the average value for each
         month, you could specify numpy.ma.average for the 'func' parameter.
@@ -299,6 +304,26 @@ def time_records(data, dates=None, start_date=None, freq=None, mask=nomask,
     freq : {freq_spec}, optional
         A valid frequency specification, as a string or an integer.
         This parameter is mandatory if ``dates`` is None.
+    mask : {nomask, sequence}, optional
+        Mask.  Must be convertible to an array of booleans with
+        the same shape as data: True indicates a masked (eg.,
+        invalid) data.
+    dtype : {dtype}, optional
+        Data type of the output.
+        If dtype is None, the type of the data argument (`data.dtype`) is used.
+        If dtype is not None and different from `data.dtype`, a copy is performed.
+    copy : {False, True}, optional
+        Whether to copy the input data (True), or to use a reference instead.
+        Note: data are NOT copied by default.
+    fill_value : {var}, optional
+        Value used to fill in the masked values when necessary.
+        If None, a default based on the datatype is used.
+    keep_mask : {True, boolean}, optional
+        Whether to combine mask with the mask of the input data,
+        if any (True), or to use only mask for the output (False).
+    hard_mask : {False, boolean}, optional
+        Whether to use a hard mask or not.
+        With a hard mask, masked values cannot be unmasked.
 
     Notes
     -----
@@ -331,7 +356,8 @@ def fromarrays(arraylist, dates=None, start_date=None, freq='U',
                fill_value=None,
                dtype=None, shape=None, formats=None,
                names=None, titles=None, aligned=False, byteorder=None,):
-    """Creates a mrecarray from a (flat) list of masked arrays.
+    """
+    Creates a mrecarray from a (flat) list of masked arrays.
 
     Parameters
     ----------
@@ -339,29 +365,30 @@ def fromarrays(arraylist, dates=None, start_date=None, freq='U',
         A list of (masked) arrays. Each element of the sequence is first converted
         to a masked array if needed. If a 2D array is passed as argument, it is
         processed line by line
-    dtype : numeric.dtype
-        Data type descriptor.
-    shape : integer
-        Number of records. If None, shape is defined from the shape of the
-        first array in the list.
-    formats : sequence
-        Sequence of formats for each individual field. If None, the formats will
-        be autodetected by inspecting the fields and selecting the highest dtype
-        possible.
-    names : sequence
-        Sequence of the names of each field.
-    titles : sequence
-      (Description to write)
-    aligned : boolean
-      (Description to write, not used anyway)
-    byteorder: boolean
-      (Description to write, not used anyway)
-    fill_value : sequence
-        Sequence of data to be used as filling values.
+    dates : {DateArray}, optional
+        Array of dates corresponding to each entry.
+        If None, a DateArray is constructed from `start_date` and the length
+        of the arrays in the input list.
+    start_date : {Date}, optional
+        First date of the output.
+        This parameter is inly needed if `dates` is None.
+    freq : {var}, optional
+        Frequency of the DateArray
+    fill_value : {var}, optional
+        Value used to fill in the masked values when necessary.
+        If None, a default based on the datatype is used.
+
+    See Also
+    --------
+    numpy.core.records.fromarrays : equivalent function for ndarrays
+        The docstring of this function describes the additional optional
+        input parameters.
+    
 
     Notes
     -----
-    Lists of tuples should be preferred over lists of lists for faster processing.
+    * Lists of tuples should be preferred over lists of lists as inputs 
+      for faster processing.
     """
     _array = mrecfromarrays(arraylist, dtype=dtype, shape=shape, formats=formats,
                             names=names, titles=titles, aligned=aligned,
@@ -382,7 +409,8 @@ def fromrecords(reclist, dates=None, freq=None, start_date=None,
                 fill_value=None, mask=nomask,
                 dtype=None, shape=None, formats=None, names=None,
                 titles=None, aligned=False, byteorder=None):
-    """Creates a MaskedRecords from a list of records.
+    """
+    Creates a TimeSeriesRecords from a list of records.
 
     The data in the same field can be heterogeneous, they will be promoted
     to the highest data type.  This method is intended for creating
@@ -391,6 +419,32 @@ def fromrecords(reclist, dates=None, freq=None, start_date=None,
 
     If formats is None, then this will auto-detect formats. Use a list of
     tuples rather than a list of lists for faster processing.
+
+
+    Parameters
+    ----------
+    reclist : array_like
+        A list of records. Each element of the sequence is first converted
+        to a masked array if needed. If a 2D array is passed as argument, it is
+        processed line by line
+    dates : {DateArray}, optional
+        Array of dates corresponding to each entry.
+        If None, a DateArray is constructed from `start_date` and the length
+        of the arrays in the input list.
+    freq : {var}, optional
+        Frequency of the DateArray
+    start_date : {Date}, optional
+        First date of the output.
+        This parameter is inly needed if `dates` is None.
+    fill_value : {var}, optional
+        Value used to fill in the masked values when necessary.
+        If None, a default based on the datatype is used.
+
+    See Also
+    --------
+    numpy.core.records.fromrecords : equivalent function for ndarrays
+
+
     """
     _data = mrecfromrecords(reclist, dtype=dtype, shape=shape, formats=formats,
                             names=names, titles=titles, aligned=aligned,
@@ -421,102 +475,22 @@ def fromrecords(reclist, dates=None, freq=None, start_date=None,
     return result
 
 
+
 def fromtextfile(fname, delimitor=None, commentchar='#', missingchar='',
                  dates_column=None, varnames=None, vartypes=None,
-                 dates=None):
-    """Creates a TimeSeriesRecords from data stored in the file `filename`.
-
-:Parameters:
-    - `filename` : file name/handle
-      Handle of an opened file.
-    - `delimitor` : Character *None*
-      Alphanumeric character used to separate columns in the file.
-      If None, any (group of) white spacestring(s) will be used.
-    - `commentchar` : String *['#']*
-      Alphanumeric character used to mark the start of a comment.
-    - `missingchar` : String *['']*
-      String indicating missing data, and used to create the masks.
-    - `dates_column` : Integer *[None]*
-      Position of the columns storing dates. If None, a position will be
-      estimated from the variable names.
-    - `varnames` : Sequence *[None]*
-      Sequence of the variable names. If None, a list will be created from
-      the first non empty line of the file.
-    - `vartypes` : Sequence *[None]*
-      Sequence of the variables dtypes. If None, the sequence will be estimated
-      from the first non-commented line.
-
-
-    Ultra simple: the varnames are in the header, one line"""
-    #!!!: I know it's weak, but the current method to determine variable names
-    #!!!: is seriously FUBAR right now.
-    #!!!: Anyway, we need to use numpy.io first, shouldn't we ?
-    #!!!: Using the kind of autodetermination of dtypes, or all-as-object
-
-    # Declare the pattern for the dates column
-    import re
-    datescolpattern = re.compile("'?_?dates?'?", re.IGNORECASE)
-    # Try to open the file ......................
-    f = openfile(fname)
-    # Get the first non-empty line as the varnames
-    while True:
-        line = f.readline()
-        firstline = line[:line.find(commentchar)].strip()
-        _varnames = firstline.split(delimitor)
-        if len(_varnames) > 1:
-            break
-    # Get the data ..............................
-    _variables = ma.asarray([line.strip().split(delimitor) for line in f
-                             if line[0] != commentchar and len(line) > 1])
-    (nvars, nfields) = _variables.shape
-    # Check if we need to get the dates..........
-    if dates_column is None:
-        dates_column = [i for (i,n) in enumerate(list(_varnames))
-                            if datescolpattern.search(n) is not None]
-    elif isinstance(dates_column,(int,float)):
-        if dates_column > nfields:
-            raise ValueError,\
-                  "Invalid column number: %i > %i" % (dates_column, nfields)
-        dates_column = [dates_column,]
-    if varnames is None:
-        varnames = _varnames
-    if len(dates_column) > 0:
-        cols = range(nfields)
-        [cols.remove(i) for i in dates_column]
-        newdates = date_array(_variables[:,dates_column[-1]])
-        _variables = _variables[:,cols]
-        varnames = [varnames[i] for i in cols]
-        if vartypes is not None:
-            vartypes = [vartypes[i] for i in cols]
-        nfields -= len(dates_column)
-    else:
-        newdates = None
-    # Try to guess the dtype ....................
-    if vartypes is None:
-        vartypes = _guessvartypes(_variables[0])
-    else:
-        vartypes = [np.dtype(v) for v in vartypes]
-        if len(vartypes) != nfields:
-            msg = "Attempting to %i dtypes for %i fields!"
-            msg += " Reverting to default."
-            warnings.warn(msg % (len(vartypes), nfields))
-            vartypes = _guessvartypes(_variables[0])
-    # Construct the descriptor ..................
-    mdescr = [(n,f) for (n,f) in zip(varnames, vartypes)]
-    mfillv = [ma.default_fill_value(f) for f in vartypes]
-    # Get the data and the mask .................
-    # We just need a list of masked_arrays. It's easier to create it like that:
-    _mask = (_variables.T == missingchar)
-    _datalist = [ma.array(a,mask=m,dtype=t,fill_value=f)
-                 for (a,m,t,f) in zip(_variables.T, _mask, vartypes, mfillv)]
-    newdates = _getdates(dates=dates, newdates=newdates, length=nvars,
-                         freq=None, start_date=None)
-    # Sort the datalist according to newdates._unsorted
-    idx = newdates._unsorted
-    if idx is not None:
-        _sorted_datalist = [a[idx].squeeze() for a in _datalist]
-    else:
-        _sorted_datalist = _datalist
-    return fromarrays(_sorted_datalist, dates=newdates, dtype=mdescr)
-
+                 dates=None, freq=None, skiprows=0):
+    """
+    Deprecated function: please use tsfromtxt instead.
+    """
+    msg = "This function is deprecated.\nPlease use `tsfromtxt` instead."
+    warnings.warn(msg, DeprecationWarning)
+    # Split the names by comma first, then per character
+    if isinstance(varnames, basestring):
+        varnames = varnames.split(",")
+        if len(varnames) == 1:
+            varnames = zip(*varnames[0])[0]
+    return tsfromtxt(fname, dtype=vartypes, names=(varnames or True), freq=freq,
+                     datecols=dates_column, skiprows=skiprows,
+                     delimiter=delimitor, comments=commentchar,
+                     missing=missingchar, asrecarray=True)
 

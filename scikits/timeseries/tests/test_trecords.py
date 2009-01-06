@@ -215,7 +215,8 @@ class TestTimeSeriesRecords(TestCase):
         (tmp_fd,tmp_fl) = tempfile.mkstemp()
         os.write(tmp_fd, fcontent)
         os.close(tmp_fd)
-        mrectxt = fromtextfile(tmp_fl, delimitor=',', varnames='ABCDEFG')
+        mrectxt = fromtextfile(tmp_fl, delimitor=',', varnames='ABCDEFG',
+                               dates_column=0, skiprows=2)
         os.remove(tmp_fl)
         #
         dlist = ['2007-%02i' % i for i in (1,2,3,5)]
