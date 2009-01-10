@@ -14,6 +14,7 @@ import StringIO
 
 import numpy as np
 from numpy.testing import *
+import numpy.ma as ma
 from numpy.ma import masked
 from numpy.ma.testutils import assert_equal, assert_almost_equal
 
@@ -150,6 +151,47 @@ year, month, A, B
         assert_equal(test['A'], [1, 3])
         assert_equal(test['B'], [1., 3.])
         assert_equal(test.dtype, np.dtype([('A', int), ('B', float)]))
+    #
+    def test_unsorted_input(self):
+        "Test tsfromtxt when the dates of the input are not sorted."
+        datatxt = """dates,a,b
+                    2007-04-02 01:00,,0.
+                    2007-04-02 02:00,2.,20
+                    2007-04-02 03:00,,
+                    2007-04-02 00:00,0.,10.
+                    2007-04-02 03:00,3.,30
+                    2007-04-02 01:00,1.,10
+                    2007-04-02 02:00,,
+                    """
+        data = StringIO.StringIO(datatxt)
+        dates = [Date('H','2007-04-02 0%i:00' % hour)
+                 for hour in (1,2,3,0,1,2)]
+        controla = ma.masked_values([ 0, -1,  1,  2, -1, -1,  3], -1)
+        controlb = ma.masked_values([10,  0, 10, 20, -1, -1, 30], -1)
+        #
+        data = StringIO.StringIO(datatxt)
+        test = tsfromtxt(data, delimiter=',', names=True, freq='H')
+        assert_equal(test.dtype.names, ['a', 'b'])
+        assert_equal(test['a'], controla)
+        assert_equal(test['a'].mask, controla.mask)
+        assert_equal(test['b'], controlb)
+        assert_equal(test['b'].mask, controlb.mask)
+    #
+    def test_dates_on_several_columns(self):
+        "Test tsfromtxt when the date spans several columns."
+        datatxt = """
+        2001, 01, 0.0, 10.
+        2001, 02, 1.1, 11.
+        2001, 02, 2.2, 12.
+        """
+        data = StringIO.StringIO(datatxt)
+        dateconverter = lambda y, m: Date('M', year=int(y), month=int(m))
+        test = tsfromtxt(data, delimiter=',', dtype=float, datecols=(0,1),
+                         dateconverter=dateconverter)
+        assert_equal(test, [[0., 10.], [1.1, 11.], [2.2, 12.]])
+        assert_equal(test.dates,
+                     date_array(['2001-01', '2001-02', '2001-02'], freq='M'))
+
 
 
 

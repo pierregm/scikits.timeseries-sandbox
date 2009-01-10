@@ -210,7 +210,8 @@ def guess_freq(dates):
 
 
 def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
-              skiprows=0, converters=None, missing='', missing_values=None,
+              skiprows=0, converters=None, dateconverter=None,
+              missing='', missing_values=None,
               usecols=None, datecols=None,
               names=None, excludelist=None, deletechars=None,
               case_sensitive=True, unpack=None, usemask=False, loose=True,
@@ -246,6 +247,9 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
         values in the column to a number. Converters can also be used to
         provide a default value for missing data:
         ``converters = {3: lambda s: float(s or 0)}``.
+    dateconverter : {function}, optional
+        Function to convert the date information to a Date object. 
+        This function requires as many parameters as number of datecols
     missing : {string}, optional
         A string representing a missing value, irrespective of the column where
         it appears (e.g., `'missing'` or `'unused'`).
@@ -255,7 +259,9 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
     usecols : {None, sequence}, optional
         Which columns to read, with 0 being the first.  For example,
         ``usecols = (1,4,5)`` will extract the 2nd, 5th and 6th columns.
-    names : {None, True, string, sequence}, optional
+    datecols : {None, int, sequence}, optional
+        Which columns store the date information.
+    names : {True, string, sequence}, optional
         If `names` is True, the field names are read from the first valid line
         after the first `skiprows` lines.
         If `names` is a sequence or a single-string of comma-separated names,
@@ -301,41 +307,58 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
                   excludelist=excludelist, deletechars=deletechars,
                   case_sensitive=case_sensitive,
                   usemask=True)
-    # Update the converter
+    # Update the date converter .......
     if converters is not None:
-        dateconv = converters['dates']
-        del(converters['dates'])
+        if 'dates' in converters:
+            dateconv = converters['dates']
+            del(converters['dates'])
     else:
         dateconv = lambda s: Date(freq, string=s)
+    if dateconverter:
+        dateconv = dateconverter
+    # Get the raw data ................
     mrec = genfromtxt(fname, **kwargs)
-    #
     names = mrec.dtype.names
+    # Get the date columns ............
     if datecols is None:
         import re
         datespattern = re.compile("'?_?dates?'?", re.IGNORECASE)
-        datecols = [i for (i, name) in enumerate(names)
+        datecols = [i for (i, name) in enumerate(names or ())
                      if datespattern.search(name)]
         if not datecols:
             raise TypeError("No column selected for the dates!")
     elif isinstance(datecols, (np.int, np.float)):
         datecols = (datecols,)
-    dateinfo = [mrec[names[i]].filled() for i in datecols]
-    if len(dateinfo) == 1:
-        dates = date_array([dateconv(args) for args in dateinfo[0]])
+    # Get the date info ...............
+    if names:
+        dateinfo = [mrec[names[i]].filled() for i in datecols]
     else:
-        dates = date_array([dateconv(*args) for args in zip(*dateinfo)])
-    #
-    newdescr = [descr for (i, descr) in enumerate(mrec.dtype.descr)
-                if i not in datecols]
-    output = time_series(ma.empty((len(mrec),), dtype=newdescr),
-                         dates=dates)
-    for name in output.dtype.names:
-        output[name] = mrec[name]
+        dateinfo = [mrec[:,i].filled() for i in datecols]
+    if len(dateinfo) == 1:
+        dates = date_array([dateconv(args) for args in dateinfo[0]],
+                           autosort=False)
+    else:
+        dates = date_array([dateconv(*args) for args in zip(*dateinfo)],
+                           autosort=False)
+    # Resort the array according to the dates
+    sortidx = dates.argsort()
+    dates = dates[sortidx]
+    mrec = mrec[sortidx]
+    # Get the dtype from the named columns (if any), or just use the initial one
+    mdtype = mrec.dtype
+    if mdtype.names:
+        newdescr = [descr for (i, descr) in enumerate(mdtype.descr)
+                    if i not in datecols]
+        output = time_series(ma.empty((len(mrec),), dtype=newdescr),
+                             dates=dates)
+        for name in output.dtype.names:
+            output[name] = mrec[name]
+    else:
+        dataidx = [i for i in range(mrec.shape[-1]) if i not in datecols]
+        output = time_series(mrec[:,dataidx], dates=dates)
     #
     if asrecarray:
         from trecords import TimeSeriesRecords
         return output.view(TimeSeriesRecords)
     return output
-
-
 
