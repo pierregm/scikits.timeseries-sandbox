@@ -81,7 +81,7 @@ class TestCountmissing(TestCase):
 
 class TestFromTxt(TestCase):
     "Test tsfromtxt"
-    #
+
     def test_nodateinfo(self):
         # No dates column specified: crash.
         "Test no date info"
@@ -96,7 +96,8 @@ class TestFromTxt(TestCase):
             test = tsfromtxt(fcontent, delimiter=",", names="A,B,C,D,E,F,G")
         except TypeError:
             pass
-    #
+
+
     def test_with_names(self):
         "Tests w/ names"
         fcontent = StringIO.StringIO("""#
@@ -115,7 +116,8 @@ class TestFromTxt(TestCase):
         assert_equal(test['G'], [1,1,1,1])
         assert_equal(test['F'].mask, [1,1,1,1])
         assert_equal(test['D'], [1,2,3.e+5,-1e-10])
-    #
+
+
     def test_without_names(self):
         "Test w/o names"
         fcontent = StringIO.StringIO("""#
@@ -135,7 +137,8 @@ class TestFromTxt(TestCase):
         assert_equal(test['Six_C'], [1,1,1,1])
         assert_equal(test['Five_'].mask, [1,1,1,1])
         assert_equal(test['Three_F'], [1,2,3.e+5,-1e-10])
-    #
+
+
     def test_with_datecols(self):
         "Test two datecols"
         fcontent = StringIO.StringIO("""
@@ -151,7 +154,8 @@ year, month, A, B
         assert_equal(test['A'], [1, 3])
         assert_equal(test['B'], [1., 3.])
         assert_equal(test.dtype, np.dtype([('A', int), ('B', float)]))
-    #
+
+
     def test_unsorted_input(self):
         "Test tsfromtxt when the dates of the input are not sorted."
         datatxt = """dates,a,b
@@ -176,7 +180,8 @@ year, month, A, B
         assert_equal(test['a'].mask, controla.mask)
         assert_equal(test['b'], controlb)
         assert_equal(test['b'].mask, controlb.mask)
-    #
+
+
     def test_dates_on_several_columns(self):
         "Test tsfromtxt when the date spans several columns."
         datatxt = """
@@ -193,6 +198,20 @@ year, month, A, B
                      date_array(['2001-01', '2001-02', '2001-02'], freq='M'))
 
 
+    def test_explicit_dtype(self):
+        "Test tsfromtxt with an explicit dtype."
+        dstr = "2009-01-14 12:00; 23; 46"
+        test = tsfromtxt(StringIO.StringIO(dstr,),
+                         delimiter=";", datecols=0, freq='H')
+        self.failUnless(test.dtype.names is not None)
+        assert_equal(test['f1'], 23)
+        assert_equal(test['f2'], 46)
+        #
+        dstr = "2009-01-14 12:00; 23; 46"
+        test = tsfromtxt(StringIO.StringIO(dstr,),
+                         delimiter=";", datecols=0, dtype=int, freq='H')
+        assert(test.dtype.names is None)
+        assert_equal(test, [[23, 46]])
 
 
 ###############################################################################

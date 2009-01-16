@@ -74,27 +74,6 @@ def flatten_dtype(ndtype):
         return types
 
 
-#def nested_masktype(datatype):
-#    """
-#    Construct the dtype of a mask for nested elements.
-#
-#    """
-#    names = datatype.names
-#    if names:
-#        descr = []
-#        for name in names:
-#            (ndtype, _) = datatype.fields[name]
-#            descr.append((name, nested_masktype(ndtype)))
-#        return descr
-#    # Is this some kind of composite a la (np.float,2)
-#    elif datatype.subdtype:
-#        mdescr = list(datatype.subdtype)
-#        mdescr[0] = np.dtype(bool)
-#        return tuple(mdescr)
-#    else:
-#        return np.bool
-
-
 
 class LineSplitter:
     """
@@ -188,15 +167,16 @@ class NameValidator:
         for example, `file` would become `file_`.
     deletechars : string, optional
         A string combining invalid characters that must be deleted from the names.
-    casesensitive : boolean, optional
-        Whether the field names are case sensitive or not. If not, then fields
-        like `'date'` and `'DATE'` are assumed to be the same.
+    casesensitive : {True, False, 'upper', 'lower'}, optional
+        If True, field names are case_sensitive.
+        If False or 'upper', field names are converted to upper case.
+        If 'lower', field names are converted to lower case.
     """
     #
     defaultexcludelist = ['return','file','print']
     defaultdeletechars = set("""~!@#$%^&*()-=+~\|]}[{';: /?.>,<""")
     #
-    def __init__(self, excludelist=None, deletechars=None, case_sensitive=True):
+    def __init__(self, excludelist=None, deletechars=None, case_sensitive=None):
         #
         if excludelist is None:
             excludelist = []
@@ -209,7 +189,15 @@ class NameValidator:
             delete = set(deletechars)
         delete.add('"')
         self.deletechars = delete
-        self.case_sensitive = case_sensitive
+        
+        if (case_sensitive is None) or (case_sensitive is True):
+            self.case_converter = lambda x: x
+        elif (case_sensitive is False) or ('u' in case_sensitive):
+            self.case_converter = lambda x: x.upper()
+        elif 'l' in case_sensitive:
+            self.case_converter = lambda x: x.lower()
+        else:
+            self.case_converter = lambda x: x
     #
     def validate(self, names, default='f'):
         #
@@ -221,10 +209,11 @@ class NameValidator:
         #
         deletechars = self.deletechars
         excludelist = self.excludelist
-        casesensitive = self.case_sensitive
+        #
+        case_converter = self.case_converter
+        #
         for i, item in enumerate(names):
-            if not casesensitive:
-                item = item.upper()
+            item = case_converter(item)
             item = item.strip().replace(' ', '_')
             item = ''.join([c for c in item if c not in deletechars])
             if not len(item):
@@ -296,6 +285,8 @@ class StringConverter:
         Function used for the conversion
     default : var
         Default value to return when the input corresponds to a missing value.
+    type : type
+        Type of the output
     _status : integer
         Integer representing the order of the conversion.
     _mapper : sequence of tuples
@@ -367,6 +358,7 @@ class StringConverter:
             self.func = str2bool
             self._status = 0
             self.default = default
+            ttype = np.bool
         else:
             # Is the input a np.dtype ?
             try:
@@ -406,6 +398,7 @@ class StringConverter:
             self.missing_values = set(list(missing_values) + [''])
         #
         self._callingfunction = self._strict_call
+        self.type = ttype
     #
     def _loose_call(self, value):
         try:
@@ -443,7 +436,7 @@ class StringConverter:
                 raise ValueError("Could not find a valid conversion function")
             elif self._status < _statusmax - 1:
                 self._status += 1
-            (_, self.func, self.default) = self._mapper[self._status]
+            (self.type, self.func, self.default) = self._mapper[self._status]
             self.upgrade(value)
     #
     def update(self, func, default=None, missing_values='', locked=False):
@@ -475,7 +468,8 @@ class StringConverter:
                     self.missing_values.add(val)
         else:
             self.missing_values = []
-
+        # Update the type
+        self.type = self._getsubdtype(func('0'))
 
 
 
@@ -535,9 +529,10 @@ def genfromtxt(fname, dtype=float, comments='#', delimiter=None, skiprows=0,
         for example, `file` would become `file_`.
     deletechars : {string}, optional
         A string combining invalid characters that must be deleted from the names.
-    case_sensitive : {True, False], optional
-        Whether names are case sensitive. If not, names are transformed to 
-        upper case.
+    case_sensitive : {True, False, 'upper', 'lower'}, optional
+        If True, field names are case_sensitive.
+        If False or 'upper', field names are converted to upper case.
+        If 'lower', field names are converted to lower case.
     unpack : {bool}, optional
         If True, the returned array is transposed, so that arguments may be
         unpacked using ``x, y, z = loadtxt(...)``
@@ -722,7 +717,6 @@ def genfromtxt(fname, dtype=float, comments='#', delimiter=None, skiprows=0,
         rows[i] = tuple([convert(val)
                          for (convert, val) in zip(conversionfuncs, vals)])
 
-
     # Reset the dtype
     data = rows
     if dtype is None:
@@ -732,7 +726,7 @@ def genfromtxt(fname, dtype=float, comments='#', delimiter=None, skiprows=0,
         strcolidx = [i for (i, v) in enumerate(coldtypes) if v.char == 'S']
         for i in strcolidx:
             coldtypes[i] = "|S%i" % max(len(row[i]) for row in data)
-        
+        #
         if names is None:
             # If the dtype is uniform, don't define names, else use ''
             base = coldtypes[0]
@@ -751,8 +745,8 @@ def genfromtxt(fname, dtype=float, comments='#', delimiter=None, skiprows=0,
         # Overwrite the initial dtype names if needed
         if names and dtype.names:
             dtype.names = names
-        # Check whether we have a nested dtype
         flatdtypes = flatten_dtype(dtype)
+        # Case 1. We have a structured type
         if len(flatdtypes) > 1:
             # Nested dtype, eg  [('a', int), ('b', [('b0', int), ('b1', 'f4')])]
             # First, create the array using a flattened dtype:
@@ -768,7 +762,24 @@ def genfromtxt(fname, dtype=float, comments='#', delimiter=None, skiprows=0,
                 # Construct the new dtype
                 mdtype = ma.make_mask_descr(dtype)
                 outputmask = rowmasks.view(mdtype)
+        # Case #2. We have a basic dtype
         else:
+            # We used some user-defined converters
+            if user_converters:
+                ishomogeneous = True
+                descr = []
+                for (i, ttype) in enumerate([conv.type for conv in converters]):
+                    # Keep the dtype of the current converter
+                    if i in user_converters:
+                        ishomogeneous &= (ttype == dtype.type)
+                        if ttype == np.string_:
+                            ttype = "|S%i" % max(len(row[i]) for row in data)
+                        descr.append(('', ttype))
+                    else:
+                        descr.append(('', dtype))
+                if not ishomogeneous:
+                    dtype = np.dtype(descr)
+            #
             output = np.array(data, dtype)
             if usemask:
                 if dtype.names:
@@ -878,8 +889,8 @@ def recfromtxt(fname, dtype=None, comments='#', delimiter=None, skiprows=0,
 
 def recfromcsv(fname, dtype=None, comments='#', skiprows=0,
                converters=None, missing='', missing_values=None,
-               usecols=None, unpack=None, names=None,
-               excludelist=None, deletechars=None, case_sensitive=True,
+               usecols=None, unpack=None, names=True,
+               excludelist=None, deletechars=None, case_sensitive='lower',
                usemask=False):
     """
     Load ASCII data stored in comma-separated file and returns a recarray (if 

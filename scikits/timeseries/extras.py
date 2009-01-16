@@ -219,6 +219,16 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
     """
     Load a TimeSeries from a text file.
 
+    Each line of the input after the first `skiprows` ones is split at
+    `delimiter`. Characters occuring after `comments` are discarded.
+
+    If a column is named 'dates' (case insensitive), it will be used to define
+    the dates. The `freq` parameter should be set to the expected frequency of
+    the output series.
+    If the date information spans several columns (for example, year in col #1,
+    month in col #2...), a specific conversion function must be defined with
+    the `dateconverter` parameter. This function should accept as many inputs
+    as date columns, and return a valid Date object.
 
     Parameters
     ----------
@@ -236,7 +246,7 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
         column, individually.
     comments : {string}, optional
         The character used to indicate the start of a comment.
-        All the characters occurring on a line after a comment are discarded
+        All the characters occurring on a line after a comment are discarded.
     delimiter : {string}, optional
         The string used to separate values.  By default, any consecutive
         whitespace act as delimiter.
@@ -291,22 +301,26 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
         Data read from the text file.
 
     Notes
-    --------
+    -----
     * When spaces are used as delimiters, or when no delimiter has been given
       as input, there should not be any missing data between two fields.
     * When the variable are named (either by a flexible dtype or with `names`,
       there must not be any header in the file (else a :exc:ValueError exception
       is raised).
 
+    Examples
+    --------
+    >>> data = "year, month, a, b\n 2001, 01, 0.0, 10.\n 2001, 02, 1.1, 11."
+    >>> dateconverter = lambda y, m: Date('M', year=int(y), month=int(m))
+    >>> series = tsfromtxt(StringIO.StringIO(data), delimiter=',', names=true,
+    ...                    datecols=(0,1), dateconverter=dateconverter,)
+    >>> series
+    timeseries([(0.0, 10.0) (1.1, 11.0)],
+       dtype = [('a', '<f8'), ('b', '<f8')],
+       dates = [Jan-2001 Feb-2001],
+       freq  = M)
 
     """
-    kwargs = dict(dtype=dtype, comments=comments, delimiter=delimiter, 
-                  skiprows=skiprows, converters=converters,
-                  missing=missing, missing_values=missing_values,
-                  usecols=usecols, unpack=unpack, names=names, 
-                  excludelist=excludelist, deletechars=deletechars,
-                  case_sensitive=case_sensitive,
-                  usemask=True)
     # Update the date converter .......
     if converters is not None:
         if 'dates' in converters:
@@ -316,8 +330,31 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
         dateconv = lambda s: Date(freq, string=s)
     if dateconverter:
         dateconv = dateconverter
+    # Update the dtype (if needed) ....
+    if (dtype is not None):
+        dtype = np.dtype(dtype)
+        # Crash if we can't find the datecols
+        if datecols is None:
+            raise TypeError("No column selected for the dates!")
+        # Make sure we can iterate on the datecols
+        if isinstance(datecols, (np.int, np.float)):
+            datecols = (datecols,)
+        # Make sure we have a converters dictionary
+        if converters is None:
+            converters = {}
+        converters.update([(_, str) for _ in datecols])
+    # Update the optional arguments ...
+    kwargs = dict(dtype=dtype, comments=comments, delimiter=delimiter, 
+                  skiprows=skiprows, converters=converters,
+                  missing=missing, missing_values=missing_values,
+                  usecols=usecols, unpack=unpack, names=names, 
+                  excludelist=excludelist, deletechars=deletechars,
+                  case_sensitive=case_sensitive,
+                  usemask=True)
     # Get the raw data ................
     mrec = genfromtxt(fname, **kwargs)
+    if not mrec.shape:
+        mrec.shape = -1
     names = mrec.dtype.names
     # Get the date columns ............
     if datecols is None:
@@ -331,11 +368,12 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
         datecols = (datecols,)
     # Get the date info ...............
     if names:
-        dateinfo = [mrec[names[i]].filled() for i in datecols]
+        dateinfo = [mrec[names[i]] for i in datecols]
     else:
-        dateinfo = [mrec[:,i].filled() for i in datecols]
+        dateinfo = [mrec[:,i] for i in datecols]
     if len(dateinfo) == 1:
-        dates = date_array([dateconv(args) for args in dateinfo[0]],
+        dateinfo = np.array(dateinfo[0], copy=False, ndmin=1)
+        dates = date_array([dateconv(args) for args in dateinfo],
                            autosort=False)
     else:
         dates = date_array([dateconv(*args) for args in zip(*dateinfo)],
@@ -353,6 +391,9 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
                              dates=dates)
         for name in output.dtype.names:
             output[name] = mrec[name]
+        if (dtype is not None) and (dtype.names is None):
+            dtype = (dtype, len(output.dtype.names))
+            output = output.view(dtype)
     else:
         dataidx = [i for i in range(mrec.shape[-1]) if i not in datecols]
         output = time_series(mrec[:,dataidx], dates=dates)
