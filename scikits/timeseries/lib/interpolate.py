@@ -59,6 +59,7 @@ def forward_fill(marr, maxgap=None):
     if maxgap is not None:
         previdx = -1
         for i in idxtofill:
+            if i == 0: continue
             if i != previdx + 1:
                 currGap = 0
             currGap += 1
@@ -70,6 +71,7 @@ def forward_fill(marr, maxgap=None):
                 amask[i-maxgap:i] = True
     else:
         for i in idxtofill:
+            if i == 0: continue
             if not amask[i-1]:
                 adata[i] = adata[i-1]
                 amask[i] = False
