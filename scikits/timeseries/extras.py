@@ -12,13 +12,15 @@ __date__     = '$Date$'
 
 import numpy as np
 import numpy.ma as ma
+
+from numpy import genfromtxt
 from numpy.ma import masked
 
 import const as _c
 from tdates import Date, date_array
 from tseries import TimeSeries, time_series
 
-from _preview import genfromtxt
+#from _preview import genfromtxt
 
 __all__ = ['accept_atmost_missing',
            'count_missing',
