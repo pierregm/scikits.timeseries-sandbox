@@ -958,6 +958,13 @@ class TestMethods(TestCase):
         assert_equal(mdates>=mdates[-4], [0,0,0,0,0,0,1,1,1,1])
 
 
+    def test_getitem_solodates(self):
+        "Check that using a Date as index returns a Date"
+        dates = ts.date_array(start_date=Date('M','2009-01'), length=4)
+        test = dates[dates[-1]]
+        self.failUnless(isinstance(test, Date))
+
+
     def test_add(self):
         dt1 = Date(freq='D', year=2008, month=1, day=1)
         dt2 = Date(freq='D', year=2008, month=1, day=2)

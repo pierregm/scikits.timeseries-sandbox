@@ -259,7 +259,9 @@ class DateArray(ndarray):
         reset_full = True
         # Determine what kind of index is used
         if isinstance(indx, Date):
-            indx = self.find_dates(indx)
+            # indx = self.find_dates(indx)
+            # indx = int(self.find_dates(indx)[0])
+            indx = self.date_to_index(indx)
             reset_full = False
         elif isinstance(indx, slice):
             pass
@@ -303,8 +305,9 @@ class DateArray(ndarray):
 
 
     def __contains__(self, date):
-        """For checking if a single date (or equivalent integer value) is
-        contained in the DateArray.
+        """
+    Used to check whether a single date (or equivalent integer value) is
+    contained in the DateArray.
         """
         if isinstance(date, Date) and date.freq != self.freq:
             raise ValueError(
@@ -402,13 +405,36 @@ class DateArray(ndarray):
     __getDateInfo = __getdateinfo__
     #.... Conversion methods ....................
     #
-    def tovalue(self):
-        "Converts the dates to integer values."
+    def tovalues(self):
+        """
+    Converts the instance to a :class:`~numpy.ndarray` of integers.
+
+    The values correspond to the integer representation of the underlying
+    :class:`Date` objects, as controlled by the frequency attribute.
+
+    Examples
+    --------
+    >>> d = ts.date_array(start_date=ts.Date('M', '2001-01'), length=5)
+    >>> d.tovalues()
+    array([24001, 24002, 24003, 24004, 24005])
+
+        """
         return np.asarray(self)
-    tovalues = values = tovalue
+    tovalue = values = tovalues
     #
-    def toordinal(self):
-        "Converts the dates from values to ordinals."
+    def toordinals(self):
+        """
+    Converts the dates to the corresponding proleptic Gregorian ordinals,
+    and returns a :class:`~numpy.ndarray` of integers.
+
+    Examples
+    --------
+    >>> d = ts.date_array(start_date=ts.Date('M', '2001-01'), length=5)
+    >>> d.toordinals()
+    array([ 730516.,  730544.,  730575.,  730605.,  730636.])
+
+        """
+        # TODO: Why do we need floats ?
         # Note: we better try to cache the result
         if self._cachedinfo['toord'] is None:
             if self.freq == _c.FR_UND:
@@ -418,16 +444,51 @@ class DateArray(ndarray):
             toord = np.fromiter(diter, dtype=float_)
             self._cachedinfo['toord'] = toord
         return self._cachedinfo['toord']
-    toordinals = toordinal
+    toordinal = toordinals
     #
     def tolist(self):
-        """Returns a hierarchical python list of standard datetime objects."""
+        """
+    Returns a hierarchical Python list of standard :class:`datetime.datetime`
+    objects corresponding to the dates of the instance.
+
+    If the input is nD, the list will be nested in a such way that
+    ``np.array(self.tolist())`` is also nD and corresponding to the
+    values of the instance.
+
+    Examples
+    --------
+    >>> d = ts.date_array(start_date=ts.Date('M', '2001-01'), length=5)
+    >>> d.tolist()
+    [datetime.datetime(2001, 1, 31, 0, 0),
+     datetime.datetime(2001, 2, 28, 0, 0),
+     datetime.datetime(2001, 3, 31, 0, 0),
+     datetime.datetime(2001, 4, 30, 0, 0),
+     datetime.datetime(2001, 5, 31, 0, 0)]
+    >>> d[:4].reshape(2,2).tolist()
+    [[datetime.datetime(2001, 1, 31, 0, 0), datetime.datetime(2001, 2, 28, 0, 0)],
+     [datetime.datetime(2001, 3, 31, 0, 0), datetime.datetime(2001, 4, 30, 0, 0)]]
+
+        """
+        # We need an array to 
         _result = np.empty(self.shape, dtype=np.object_)
         _result.flat = [d.datetime for d in self.ravel()]
         return _result.tolist()
     #
     def tostring(self):
-        "Converts the dates to strings."
+        """
+    Converts the dates to a :class:`~numpy.ndarray` of strings.
+
+    The format of the strings depends of the frequency of the 
+    instance.
+
+    Examples
+    --------
+    >>> d = ts.date_array(start_date=ts.Date('M', '2001-01'), length=5)
+    >>> d.tostrings()
+    array(['Jan-2001', 'Feb-2001', 'Mar-2001', 'Apr-2001', 'May-2001'], 
+          dtype='|S8')
+
+        """
         # Note: we better cache the result
         if self._cachedinfo['tostr'] is None:
             firststr = str(self[0])
@@ -459,7 +520,7 @@ class DateArray(ndarray):
         For example, if converting a monthly date to a daily date, specifying
         'START' ('END') would result in the first (last) day in the month.
 
-    """
+        """
         # Note: As we define a new object, we don't need caching
         if freq is None or freq == _c.FR_UND:
             return self
@@ -470,9 +531,8 @@ class DateArray(ndarray):
         relation = relation.upper()
 
         if relation not in ('START', 'END', 'S', 'E'):
-            raise ValueError(
-                "invalid specification for 'relation' parameter: %s" % \
-                relation)
+            errmsg = "invalid specification for 'relation' parameter: %s"
+            raise ValueError(errmsg % relation)
 
         fromfreq = self.freq
         if fromfreq == _c.FR_UND:
@@ -481,7 +541,10 @@ class DateArray(ndarray):
         return DateArray(new, freq=freq)
 
     def find_dates(self, *dates):
-        "Returns the indices corresponding to given dates, as an array."
+        """
+    Returns the indices corresponding to given dates, as an array.
+
+        """
 
         #http://aspn.activestate.com/ASPN/Mail/Message/python-tutor/2302348
         def flatten_sequence(iterable):
@@ -509,11 +572,13 @@ class DateArray(ndarray):
             c += (self == d.value)
         c = c.nonzero()
         if np.size(c) == 0:
-            raise IndexError, "Date out of bounds!"
+            raise IndexError("Date out of bounds!")
         return c
 
     def date_to_index(self, dates):
-        "Returns the index corresponding to one given date, as an integer."
+        """
+   Returns the index corresponding to one given date, as an integer.
+        """
         vals = self.view(ndarray)
         if isinstance(dates, Date):
             _val = dates.value
@@ -542,7 +607,7 @@ class DateArray(ndarray):
         """
     Returns the time steps between consecutive dates.
     The steps have the same unit as the frequency of the series.
-    """
+        """
         if self._cachedinfo['steps'] is None:
             _cached = self._cachedinfo
             val = np.asarray(self).ravel()
@@ -560,25 +625,25 @@ class DateArray(ndarray):
         return self._cachedinfo['steps']
 
     def has_missing_dates(self):
-        "Returns whether the DateArray have missing dates."
+        "Returns whether the instance has missing dates."
         if self._cachedinfo['full'] is None:
             steps = self.get_steps()
         return not(self._cachedinfo['full'])
 
     def isfull(self):
-        "Returns whether the :class:`DateArray` has no missing dates."
+        "Returns whether the instance has no missing dates."
         if self._cachedinfo['full'] is None:
             steps = self.get_steps()
         return self._cachedinfo['full']
 
     def has_duplicated_dates(self):
-        "Returns whether the :class:`DateArray` has duplicated dates."
+        "Returns whether the instance has duplicated dates."
         if self._cachedinfo['hasdups'] is None:
             steps = self.get_steps()
         return self._cachedinfo['hasdups']
 
     def isvalid(self):
-        "Returns whether the :class:`DateArray` is valid: no missing/duplicated dates."
+        "Returns whether the instance is valid: no missing nor duplicated dates."
         return  (self.isfull() and not self.has_duplicated_dates())
     #......................................................
     @property
@@ -620,18 +685,19 @@ def fill_missing_dates(dates, freq=None):
         Initial array of dates.
     freq : {freq_spec}, optional
         Frequency of result. 
-        If not specified, the frequency of the input DateArray is used.
+        If not specified, the frequency of the input is used.
     """
     # Check the frequency ........
     orig_freq = freq
     freq = check_freq(freq)
     if orig_freq is not None and freq == _c.FR_UND:
         freqstr = check_freq_str(freq)
-        raise ValueError,\
-              "Unable to define a proper date resolution (found %s)." % freqstr
+        errmsg = "Unable to define a proper date resolution (found %s)."
+        raise ValueError(errmsg % freqstr)
     # Check the dates .............
     if not isinstance(dates, DateArray):
-        raise ValueError("expected DateArray, got %s" % type(dates))
+        errmsg = "A DateArray was expected, got %s instead."
+        raise ValueError(errmsg % type(dates))
 
     if freq != dates.freq:
         dates = dates.asfreq(freq)
@@ -698,32 +764,48 @@ def _listparser(dlist, freq=None, autosort=True):
 def date_array(dlist=None, start_date=None, end_date=None, length=None,
                freq=None, autosort=True):
     """
-    Factory function for constructing a DateArray.
+    Factory function for constructing a :class:`DateArray`.
 
     Parameters
     ----------
     dlist : {sequence, DateArray}, optional
-        A list of dates, integer representations of dates for a given
-        frequency, datetime objects, or an existing DateArray.
-        If `dlist` is a list of dates, the `freq` parameter must also be given.
+        If not None, :keyword:`dlist` must be any of these possibilities:
+
+        * an existing :class:`DateArray` object;
+        * a sequence of :class:`Date` objects with the same frequency;
+        * a sequence of :class:`datetime.datetime` objects;
+        * a sequence of dates in string format;
+        * a sequence of integers corresponding to the representation of 
+          :class:`Date` objects.
+
+        In any of the last four possibilities, the :keyword:`freq` parameter
+        must also be given.
     start_date : {Date}, optional
-        First date of a continuous DateArray.
-        This parameter is used only if `dlist` is None. In that case, an ending
-        date (`end_date`) or the length of the array must be given.
-        The frequency of the output will be the frequency of this parameter.
-    end_date : {Date} (optional)
-        Last date of the output. Specify this parameter or `length`
-        in combination with `start_date` for a continuous DateArray.
-    length : {int} (optional)
-        Length of the output. Specify this parameter or
-        `end_date` in combination with `start_date` for a continuous DateArray.
+        First date of a continuous :class:`DateArray`.
+        This parameter is used only if :keyword:`dlist` is None.
+        In that case, one of the :keyword:`end_date` or the :keyword:`length`
+        parameters must be given.
+        The frequency of the result will be the frequency of this parameter.
+    end_date : {Date}, optional
+        Last date of the output. 
+        Use this parameter in combination with :keyword:`start_date` to create
+        a continuous :class:`DateArray`.
+    length : {int}, optional
+        Length of the output.
+        Use this parameter in combination with :keyword:`start_date` to create
+        a continuous :class:`DateArray`.
     autosort : {True, False}, optional
-        Whether to sort the dates in chronological order.
-    
+        Whether the input dates must be sorted in chronological order.
+
+    Notes
+    -----
+    * By default, the dates are sorted in chronological order.
+      The initial order is saved in the private attribute :attr:`_unsorted`.
+      This behavior can be overwritten with the :keyword:`autosort` 
 
     Returns
     -------
-    A :class:`DateArray` object.
+    output : :class:`DateArray` object.
     """
     freq = check_freq(freq)
     # Case #1: we have a list ...................
@@ -775,8 +857,9 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
 #---- --- Definition of functions from the corresponding methods ---
 #####---------------------------------------------------------------------------
 class _frommethod(object):
-    """Defines functions from existing MaskedArray methods.
-:ivar _methodname (String): Name of the method to transform.
+    """
+    Defines functions from existing MaskedArray methods.
+    :ivar _methodname (String): Name of the method to transform.
     """
     def __init__(self, methodname):
         self._methodname = methodname
@@ -814,7 +897,8 @@ second = _frommethod('second')
 
 
 def period_break(dates, period):
-    """Returns the indices where the given period changes.
+    """
+    Returns the indices where the given period changes.
 
     Parameters
     ----------
@@ -830,8 +914,8 @@ def period_break(dates, period):
 
 def convert_to_float(datearray, ofreq):
     """
-    Convert a :class:`~scikits.timeseries.DateArray` from a ndarray of integer
-    at the given frequency to a ndarray of float at a lower frequency.
+    Convert a :class:`~scikits.timeseries.DateArray` object from a ndarray
+    of integers to a ndarray of float at a lower frequency.
 
     Parameters
     ----------
