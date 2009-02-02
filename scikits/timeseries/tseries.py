@@ -535,7 +535,7 @@ class TimeSeries(MaskedArray, object):
                 raise IndexError(msg), None, exc_info[2]
             return (indx, indx, False)
         if isinstance(indx, (Date, DateArray)):
-            indx = self._dates.date_to_index(indx)
+            indx = _dates.date_to_index(indx)
             return (indx, indx, False)
         if isinstance(indx, slice):
             indx = slice(self._slicebound_checker(indx.start),
@@ -1316,9 +1316,12 @@ def flatten(series):
 
 TimeSeries.flatten = flatten
 
+
+
 ##### -------------------------------------------------------------------------
 #---- --- TimeSeries constructor ---
 ##### -------------------------------------------------------------------------
+
 def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
                 dtype=None, copy=False, fill_value=None, keep_mask=True,
                 hard_mask=False):
@@ -1402,7 +1405,8 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
 def compressed(series):
     """
     Suppresses missing values from a time series.
-    Returns a TimeSeries object.
+
+    Returns a :class:`TimeSeries` object.
 
     """
     if series._mask is nomask:
@@ -1428,12 +1432,12 @@ def compressed(series):
         raise NotImplementedError
     return series[keeper]
 TimeSeries.compressed = compressed
-#...............................................................................
+
+
+
 def adjust_endpoints(a, start_date=None, end_date=None, copy=False):
     """
     Returns a TimeSeries going from `start_date` to `end_date`.
-    If `start_date` and `end_date` both fall into the initial range of dates,
-    the new series is **NOT** a copy but a simple slice of the initial series.
 
     Parameters
     ----------
@@ -1444,17 +1448,22 @@ def adjust_endpoints(a, start_date=None, end_date=None, copy=False):
     end_date : Date, optional
         New ending date. If not specified, the current ending date is used.
     copy : {False, True}, optional
+        Whether to return a copy of the initial array (:const:`True`)
+        or a reference to the array (:const:`False`), in the case where both
+        the `start_date` and `end_date` both fall into the initial range
+        of dates.
 
     """
     # Series validity tests .....................
     if not isinstance(a, TimeSeries):
         raise TypeError,"Argument should be a valid TimeSeries object!"
     if a.freq == 'U':
-        raise TimeSeriesError, \
-            "Cannot adjust a series with 'Undefined' frequency."
+        errmsg = "Cannot adjust a series with 'Undefined' frequency."
+        raise TimeSeriesError(errmsg,)
+            
     if not a._dates.isvalid():
-        raise TimeSeriesError, \
-            "Cannot adjust a series with missing or duplicated dates."
+        errmsg = "Cannot adjust a series with missing or duplicated dates."
+        raise TimeSeriesError(errmsg,)
     # Flatten the series if needed ..............
     a = a.flatten()
     shp_flat = a.shape
@@ -1466,8 +1475,9 @@ def adjust_endpoints(a, start_date=None, end_date=None, copy=False):
         (dstart, dend) = (None, None)
     # Skip the empty series case
     if dstart is None and (start_date is None or end_date is None):
-        raise TimeSeriesError, "Both start_date and end_date must be specified"+\
-                               " to adjust endpoints of a zero length series!"
+        errmsg = "Both start_date and end_date must be specified"\
+                 " to adjust endpoints of a zero length series!"
+        raise TimeSeriesError(errmsg,)
     #....
     if start_date is None:
         start_date = dstart
@@ -1523,17 +1533,22 @@ def adjust_endpoints(a, start_date=None, end_date=None, copy=False):
             newseries[start_date:end_date] = a[start_date:end_date].copy()
     return newseries
 TimeSeries.adjust_endpoints = adjust_endpoints
-#.....................................................
+
+
+
 def align_series(*series, **kwargs):
     """
     Aligns several TimeSeries, so that their starting and ending dates match.
-    Series are resized and filled with masked values accordingly. The resulting
-    series have no missing dates (ie. ``series.isvalid() == True`` for each of the
-    resulting series).
+    
+    Series are resized and filled with masked values accordingly. 
+
+    The resulting series have no missing dates (ie. ``series.isvalid() == True``
+    for each of the resulting series).
 
     The function accepts two extras parameters:
     - `start_date` forces the series to start at that given date,
     - `end_date` forces the series to end at that given date.
+
     By default, `start_date` and `end_date` are set respectively to the smallest
     and largest dates of the series.
     """
@@ -1564,12 +1579,14 @@ def align_series(*series, **kwargs):
     return [adjust_endpoints(x, start_date, end_date) for x in filled_series]
 aligned = align_series
 
-#.....................................................
+
+
 def align_with(*series):
     """
     Aligns several TimeSeries to the first of the list, so that their
     starting and ending dates match.
-    Series are resized and filled with masked values accordingly.
+
+    The series are resized and padded with masked values accordingly.
     """
     if len(series) < 2:
         return series
@@ -1661,34 +1678,34 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
         Frequency to convert the TimeSeries to. Accepts any valid frequency
         specification (string or integer)
     func : function, optional
-        When converting a series to a lower frequency, you can use the
-        ``func`` parameter to perform a calculation on each period of values
+        When converting a series to a lower frequency, the :keyword:`func`
+        parameter to perform a calculation on each period of values
         to aggregate results.
         For example, when converting a daily series to a monthly series, use
-        :func:`numpy.ma.mean` to get a series of monthly averages. If you wish
-        to get the first or last value from a period, use the functions
-        :func:`scikits.timeseries.first_unmasked_val` and
-        :func:`scikits.timeseries.last_unmasked_val`.
-        If ``func`` is not given, the output series group the points of the
-        initial series that share the same new date. For example, if the
+        :func:`numpy.ma.mean` to get a series of monthly averages. 
+        If the first or last value from a period, the functions
+        :func:`~scikits.timeseries.first_unmasked_val` and
+        :func:`~scikits.timeseries.last_unmasked_val` should be used instead.
+        If :keyword:`func` is not given, the output series group the points
+        of the initial series that share the same new date. Thus, if the
         initial series has a daily frequency and is 1D, the output series is
         2D.
     position : {'END', 'START'}, optional
         When converting a series to a higher frequency, use this parameter to
         determine where the points should fall in the new period.
-        For example, when converting a monthly series to daily, specifying
+        For example, when converting a monthly series to daily, using
         position='START' will cause the values to fall on the first day of
         each month (with all other values being masked).
     *args : {extra arguments for func parameter}, optional
-        Additional mandatory parameters of the ``func`` function.
+        Mandatory parameters of the :keyword:`func` function.
     **kwargs : {extra keyword arguments for func parameter}, optional
-        Additional optional keyword parameters of the ``func`` function.
+        Optional keyword parameters of the :keyword:`func` function.
 
     Returns
     -------
     converted_series
-        A new TimeSeries a thte given frequency, without any missing nor duplicated
-        dates
+        A new :class:`TimeSeries` at the given frequency, without any missing
+        nor duplicated dates
 
     """
     #!!!: Raise some kind of proper exception if the underlying dtype will mess things up
@@ -1944,7 +1961,7 @@ def stack(*series):
     Parameters
     ----------
     series : the series to be stacked
-"""
+    """
     _timeseriescompat_multiple(*series)
     return time_series(ma.column_stack(series), series[0]._dates,
                        **_attrib_dict(series[0]))
