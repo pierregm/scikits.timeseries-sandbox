@@ -54,12 +54,12 @@ def forward_fill(marr, maxgap=None):
         return a
     #
     adata = getdata(a)
-    idxtofill = amask.nonzero()[0]
+    # Get the indices of the masked values (except a[0])
+    idxtofill = amask[1:].nonzero()[0] + 1
     currGap = 0
     if maxgap is not None:
         previdx = -1
         for i in idxtofill:
-            if i == 0: continue
             if i != previdx + 1:
                 currGap = 0
             currGap += 1
@@ -71,7 +71,6 @@ def forward_fill(marr, maxgap=None):
                 amask[i-maxgap:i] = True
     else:
         for i in idxtofill:
-            if i == 0: continue
             if not amask[i-1]:
                 adata[i] = adata[i-1]
                 amask[i] = False
