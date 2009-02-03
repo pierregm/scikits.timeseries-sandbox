@@ -146,7 +146,7 @@ class TestCreation(TestCase):
         test_series.dates = dates
         assert_equal(test_series.dates, reference.dates)
 
-    def test_set_dates_asndarray(self):
+    def test_setdates_asndarray(self):
         "Tests setting the dates as a ndarray."
         (dlist, dates, data) = self.d
         test_series = data.view(TimeSeries)
@@ -157,8 +157,33 @@ class TestCreation(TestCase):
         except TypeError:
             pass
         else:
-            err_msg = "Dates shouldn't be set as basic ndarrays"
+            err_msg = "Dates shouldn't be set as basic ndarrays."
             raise TimeSeriesError(err_msg)
+
+    def test_setdates_asdate(self):
+        "Tests setting the dates as a Date"
+        (dlist, dates, data) = self.d
+        series = data.view(TimeSeries)
+        try:
+            series.dates = ts.now('D')
+        except TypeError:
+            pass
+        else:
+            err_msg = "Dates shouldn't be set as a Date objects."
+            raise TimeSeriesError(err_msg)
+
+    def test_setdates_with_incompatible_size(self):
+        "Tests setting the dates w/ a DateArray of incompatible size"
+        (dlist, dates, data) = self.d
+        series = data.view(TimeSeries)
+        try:
+            series.dates = dates[:len(dates)//2]
+        except ts.TimeSeriesCompatibilityError:
+            pass
+        else:
+            err_msg = "Dates size should match the input."
+            raise TimeSeriesError(err_msg)
+
 
     def test_setdates_with_autoreshape(self):
         "Tests the automatic reshaping of dates."
@@ -233,6 +258,35 @@ class TestCreation(TestCase):
         assert_not_equal(series.dates.ctypes.data, dates.ctypes.data)
         assert_not_equal(series.data.ctypes.data, data.data.ctypes.data)
         assert_not_equal(series.mask.ctypes.data, data.mask.ctypes.data)
+
+
+    def test_using_length(self):
+        "Test using the `length` parameter of time_series."
+        start = ts.Date('M', '1955-01')
+        data = np.random.uniform(0, 1, 50*12).reshape(50, 12)
+        # Default : the dates should be (50,)
+        series = ts.time_series(data, start_date=start)
+        assert_equal(series.shape, (50, 12))
+        assert_equal(series.dates.shape, (50,))
+        assert_equal(series.varshape, (12,))
+        # Forcing dates to be 2D
+        series = ts.time_series(data, start_date=start, length=600)
+        assert_equal(series.shape, (50, 12))
+        assert_equal(series.dates.shape, (50, 12))
+        assert_equal(series.varshape, ())
+        # Forcing dates to 1D
+        series = ts.time_series(data, start_date=start, length=50)
+        assert_equal(series.shape, (50, 12))
+        assert_equal(series.dates.shape, (50,))
+        assert_equal(series.varshape, (12,))
+        # Make sure we raise an exception if something goes wrong....
+        try:
+            series = ts.time_series(data, start_date=start, length=100)
+        except ts.TimeSeriesCompatibilityError:
+            pass
+        else:
+            errmsg = "The should not be dates/data compatibility in this case."
+            raise TimeSeriesCompatibilityError(errmsg)
 
 
 #------------------------------------------------------------------------------

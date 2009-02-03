@@ -1465,9 +1465,9 @@ TimeSeries.compressed = compressed
 #---- --- TimeSeries constructor ---
 ##### -------------------------------------------------------------------------
 
-def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
-                dtype=None, copy=False, fill_value=None, keep_mask=True,
-                hard_mask=False):
+def time_series(data, dates=None, start_date=None, length=None, freq=None,
+                mask=nomask, dtype=None, copy=False, fill_value=None,
+                keep_mask=True, hard_mask=False):
     """
     Creates a TimeSeries object.
 
@@ -1506,6 +1506,8 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
         Date corresponding to the first entry of the data (index 0).
         This parameter must be a valid :class:`Date` object, and is mandatory
         if ``dates`` is None and if ``data`` has a length greater or equal to 1.
+    length : {integer}, optional
+        Length of the dates.
     freq : {freq_spec}, optional
         A valid frequency specification, as a string or an integer.
         This parameter is mandatory if ``dates`` is None.
@@ -1551,7 +1553,7 @@ def time_series(data, dates=None, start_date=None, freq=None, mask=nomask,
     else:
         dshape = data.shape
         if len(dshape) > 0:
-            length = dshape[0]
+            length = length or dshape[0]
             _dates = date_array(start_date=start_date, freq=freq, length=length)
         else:
             _dates = date_array([], freq=freq)
