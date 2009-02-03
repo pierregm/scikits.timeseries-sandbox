@@ -35,6 +35,7 @@ _timeseriescompat_multiple = tseries._timeseriescompat_multiple
 
 class TestCreation(TestCase):
     "Base test class for MaskedArrays."
+
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
         dlist = ['2007-01-%02i' % i for i in range(1, 16)]
@@ -42,9 +43,8 @@ class TestCreation(TestCase):
         data = ma.array(np.arange(15), mask=[1, 0, 0, 0, 0]*3)
         self.d = (dlist, dates, data)
 
-
     def test_fromlist (self):
-        "Base data definition."
+        "Test the creation of a TimeSeries w/ a list of dates as input dates."
         (dlist, dates, data) = self.d
         series = time_series(data, dlist, freq='D')
         self.failUnless(isinstance(series, TimeSeries))
@@ -53,9 +53,8 @@ class TestCreation(TestCase):
         assert_equal(series.dates, dates)
         assert_equal(series.freqstr, 'D')
 
-
     def test_fromrange (self):
-        "Base data definition."
+        "Test the creation of a TimeSeries w/ a starting date."
         (dlist, dates, data) = self.d
         series = time_series(data, start_date=dates[0])
         self.failUnless(isinstance(series, TimeSeries))
@@ -65,7 +64,7 @@ class TestCreation(TestCase):
         assert_equal(series.freqstr, 'D')
 
     def test_fromseries (self):
-        "Base data definition."
+        "Test the creation of a TimeSeries w/ a time series as input data."
         (dlist, dates, data) = self.d
         series = time_series(data, dlist, freq='D')
         dates = dates+15
@@ -78,8 +77,8 @@ class TestCreation(TestCase):
 
 
     def test_fromdatearray(self):
-        "Tests the creation of a series from a datearray"
-        _, dates, _ = self.d
+        "Tests the creation of a series with a DateArray as input data."
+        (_, dates, _) = self.d
         data = dates
         #
         series = time_series(data, dates)
@@ -96,7 +95,7 @@ class TestCreation(TestCase):
 
 
     def test_datafromlist(self):
-        "Check the creation of a time series from a list of data."
+        "Test the creation of a series w/ a list as input data."
         (_, dates, _) = self.d
         data = list(range(15))
         series = time_series(data, dates)
@@ -147,9 +146,8 @@ class TestCreation(TestCase):
         test_series.dates = dates
         assert_equal(test_series.dates, reference.dates)
 
-
     def test_set_dates_asndarray(self):
-        "Tests settinf the dates as a ndarray."
+        "Tests setting the dates as a ndarray."
         (dlist, dates, data) = self.d
         test_series = data.view(TimeSeries)
         # Set with a ndarray: that shouldn't work
@@ -161,7 +159,6 @@ class TestCreation(TestCase):
         else:
             err_msg = "Dates shouldn't be set as basic ndarrays"
             raise TimeSeriesError(err_msg)
-
 
     def test_setdates_with_autoreshape(self):
         "Tests the automatic reshaping of dates."
@@ -188,7 +185,6 @@ class TestCreation(TestCase):
         assert_equal(test_series.dates, reference.dates)
         assert_equal(test_series.dates.shape, test_series.shape)
 
-
     def test_setdates_unsorted_basic(self):
         "Test automatic sorting when setting dates - 1D case."
         dates = date_array([ts.Date('D',
@@ -201,7 +197,6 @@ class TestCreation(TestCase):
         series._dates = dates
         assert_equal(series, (1, 2, 3, 4))
 
-
     def test_setdates_unsorted_reshaped(self):
         "Test automatic sorting when setting dates - 1D case reshaped to nD."
         dates = date_array([ts.Date('D',
@@ -210,7 +205,6 @@ class TestCreation(TestCase):
         series = a.view(TimeSeries)
         series._dates = dates
         assert_equal(series, [[1., 2.], [3., 4.]])
-
 
     def test_setdates_unsorted_2D(self):
         "Test automatic sorting when setting dates - 1D case reshaped to nD."
@@ -240,10 +234,12 @@ class TestCreation(TestCase):
         assert_not_equal(series.data.ctypes.data, data.data.ctypes.data)
         assert_not_equal(series.mask.ctypes.data, data.mask.ctypes.data)
 
+
 #------------------------------------------------------------------------------
 
 class TestArithmetics(TestCase):
     "Some basic arithmetic tests"
+
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
         dlist = ['2007-01-%02i' % i for i in range(1, 16)]
@@ -313,7 +309,7 @@ class TestArithmetics(TestCase):
         assert_equal(nseries.series, data)
         assert_equal(nseries.dates, series.dates)
         assert_equal(id(nseries), idini)
-    #
+
     def test_updatemask(self):
         "Checks modification of mask."
         (series, data) =self.d
@@ -328,7 +324,7 @@ class TestArithmetics(TestCase):
         series[2] = masked
         assert_equal(series.mask, [1, 0, 1] + [1, 0, 0]*4)
         assert_equal(series.series.mask, [1, 0, 1] + [1, 0, 0]*4)
-    #
+
     def test_ismasked(self):
         "Checks checks on masked"
         (series, data) =self.d
@@ -338,14 +334,16 @@ class TestArithmetics(TestCase):
 
 
     def test_incompatible_dates(self):
-        """test operations on two time series with same dimensions but
-incompatible dates"""
+        """
+    Test operations on two series with same dimensions but incompatible dates
+        """
         (series, data) =self.d
         a, b = series[1:], series[:-1]
         result = a + b
         self.failUnless(not isinstance(result, TimeSeries))
         assert_equal(result.ndim, a.ndim)
         assert_equal(result.size, a.size)
+
 
 #------------------------------------------------------------------------------
 
@@ -360,7 +358,7 @@ class TestGetitem(TestCase):
         data2D = ma.array(np.random.rand(60).reshape(3, 4, 5))
         for i in range(3):
             data2D[i,i,i] = masked
-
+        #.........................
         series1D = time_series(data1D, dates, freq='D')
         series3V = time_series(data3V, dates[:len(data3V)], freq='D')
         series2D = time_series(data2D, dates[:len(data2D)], freq='D')
@@ -371,19 +369,19 @@ class TestGetitem(TestCase):
 
 
     def test_with_integers(self):
-        # 1D series .............................
+        # 1D series ..............
         (series1D, data1D) = (self.series1D, self.data1D)
         self.failUnless(series1D[0] is masked)
         test = series1D[-1]
         assert_equal(test, data1D[-1])
         self.failUnless(not isinstance(test, TimeSeries))
-        # nV series ..............................
+        # nV series ..............
         (series3V, data3V) = (self.series3V, self.data3V)
         test = series3V[-1]
         assert_equal(test, data3V[-1])
-        assert_equal(test.mask, [0,0,1])
+        assert_equal(test.mask, [0, 0, 1])
         self.failUnless(not isinstance(test, TimeSeries))
-        # 2D series ..............................
+        # 2D series ..............
         (series2D, data2D) = (self.series2D, self.data2D)
         test = series2D[-1]
         assert_equal(test, data2D[-1].squeeze())
@@ -407,7 +405,7 @@ class TestGetitem(TestCase):
             assert_equal(test_series.data, data[:3].data)
             assert_equal(test_series.mask, data[:3].mask)
             assert_equal(test.dates, dates[:3])
-        #........................................
+        #.....
         dates = self.dates
         (series1D, data1D) = (self.series1D, self.data1D)
         _wslice(series1D, data1D, dates)
@@ -415,6 +413,7 @@ class TestGetitem(TestCase):
         _wslice(series3V, data3V, dates)
         (series2D, data2D) = (self.series2D, self.data2D)
         _wslice(series2D, data2D, dates)
+
 
     def test_with_slices_on_nD(self):
         (series3V, data3V) = (self.series3V, self.data3V)
@@ -452,7 +451,7 @@ class TestGetitem(TestCase):
             assert_equal(test.series, control)
             assert_equal(test.mask, control.mask)
             assert_equal(test.dates, dates[[0, 1, -1]])
-        #........................................
+        #.....
         dates = self.dates
         (series1D, data1D) = (self.series1D, self.data1D)
         _wlist(series1D, data1D, dates)
@@ -484,7 +483,7 @@ class TestGetitem(TestCase):
             test = series[dslice]
             assert_equal(test, data[1:])
             self.failUnless(isinstance(test, TimeSeries))
-        #........................................
+        #.....
         dates = self.dates
         (series1D, data1D) = (self.series1D, self.data1D)
         _wdates(series1D, data1D, dates)
@@ -493,11 +492,11 @@ class TestGetitem(TestCase):
         (series2D, data2D) = (self.series2D, self.data2D)
         _wdates(series2D, data2D, dates[:3])
 
+
     def test_slicing_with_dates(self):
         "Tests __getitem__ w/ date based slices"
         def _testslice(series):
             sd, ed = series.start_date, series.end_date
-
             # full range of series
             assert_equal(series, series[sd:ed+1])
             # exclude first and last point of series
@@ -506,16 +505,16 @@ class TestGetitem(TestCase):
             assert_equal(series, series[sd-10:ed+10])
             # slice with dates before the series start date
             assert_equal(series[0:0], series[sd-10:sd-5])
-
+        #.....
         series = self.series1D
         _testslice(series)
-
-        # now try slicing on a series with missing dates
+        # Now try slicing on a series with missing dates
         series = series[::2]
         _testslice(series)
 
-    def test_with_dates_as_str(self):
 
+    def test_with_dates_as_str(self):
+        "Test using a string corresponding to a date as index."
         def _wdates(series, data):
             date = self.dates[0].strfmt("%Y-%m-%d")
             # Single date
@@ -523,7 +522,7 @@ class TestGetitem(TestCase):
             assert_equal(test, data[0])
             assert_equal(test.mask, data[0].mask)
             self.failUnless(not isinstance(test, TimeSeries))
-        #........................................
+        #.....
         (series1D, data1D) = (self.series1D, self.data1D)
         _wdates(series1D, data1D)
         (series3V, data3V) = (self.series3V, self.data3V)
@@ -555,8 +554,7 @@ class TestGetitem(TestCase):
         assert_equal(test, trick.series[0])
         assert_equal(test.dates, trick.dates[0])
 
-    #################################################################
-        #
+
     def test_wtimeseries(self):
         "Tests getitem w/ TimeSeries as index"
         series1D = self.series1D
@@ -569,6 +567,7 @@ class TestGetitem(TestCase):
         # Testing a basic condition on dates
         series1D[series1D.dates < Date('D', string='2007-01-06')] = masked
         assert_equal(series1D[:5].series.mask, [1, 1, 1, 1, 1])
+
 
     def test_on2d(self):
         "Tests getitem on a 2D series"
@@ -588,6 +587,8 @@ class TestGetitem(TestCase):
         assert_equal(piece._fill_value, -9999)
         assert_equal(piece[:5]._basedict['info'], '???')
 
+
+#------------------------------------------------------------------------------
 
 class TestSetItem(TestCase):
     #
@@ -638,7 +639,7 @@ class TestSetItem(TestCase):
         b[x:y] = a[x:y]
         assert_equal(b[0], 1)
 
-    #
+
     def test_with_datearray(self):
         "Test setitem w/ a date_array"
         (series, dates) = (self.series, self.dates)
@@ -651,10 +652,11 @@ class TestSetItem(TestCase):
         assert_equal(series.data, [10, 10, 2, 3, 0])
         assert_equal(series.mask, [ 0,  0, 0, 0, 0])
 
+
 #------------------------------------------------------------------------------
 
 class TestTimeSeriesMethods(TestCase):
-    #
+
     def setUp(self):
         dates = date_array(['2007-01-%02i' % i for i in (1, 2, 3)], freq='D')
         data1D = ma.array([1, 2, 3], mask=[1, 0, 0,])
@@ -667,7 +669,7 @@ class TestTimeSeriesMethods(TestCase):
         self.info = locals()
         del(self.info['i'])
         return
-    #
+
     def test_reshaping_1D(self):
         "Tests the reshaping of a 1D series."
         series1D = self.info['series1D']
@@ -690,7 +692,7 @@ class TestTimeSeriesMethods(TestCase):
         test1D = series1D.reshape(*newshape)
         assert_equal(test1D.shape, newshape)
 
-    #
+
     def test_reshaping_2D(self):
         "Tests the reshaping of a nV/nD series."
         series3V = self.info['series3V']
@@ -715,6 +717,126 @@ class TestTimeSeriesMethods(TestCase):
             pass
         else:
             raise Exception("Reshaping nV/nD series should be implemented!")
+
+
+    def test_ravel_1D(self):
+        "Test .ravel on 1D data"
+        series = ts.time_series([1, 2, 3, 4],
+                                mask=[0, 0, 1, 0],
+                                start_date=ts.Date('M','2009-01'))
+        test = series.ravel()
+        assert_equal(test, series)
+        assert_equal(test.mask, series.mask)
+        assert_equal(test.dates, series.dates)
+
+    def test_ravel_1V(self):
+        "Test .ravel on nD/1V data"
+        dates = ts.date_array(start_date=ts.Date('M', '2009-01'),
+                              length=4)
+        series = ts.time_series([[1, 2], [3, 4]],
+                                mask=[[0, 0], [1, 0]],
+                                dates=dates)
+        test = series.ravel()
+        assert_equal(test.data, series.data.ravel())
+        assert_equal(test.mask, series.mask.ravel())
+        assert_equal(test.dates, series.dates.ravel())
+
+    def test_ravel_2V(self):
+        "Test .ravel on 2V data"
+        series = ts.time_series([[1, 2], [3, 4]],
+                                mask=[[0, 0], [1, 0]],
+                                start_date=ts.Date('M', '2009-01'),)
+        test = series.ravel()
+        assert_equal(test.data, series.data)
+        assert_equal(test.mask, series.mask)
+        assert_equal(test.dates, series.dates)
+        #
+        dates = ts.date_array(start_date=ts.Date('M', '2009-01'),
+                              length=2)
+        series = ts.time_series([[[1, 2]], [[3, 4]]],
+                                mask=[[[0, 0]], [[1, 0]]],
+                                dates=dates.reshape(1, 2))
+        test = series.ravel()
+        assert_equal(test.data, [[1, 2], [3, 4]])
+        assert_equal(test.mask, [[0, 0], [1, 0]])
+        assert_equal(test.dates, series.dates.ravel())
+
+
+    def test_toflex_1D(self):
+        "Test conversion to records on 1D series"
+        series = ts.time_series([1, 2, 3],
+                                start_date=ts.Date('M', '2001-01-01'),
+                                mask=[0, 1, 0])
+        ndtype = [('_dates', int), ('_data', int), ('_mask', bool)]
+        control = np.array([(24001, 1, False),
+                            (24002, 2, True),
+                            (24003, 3, False)], dtype=ndtype)
+        test = series.toflex()
+        assert_equal(test, control)
+
+    def test_toflex_2D(self):
+        "Test torecords on 2D series"
+        series = ts.time_series([[1, 1], [2, 2], [3, 3]],
+                                start_date=ts.Date('M', '2001-01-01'),
+                                mask=[[0, 1], [0, 0], [1, 0]])
+        ndtype = [('_dates', int),
+                  ('_data', (int, (2,))),
+                  ('_mask', (bool, (2,)))]
+        control = np.array([(24001, [1, 1], [False, True]),
+                            (24002, [2, 2], [False, False]),
+                            (24003, [3, 3], [True, False])], dtype=ndtype)
+        test = series.torecords()
+        assert_equal_records(test, control)
+
+    def test_toflex_structured(self):
+        "Test torecords on structured array"
+        series = ts.time_series([(1, 1), (2, 2), (3, 3)],
+                                start_date=ts.Date('M', '2001-01-01'),
+                                mask=[(0, 1), (0, 0), (1, 0)],
+                                dtype=[('a', int), ('b', float)])
+        ndtype = [('_dates', int),
+                  ('_data', [('a', int), ('b', float)]),
+                  ('_mask', [('a', bool), ('b', bool)])]
+        control = np.array([(24001, (1, 1), (False, True)),
+                            (24002, (2, 2), (False, False)),
+                            (24003, (3, 3), (True, False))], dtype=ndtype)
+        test = series.torecords()
+        assert_equal_records(test, control)
+
+
+    def test_reshape_1D(self):
+        "Test reshape on data w/ 1 variables"
+        start = ts.Date('M', '2001-01')
+        series = ts.time_series([1, 2, 3, 4], mask=[0, 0, 1, 0],
+                                start_date=start)
+        test = series.reshape(2, 2)
+        control = ts.time_series([[1, 2], [3, 4]], mask=[[0, 0], [1, 0]],
+                                 dates=ts.date_array(start_date=start,
+                                                     length=4).reshape(2,2))
+        assert_equal(test, control)
+        assert_equal(test.mask, control.mask)
+        assert_equal(test.dates, control.dates)
+
+    def test_reshape_1V(self):
+        "Test reshape on series w/ 2 variables"
+        series = ts.time_series([[1, 2], [3, 4]],
+                                mask=[[0, 0], [1, 0]],
+                                start_date=ts.Date('M', '2001-01'))
+        test = series.reshape((-1, 1))
+        control = ts.time_series([[[1, 2]], [[3, 4]]],
+                                 mask=[[[0, 0]], [[1, 0]]],
+                                 dates=series.dates.reshape(-1, 1))
+        assert_equal(test, control)
+        assert_equal(test.mask, control.mask)
+        assert_equal(test.dates, control.dates)
+        #
+        test = series.reshape((1, -1, 1))
+        control = ts.time_series([[[[1, 2]], [[3, 4]]]],
+                                 mask= [[[[0, 0]], [[1, 0]]]],
+                                 dates=series.dates.reshape(1, -1, 1))
+        assert_equal(test, control)
+        assert_equal(test.mask, control.mask)
+        assert_equal(test.dates, control.dates)
 
 
 #------------------------------------------------------------------------------
@@ -1136,23 +1258,6 @@ class TestMisc(TestCase):
         t_.mask[1] = False
         assert_equal(t_.mask, [False, False, False])
         assert_equal(t.mask, [False, True, False])
-    #
-    def test_view(self):
-        "Test view w/ flexible dtype"
-        ndtype = [('a', float), ('b', float), ('c', float)]
-        data = np.random.rand(15).reshape(-1, 3)
-        fseries = time_series([tuple(_) for _ in data],
-                              start_date=ts.now('D'), dtype=ndtype)
-        dseries = time_series(data, start_date=ts.now('D'))
-        #
-        test = fseries.view((float,3))
-        assert_equal(test._series, dseries)
-        self.failUnless(test._varshape == (3,))
-        #
-        self.failUnless(dseries._varshape == (3,))
-        test = dseries.view(ndtype).squeeze()
-        assert_equal(test, fseries)
-        self.failUnless(test._varshape == ())
 
 
 #------------------------------------------------------------------------------
@@ -1183,7 +1288,6 @@ class TestGenericMethods(TestCase):
             self.failUnless(isinstance(test, self.SubTimeSeries))
             assert_equal(test, getattr(subseries._series, method).__call__())
             assert_equal(test.dates, subseries.dates)
-
 
 
 #------------------------------------------------------------------------------
@@ -1225,7 +1329,9 @@ class TestFlexibleType(TestCase):
         assert_equal(test, data[2])
 
 
-class TestViewTS(TestCase):
+#------------------------------------------------------------------------------
+
+class TestViewTimeSeries(TestCase):
     #
     def setUp(self):
         (a, b) = (np.arange(10), np.random.rand(10))
@@ -1261,6 +1367,23 @@ class TestViewTS(TestCase):
         self.failUnless(test['B'][3] is masked)
         assert_equal(test.dtype, np.dtype(alttype))
         self.failUnless(test._fill_value is None)
+    #
+    def test_view(self):
+        "Test view w/ flexible dtype"
+        ndtype = [('a', float), ('b', float), ('c', float)]
+        data = np.random.rand(15).reshape(-1, 3)
+        fseries = time_series([tuple(_) for _ in data],
+                              start_date=ts.now('D'), dtype=ndtype)
+        dseries = time_series(data, start_date=ts.now('D'))
+        #
+        test = fseries.view((float,3))
+        assert_equal(test._series, dseries)
+        self.failUnless(test._varshape == (3,))
+        #
+        self.failUnless(dseries._varshape == (3,))
+        test = dseries.view(ndtype).squeeze()
+        assert_equal(test, fseries)
+        self.failUnless(test._varshape == ())
 
 ###############################################################################
 #------------------------------------------------------------------------------
