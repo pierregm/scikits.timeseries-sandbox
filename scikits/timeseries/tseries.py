@@ -434,6 +434,8 @@ class _tsaxismethod(object):
 
 
 
+
+
 class TimeSeries(MaskedArray, object):
     """
     Base class for the definition of time series.
@@ -462,7 +464,7 @@ class TimeSeries(MaskedArray, object):
     """
     def __new__(cls, data, dates, mask=nomask, dtype=None, copy=False,
                 fill_value=None, subok=True, keep_mask=True, hard_mask=False,
-                **options):
+                autosort=True, **options):
 
         maparms = dict(copy=copy, dtype=dtype, fill_value=fill_value,
                        subok=subok, keep_mask=keep_mask, hard_mask=hard_mask)
@@ -478,12 +480,8 @@ class TimeSeries(MaskedArray, object):
         _data._varshape = get_varshape(_data,dates)
         # Set the dates
         _data._dates = dates
-        # Make sure the data is properly sorted.
-        #!!!: WE SHOULD TEST THAT MORE
-        if dates._unsorted is not None:
-            idx = dates._unsorted
-            _data = _data[idx]
-            _data._dates._unsorted = None
+        if autosort:
+            _data.sort_chronologically()
         return _data
 
     def __array_finalize__(self,obj):
@@ -532,7 +530,6 @@ class TimeSeries(MaskedArray, object):
     Returns the shape of the underlying variables.
         """
         return self._varshape
-
 
 
     def _index_checker(self, indx):
@@ -730,30 +727,58 @@ class TimeSeries(MaskedArray, object):
             raise TimeSeriesCompatibilityError("size",
                                                "data: %s" % dsize,
                                                "dates: %s" % tsize)
-        # Check whether the dates are already sorted
-        idx = value._unsorted
-        if idx is not None:
-            _series = self._series
-            if not varshape:
-                if self.ndim > 1:
-                    _series.ravel()[:] = _series.ravel()[idx]
-                else:
-                    _series[:] = _series[idx]
-            else:
-                inishape = self.shape
-                _series.shape = tuple([-1,]+list(varshape))
-                _series[:] = _series[idx]
-                _series.shape = inishape
-            value._unsorted = None
+#        # Check whether the dates are already sorted
+#        if not value.is_chronological():
+#            _cached = value._cachedinfo
+#            idx = _cached['chronidx']
+#            _series = self._series
+#            if not varshape:
+#                if self.ndim > 1:
+#                    flatseries = _series.flat
+#                    flatseries[:] = flatseries[idx]
+#                else:
+#                    _series[:] = _series[idx]
+#            else:
+#                inishape = self.shape
+#                _series.shape = tuple([-1,]+list(varshape))
+#                _series[:] = _series[idx]
+#                _series.shape = inishape
+#            _cached['chronidx'] = np.array([], dtype=int)
+#            _cached['ischrono'] = True
         #
         if not varshape and (value.shape != self.shape):
             # The data is 1D
             value = value.reshape(self.shape)
-#            value.shape = self.shape
-        return super(TimeSeries, self).__setattr__('_dates', value)
+        super(TimeSeries, self).__setattr__('_dates', value)
+        return
 
     dates = property(fget=lambda self:self._dates,
                      fset=__setdates__)
+
+    
+    #
+    def sort_chronologically(self):
+        """
+    Sort the series by chronological order (in place).
+        """
+        _dates = self._dates
+        _series = self._series
+        if not _dates.is_chronological():
+            _cached = _dates._cachedinfo
+            idx = _cached['chronidx']
+            if not self._varshape:
+                flatseries = _series.flat
+                flatseries[:] = flatseries[idx]
+            else:
+                inishape = self.shape
+                _series.shape = tuple([-1,]+list(self._varshape))
+                _series[:] = _series[idx]
+                _series.shape = inishape
+            # Sort the dates and reset the cache
+            flatdates = _dates.ravel()
+            flatdates[:] = flatdates[idx]
+            _cached['chronidx'] = np.array([], dtype=int)
+            _cached['ischrono'] = True
 
 
 
@@ -767,7 +792,7 @@ class TimeSeries(MaskedArray, object):
     Calculates the repr representation, using masked for fill if it is
     enabled. Otherwise fill with fill value.
     """
-        if np.size(self._dates) > 2 and self.isvalid():
+        if np.size(self._dates) > 2 and self.is_valid():
             timestr = "[%s ... %s]" % (str(self._dates[0]),str(self._dates[-1]))
         else:
             timestr = str(self.dates)
@@ -927,56 +952,65 @@ class TimeSeries(MaskedArray, object):
     def freqstr(self):
         """Returns the corresponding frequency (as a string)."""
         return self._dates.freqstr
-    @property
-    def day(self):
-        """Returns the day of month for each date in self._dates."""
-        return self._dates.day
-    days = day
-    @property
-    def weekday(self):
-        """Returns the day of week for each date in self._dates."""
-        return self._dates.weekday
-    weekdays = weekday
-    @property
-    def day_of_year(self):
-        """Returns the day of year for each date in self._dates."""
-        return self._dates.day_of_year
-    yeardays = day_of_year
-    @property
-    def month(self):
-        """Returns the month for each date in self._dates."""
-        return self._dates.month
-    months = month
-    @property
-    def quarter(self):
-        """Returns the quarter for each date in self._dates."""
-        return self._dates.quarter
-    quarters = quarter
+
     @property
     def year(self):
-        """Returns the year for each date in self._dates."""
+        """Returns the year for each date of the instance."""
         return self._dates.year
     years = year
     @property
-    def second(self):
-        """Returns the second for each date in self._dates."""
-        return self._dates.second
-    seconds = second
+    def qyear(self):
+        """
+    For quarterly frequencies, returns the equivalent of the 'fiscal' year
+    for each date of the instance.
+    For non-quarterly frequencies, returns the year.
+        """
+        return self._dates.qyear
     @property
-    def minute(self):
-        """Returns the minute for each date in self._dates."""
-        return self._dates.minute
-    minutes = minute
+    def quarter(self):
+        """Returns the quarter for each date of the instance."""
+        return self._dates.quarter
+    quarters = quarter
+    @property
+    def month(self):
+        """Returns the month for each date of the instance."""
+        return self._dates.month
+    months = month
+    @property
+    def week(self):
+        """Returns the week for each date in self._dates."""
+        return self._dates.week
+    weeks = week
+    @property
+    def day(self):
+        """Returns the day of month for each date of the instance."""
+        return self._dates.day
+    days = day
+    @property
+    def day_of_week(self):
+        """Returns the day of week for each date of the instance."""
+        return self._dates.weekday
+    weekdays = weekday = day_of_week
+    @property
+    def day_of_year(self):
+        """Returns the day of year for each date of the instance."""
+        return self._dates.day_of_year
+    yeardays = day_of_year
     @property
     def hour(self):
         """Returns the hour for each date in self._dates."""
         return self._dates.hour
     hours = hour
     @property
-    def week(self):
-        """Returns the week for each date in self._dates."""
-        return self._dates.week
-    weeks = week
+    def minute(self):
+        """Returns the minute for each date in self._dates."""
+        return self._dates.minute
+    minutes = minute
+    @property
+    def second(self):
+        """Returns the second for each date in self._dates."""
+        return self._dates.second
+    seconds = second
 
     @property
     def start_date(self):
@@ -1002,21 +1036,44 @@ class TimeSeries(MaskedArray, object):
         else:
             return Date(self.freq, _dates.flat[-1])
 
-    def isvalid(self):
+    def is_valid(self):
         """Returns whether the series has no duplicate/missing dates."""
+        return self._dates.is_valid()
+
+    def isvalid(self):
+        """Deprecated name: use '.is_valid' instead."""
         return self._dates.isvalid()
 
     def has_missing_dates(self):
         """Returns whether there's a date gap in the series."""
         return self._dates.has_missing_dates()
 
-    def isfull(self):
+    def is_full(self):
         """Returns whether there's no date gap in the series."""
+        return self._dates.is_full()
+
+    def isfull(self):
+        """Deprecated name: use '.is_full' instead."""
         return self._dates.isfull()
 
     def has_duplicated_dates(self):
         """Returns whether there are duplicated dates in the series."""
         return self._dates.has_duplicated_dates()
+
+    def has_duplicated_dates(self):
+        """Returns whether there are duplicated dates in the series."""
+        return self._dates.has_duplicated_dates()
+
+    def get_steps(self):
+        """
+    Returns the time steps between consecutive dates, in the same unit as
+    the frequency of the instance.
+        """
+        return self._dates.get_steps()
+
+    def is_chronological(self):
+        """Returns whether the series is in chronological order."""
+        return self._dates.is_chronological()
 
     def date_to_index(self, date):
         """Returns the index corresponding to a given date, as an integer."""
@@ -1467,7 +1524,7 @@ TimeSeries.compressed = compressed
 
 def time_series(data, dates=None, start_date=None, length=None, freq=None,
                 mask=nomask, dtype=None, copy=False, fill_value=None,
-                keep_mask=True, hard_mask=False):
+                keep_mask=True, hard_mask=False, autosort=True):
     """
     Creates a TimeSeries object.
 
@@ -1538,16 +1595,16 @@ def time_series(data, dates=None, start_date=None, length=None, freq=None,
         _dates = getattr(data, '_dates', None)
     elif isinstance(dates, (Date, DateArray)):
         if copy:
-            _dates = date_array(dates).copy()
+            _dates = date_array(dates, autosort=False).copy()
         else:
-            _dates = date_array(dates)
+            _dates = date_array(dates, autosort=False)
     elif isinstance(dates, (tuple, list, ndarray)):
-        _dates = date_array(dlist=dates, freq=freq)
+        _dates = date_array(dlist=dates, freq=freq, autosort=False)
     else:
         _dates = date_array([], freq=freq)
 
     if _dates is not None:
-        # Make sure _dates has the proper freqncy
+        # Make sure _dates has the proper frequency
         if (freq != _c.FR_UND) and (_dates.freq != freq):
             _dates = _dates.asfreq(freq)
     else:
@@ -1558,14 +1615,10 @@ def time_series(data, dates=None, start_date=None, length=None, freq=None,
         else:
             _dates = date_array([], freq=freq)
 
-    if _dates._unsorted is not None:
-        idx = _dates._unsorted
-        data = data[idx]
-        _dates._unsorted = None
     return TimeSeries(data=data, dates=_dates,
                       copy=copy, dtype=dtype,
                       fill_value=fill_value, keep_mask=keep_mask,
-                      hard_mask=hard_mask,)
+                      hard_mask=hard_mask, autosort=autosort)
 
 ##### --------------------------------------------------------------------------
 #---- ... Additional functions ...
@@ -1605,7 +1658,7 @@ def adjust_endpoints(a, start_date=None, end_date=None, copy=False):
         errmsg = "Cannot adjust a series with 'Undefined' frequency."
         raise TimeSeriesError(errmsg,)
             
-    if not a._dates.isvalid():
+    if not a._dates.is_valid():
         errmsg = "Cannot adjust a series with missing or duplicated dates."
         raise TimeSeriesError(errmsg,)
     # Flatten the series if needed ..............
@@ -1686,7 +1739,7 @@ def align_series(*series, **kwargs):
     
     Series are resized and filled with masked values accordingly. 
 
-    The resulting series have no missing dates (ie. ``series.isvalid() == True``
+    The resulting series have no missing dates (ie. ``series.is_valid() == True``
     for each of the resulting series).
 
     The function accepts two extras parameters:
@@ -1704,7 +1757,7 @@ def align_series(*series, **kwargs):
     # if any of the series have missing dates, fill them in first
     filled_series = []
     for ser in series:
-        if ser.isvalid():
+        if ser.is_valid():
             filled_series.append(ser)
         else:
             filled_series.append(ser.fill_missing_dates())
@@ -1758,7 +1811,7 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
         err_msg = "Cannot convert a series to UNDEFINED frequency."
         raise TimeSeriesError(err_msg)
     # Check the validity of the series .....
-    if not series.isvalid():
+    if not series.is_valid():
         err_msg = "Cannot adjust a series with missing or duplicated dates."
         raise TimeSeriesError(err_msg)
 

@@ -6,7 +6,10 @@ Classes definition for the support of individual dates and array of dates.
 
 """
 
-#!!!: Implement DateArray in C (Cython ?)
+# TODO: Implement DateArray in C (Cython ?)
+# TODO: Optimize the cache of DateArray (steps computation, sorting...)
+# TODO: Optimize date_array / _listparser : sort only at the end ?
+# TODO: __getitem__ w/ slice and ischrono : get the proper steps...
 
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox"
 __revision__ = "$Revision$"
@@ -221,6 +224,7 @@ class DateArray(ndarray):
 
     accesses the array element by element. Therefore, `d` is a :class:`Date` object.
     """
+
     def __new__(cls, dates=None, freq=None, copy=False):
         # Get the frequency ......
         if freq is None:
@@ -233,7 +237,23 @@ class DateArray(ndarray):
             _dates.shape = (1,)
         _dates = _dates.view(cls)
         _dates.freq = _freq
+        #
+        _cached = _dates._cachedinfo
+        if _cached['ischrono'] is None:
+            sortidx = _dates.__array__().ravel().argsort()
+            sortflag = (sortidx == np.arange(_dates.size)).all()
+            if sortflag:
+                _cached['chronidx'] = None
+            else:
+                _cached['chronidx'] = sortidx
+            _cached['ischrono'] = sortflag
         return _dates
+
+    def _reset_cachedinfo(self):
+        "Reset the internal cache information"
+        self._cachedinfo = dict(toobj=None, tostr=None, toord=None,
+                                steps=None, full=None, hasdups=None,
+                                chronidx=None, ischrono=None)
 
     def __array_wrap__(self, obj, context=None):
         if context is None:
@@ -243,20 +263,25 @@ class DateArray(ndarray):
 
     def __array_finalize__(self, obj):
         self.freq = getattr(obj, 'freq', _c.FR_UND)
-        self._cachedinfo = dict(toobj=None, tostr=None, toord=None,
-                                steps=None, full=None, hasdups=None,
-                                unsorted=None)
+        self._reset_cachedinfo()
         self._cachedinfo.update(getattr(obj, '_cachedinfo', {}))
         return
 
     def _get_unsorted(self):
-        return self._cachedinfo['unsorted']
+        chronidx = self._cachedinfo['chronidx']
+        if chronidx is None:
+            flag = self.is_chronological()
+            chronidx = self._cachedinfo['chronidx']
+        if np.size(chronidx) < 1:
+            return None
+        return chronidx
     def _set_unsorted(self, value):
-        self._cachedinfo.update({'unsorted': value})
+        self._cachedinfo.update({'chronidx': value})
     _unsorted = property(fget=_get_unsorted, fset=_set_unsorted)
 
     def __getitem__(self, indx):
         reset_full = True
+        keep_chrono = False
         # Determine what kind of index is used
         if isinstance(indx, Date):
             # indx = self.find_dates(indx)
@@ -264,7 +289,7 @@ class DateArray(ndarray):
             indx = self.date_to_index(indx)
             reset_full = False
         elif isinstance(indx, slice):
-            pass
+            keep_chrono = True
         elif np.asarray(indx).dtype.kind == 'O':
             try:
                 indx = self.find_dates(indx)
@@ -273,10 +298,6 @@ class DateArray(ndarray):
 
         # Select the data
         r = ndarray.__getitem__(self, indx)
-        # Select the corresponding unsorted indices (if needed)
-        if self._unsorted is not None:
-            unsorted = self._unsorted[indx]
-            #!!!: And then what do we do w/ unsorted ???
         # Case 1. A simple integer
         if isinstance(r, (generic, int)):
             return Date(self.freq, value=r)
@@ -288,16 +309,29 @@ class DateArray(ndarray):
             return Date(self.freq, value=r.item())
         else:
             if hasattr(r, '_cachedinfo'):
-
                 _cache = r._cachedinfo
+                # Select the appropriate cached representations
                 _cache.update(dict([(k,_cache[k][indx])
                                     for k in ('toobj', 'tostr', 'toord')
                                     if _cache[k] is not None]))
+                # Reset the ischrono flag if needed
+                if not (keep_chrono and _cache['ischrono']):
+                    _cache['ischrono'] = None
+                # Reset the sorting indices
+                _cache['chronidx'] = None
+                # Reset the steps
                 _cache['steps'] = None
                 if reset_full:
                     _cache['full'] = None
                     _cache['hasdups'] = None
             return r
+
+    def __getslice__(self, i, j):
+        """
+    Returns a slice of the date_array
+        """
+        return self.__getitem__(slice(i, j))
+
 
     def __repr__(self):
         return ndarray.__repr__(self)[:-1] + \
@@ -330,34 +364,17 @@ class DateArray(ndarray):
     __eq__ = _datearithmetics('__eq__', asdates=False)
     __ne__ = _datearithmetics('__ne__', asdates=False)
     #......................................................
+
     @property
     def freqstr(self):
         "Returns the frequency string code."
         return check_freq_str(self.freq)
-    @property
-    def day(self):
-        "Returns the day of month."
-        return self.__getdateinfo__('D')
-    @property
-    def weekday(self):
-        "Returns the day of week."
-        return self.__getdateinfo__('W')
-    @property
-    def day_of_year(self):
-        "Returns the day of year."
-        return self.__getdateinfo__('R')
-    @property
-    def month(self):
-        "Returns the month."
-        return self.__getdateinfo__('M')
-    @property
-    def quarter(self):
-        "Returns the quarter."
-        return self.__getdateinfo__('Q')
+
     @property
     def year(self):
-        "Returns the year."
+        "Returns the corresponding year for each date of the instance."
         return self.__getdateinfo__('Y')
+    years = year
     @property
     def qyear(self):
         """
@@ -369,42 +386,62 @@ class DateArray(ndarray):
 
     """
         return self.__getdateinfo__('F')
+    qyears = qyear
     @property
-    def second(self):
-        "Returns the seconds."
-        return self.__getdateinfo__('S')
+    def quarter(self):
+        "Returns the corresponding quarter for each date of the instance."
+        return self.__getdateinfo__('Q')
+    quarters = quarter
     @property
-    def minute(self):
-        "Returns the minutes."
-        return self.__getdateinfo__('T')
-    @property
-    def hour(self):
-        "Returns the hour."
-        return self.__getdateinfo__('H')
+    def month(self):
+        "Returns the corresponding month for each month of the instance."
+        return self.__getdateinfo__('M')
+    months = month
     @property
     def week(self):
-        "Returns the week."
+        "Returns the corresponding week for each week of the instance."
         return self.__getdateinfo__('I')
-
-    days = day
-    weekdays = weekday
-    yeardays = day_of_year
-    months = month
-    quarters = quarter
-    years = year
-    seconds = second
-    minutes = minute
-    hours = hour
     weeks = week
+    @property
+    def day(self):
+        "Returns the corresponding day of month for each date of the instance."
+        return self.__getdateinfo__('D')
+    days = day
+    @property
+    def day_of_week(self):
+        "Returns the corresponding day of week for each date of the instance."
+        return self.__getdateinfo__('W')
+    weekdays = weekday = day_of_week
+    @property
+    def day_of_year(self):
+        "Returns the corresponding day of year for each date of the instance."
+        return self.__getdateinfo__('R')
+    yeardays = day_of_year
+    @property
+    def hour(self):
+        "Returns the corresponding hour for each date of the instance."
+        return self.__getdateinfo__('H')
+    hours = hour
+    @property
+    def minute(self):
+        "Returns the corresponding minute for each date of the instance."
+        return self.__getdateinfo__('T')
+    minutes = minute
+    @property
+    def second(self):
+        "Returns the corresponding second for each date of the instance."
+        return self.__getdateinfo__('S')
+    seconds = second
 
     def __getdateinfo__(self, info):
         return np.asarray(cseries.DA_getDateInfo(np.asarray(self),
                                                  self.freq, info,
-                                                 int(self.isfull())),
+                                                 int(self.is_full())),
                           dtype=int_)
     __getDateInfo = __getdateinfo__
+
     #.... Conversion methods ....................
-    #
+
     def tovalues(self):
         """
     Converts the instance to a :class:`~numpy.ndarray` of integers.
@@ -584,13 +621,13 @@ class DateArray(ndarray):
             _val = dates.value
             if _val not in vals:
                 raise IndexError("Date '%s' is out of bounds" % dates)
-            if self.isvalid():
+            if self.is_valid():
                 return _val - vals[0]
             else:
                 return np.where(vals == _val)[0][0]
 
         _dates = DateArray(dates, freq=self.freq)
-        if self.isvalid():
+        if self.is_valid():
             indx = (_dates.view(ndarray) - vals[0])
             err_cond = (indx < 0) | (indx > self.size)
             if err_cond.any():
@@ -603,26 +640,58 @@ class DateArray(ndarray):
 
         return indx
 
+
+    def is_chronological(self):
+        """
+    Returns whether the dates are sorted in chronological order
+        """
+        _cached = self._cachedinfo
+        chronoflag = _cached['ischrono']
+        if chronoflag is None:
+            sortidx = ndarray.argsort(self.__array__(), axis=None)
+            chronoflag = (sortidx == np.arange(self.size)).all()
+            _cached['ischrono'] = chronoflag
+            if chronoflag:
+                _cached['chronidx'] = np.array([], dtype=int)
+            else:
+                _cached['chronidx'] = sortidx
+        return chronoflag
+
+    def sort_chronologically(self):
+        """
+    Forces the instance to be sorted in chronological order.
+        """
+        _cached = self._cachedinfo
+        if not self.is_chronological():
+            self.sort()
+            _cached['chronidx'] = np.array([], dtype=int)
+            _cached['ischrono'] = True
+
+
     def get_steps(self):
         """
-    Returns the time steps between consecutive dates.
-    The steps have the same unit as the frequency of the series.
+    Returns the time steps between consecutive dates, in the same unit as
+    the frequency of the instance.
         """
-        if self._cachedinfo['steps'] is None:
-            _cached = self._cachedinfo
-            val = np.asarray(self).ravel()
-            if val.size > 1:
+        _cached = self._cachedinfo
+        if _cached['steps'] is None:
+            if self.size > 1:
+                val = self.__array__().ravel()
+                if not self.is_chronological():
+                    val = val[_cached['chronidx']]
                 steps = val[1:] - val[:-1]
                 if _cached['full'] is None:
                     _cached['full'] = (steps.max() == 1)
                 if _cached['hasdups'] is None:
                     _cached['hasdups'] = (steps.min() == 0)
             else:
+                _cached['ischrono'] = True
+                _cached['chronidx'] = np.array([], dtype=int)
                 _cached['full'] = True
                 _cached['hasdups'] = False
                 steps = np.array([], dtype=int_)
-            self._cachedinfo['steps'] = steps
-        return self._cachedinfo['steps']
+            _cached['steps'] = steps
+        return _cached['steps']
 
     def has_missing_dates(self):
         "Returns whether the instance has missing dates."
@@ -630,11 +699,17 @@ class DateArray(ndarray):
             steps = self.get_steps()
         return not(self._cachedinfo['full'])
 
-    def isfull(self):
+    def is_full(self):
         "Returns whether the instance has no missing dates."
         if self._cachedinfo['full'] is None:
             steps = self.get_steps()
         return self._cachedinfo['full']
+
+    def isfull(self):
+        "Deprecated version of :meth:`DateArray.is_full"
+        errmsg = "Deprecated name: use 'is_full' instead."
+        warnings.warn(errmsg, DeprecationWarning,)
+        return self.is_full()
 
     def has_duplicated_dates(self):
         "Returns whether the instance has duplicated dates."
@@ -642,22 +717,34 @@ class DateArray(ndarray):
             steps = self.get_steps()
         return self._cachedinfo['hasdups']
 
-    def isvalid(self):
+    def is_valid(self):
         "Returns whether the instance is valid: no missing nor duplicated dates."
-        return  (self.isfull() and not self.has_duplicated_dates())
+        return  (self.is_full() and not self.has_duplicated_dates())
+
+    def isvalid(self):
+        "Deprecated version of :meth:`DateArray.is_valid"
+        errmsg = "Deprecated name: use 'is_valid' instead."
+        warnings.warn(errmsg, DeprecationWarning,)
+        return  (self.is_full() and not self.has_duplicated_dates())
     #......................................................
     @property
     def start_date(self):
-        "Returns the first date of the array."
+        "Returns the first date of the array (in chronological order)."
         if self.size:
-            return self[0]
+            if self.is_chronological():
+                return self[0]
+            _sortidx = self._cachedinfo['chronidx']
+            return self[_sortidx[0]]
         return None
 
     @property
     def end_date(self):
-        "Returns the last date of the array."
+        "Returns the last date of the array (in chronological order)."
         if self.size:
-            return self[-1]
+            if self.is_chronological():
+                return self[-1]
+            _sortidx = self._cachedinfo['chronidx']
+            return self[_sortidx[-1]]
         return None
 
     #-----------------------------
@@ -671,7 +758,7 @@ class DateArray(ndarray):
         --------
         numpy.argsort : equivalent function
         """
-        return self.view(ndarray).argsort(axis=axis, kind=kind, order=order)
+        return self.__array__().argsort(axis=axis, kind=kind, order=order)
 
 
 
@@ -719,50 +806,42 @@ nodates = DateArray([])
 #####---------------------------------------------------------------------------
 #---- --- DateArray functions ---
 #####---------------------------------------------------------------------------
-def _listparser(dlist, freq=None, autosort=True):
+def _listparser(dlist, freq=None):
     "Constructs a DateArray from a list."
     dlist = np.array(dlist, copy=False, ndmin=1)
 
     # Case #1: dates as strings .................
     if dlist.dtype.kind in 'SU':
         #...construct a list of dates
-        dvals = [Date(freq, string=s).value for s in dlist]
-        dlist = np.array(dvals, copy=False, ndmin=1)
-
-    # Make sure that the list is sorted (save the original order if needed)
-    if autosort:
-        idx = dlist.argsort()
-        if (idx[1:] - idx[:-1] < 0).any():
-            dlist = dlist[idx]
-        else:
-            idx = None
-    else:
-        idx = np.arange(len(dlist), dtype=np.int)
-
+        dlist = np.fromiter((Date(freq, string=s).value for s in dlist),
+                            dtype=int)
     # Case #2: dates as numbers .................
-    if dlist.dtype.kind in 'if':
+    elif dlist.dtype.kind in 'if':
         #...hopefully, they are values
-        dates = dlist
+        pass
     # Case #3: dates as objects .................
     elif dlist.dtype.kind == 'O':
         template = dlist[0]
         #...as Date objects
         if isinstance(template, Date):
-            dates = np.fromiter((d.value for d in dlist), int_)
-            if freq in (_c.FR_UND, None): freq = template.freq
+            dlist = np.fromiter((d.value for d in dlist), dtype=int)
+            if freq in (_c.FR_UND, None):
+                freq = template.freq
         #...as mx.DateTime objects
         elif hasattr(template,'absdays'):
-            dates = [Date(freq, datetime=m) for m in dlist]
+            dlist = np.fromiter((Date(freq, datetime=m) for m in dlist),
+                                dtype=int)
         #...as datetime objects
         elif hasattr(template, 'toordinal'):
-            dates = [Date(freq, datetime=d) for d in dlist]
+            dlist = np.fromiter((Date(freq, datetime=d) for d in dlist),
+                                dtype=int)
     #
-    result = DateArray(dates, freq)
-    result._cachedinfo.update(dict(unsorted=idx))
+    result = dlist.view(DateArray)
+    result.freq = freq
     return result
 
 def date_array(dlist=None, start_date=None, end_date=None, length=None,
-               freq=None, autosort=True):
+               freq=None, autosort=False):
     """
     Factory function for constructing a :class:`DateArray`.
 
@@ -799,9 +878,9 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
 
     Notes
     -----
-    * By default, the dates are sorted in chronological order.
-      The initial order is saved in the private attribute :attr:`_unsorted`.
-      This behavior can be overwritten with the :keyword:`autosort` 
+    * When the input is a list of dates, the dates are **not** sorted.
+      Use ``autosort = True`` to sort the dates by chronological order.
+
 
     Returns
     -------
@@ -813,15 +892,23 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
         # Already a DateArray....................
         if isinstance(dlist, DateArray):
             if (freq != _c.FR_UND) and (dlist.freq != check_freq(freq)):
-                return dlist.asfreq(freq)
+                dlist = dlist.asfreq()
+                if autosort:
+                    dlist.sort_chronologically()
+                return dlist
             else:
                 # Taking a view will make sure we won't propagate modifications..
                 # ... in _cachedinfo.
                 dlist = dlist.view()
+                if autosort:
+                    dlist.sort_chronologically()
                 return dlist
         # Make sure it's a sequence, else that's a start_date
         if hasattr(dlist,'__len__'):
-            return _listparser(dlist, freq=freq, autosort=autosort)
+            dlist = _listparser(dlist, freq=freq)
+            if autosort:
+                dlist.sort_chronologically()
+            return dlist
         elif start_date is not None:
             if end_date is not None:
                 dmsg = "What starting date should be used ? '%s' or '%s' ?"
@@ -851,7 +938,11 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
     dlist += start_date.value
     if freq == _c.FR_UND:
         freq = start_date.freq
-    return DateArray(dlist, freq=freq)
+    # Transform the dates and set the cache
+    dates = dlist.view(DateArray)
+    dates.freq = freq
+    dates._cachedinfo.update(ischrono=True, chronidx=np.array([], dtype=int))
+    return dates
 
 #####---------------------------------------------------------------------------
 #---- --- Definition of functions from the corresponding methods ---
@@ -978,3 +1069,5 @@ def convert_to_float(datearray, ofreq):
     else:
         raise NotImplementedError(errmsg)
     return output
+
+

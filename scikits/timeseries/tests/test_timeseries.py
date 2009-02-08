@@ -220,6 +220,7 @@ class TestCreation(TestCase):
         assert_equal(series, (4, 3, 2, 1))
         #
         series._dates = dates
+        series.sort_chronologically()
         assert_equal(series, (1, 2, 3, 4))
 
     def test_setdates_unsorted_reshaped(self):
@@ -229,6 +230,7 @@ class TestCreation(TestCase):
         a = np.array([[4., 3.],[2., 1.]], dtype=float)
         series = a.view(TimeSeries)
         series._dates = dates
+        series.sort_chronologically()
         assert_equal(series, [[1., 2.], [3., 4.]])
 
     def test_setdates_unsorted_2D(self):
@@ -238,6 +240,7 @@ class TestCreation(TestCase):
         a = np.arange(12).reshape(4, 3)
         series = a.view(TimeSeries)
         series._dates = dates
+        series.sort_chronologically()
         assert_equal(series, [[ 9., 10., 11.],
                               [ 6.,  7.,  8.],
                               [ 3.,  4.,  5.],
@@ -1038,7 +1041,7 @@ test_dates test suite.
         #
         assert_equal(filled_ser.start_date, _start)
         assert_equal(filled_ser.end_date, _end)
-        self.failUnless(filled_ser.isfull())
+        self.failUnless(filled_ser.is_full())
         self.failUnless(not filled_ser.has_duplicated_dates())
         assert_equal(filled_ser.size, _end - _start + 1)
         #

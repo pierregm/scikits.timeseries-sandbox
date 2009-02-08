@@ -37,14 +37,14 @@ class TestCreation(TestCase):
         dlist = ['2007-01-%02i' % i for i in range(1,15)]
         dates = date_array(dlist, freq='D')
         assert_equal(dates.freqstr,'D')
-        self.failUnless(dates.isfull())
+        self.failUnless(dates.is_full())
         self.failUnless(not dates.has_duplicated_dates())
         assert_equal(dates, 732677+np.arange(len(dlist)))
 
         # Still daily data, that we force to month
         dates = date_array(dlist, freq='M')
         assert_equal(dates.freqstr,'M')
-        self.failUnless(not dates.isfull())
+        self.failUnless(not dates.is_full())
         self.failUnless(dates.has_duplicated_dates())
         assert_equal(dates, [24073]*len(dlist))
 
@@ -52,7 +52,7 @@ class TestCreation(TestCase):
         dlist = ['2007-%02i' % i for i in range(1,13)]
         dates = date_array(dlist, freq='M')
         assert_equal(dates.freqstr,'M')
-        self.failUnless(dates.isfull())
+        self.failUnless(dates.is_full())
         self.failUnless(not dates.has_duplicated_dates())
         assert_equal(dates, 24073 + np.arange(12))
 
@@ -81,18 +81,18 @@ class TestCreation(TestCase):
         #
         dates = date_array(dlist)
         assert_equal(dates.freqstr,'U')
-        self.failUnless(not dates.isfull())
+        self.failUnless(not dates.is_full())
         self.failUnless(not dates.has_duplicated_dates())
         assert_equal(dates.tovalue(), 732676 + np.array([1,2,4,5,7,8,10,11,13]))
         #
         ddates = date_array(dlist, freq='D')
         assert_equal(ddates.freqstr,'D')
-        self.failUnless(not ddates.isfull())
+        self.failUnless(not ddates.is_full())
         self.failUnless(not ddates.has_duplicated_dates())
         #
         mdates = date_array(dlist, freq='M')
         assert_equal(mdates.freqstr,'M')
-        self.failUnless(not mdates.isfull())
+        self.failUnless(not mdates.is_full())
         self.failUnless(mdates.has_duplicated_dates())
 
 
@@ -146,6 +146,34 @@ class TestCreation(TestCase):
         assert_equal(date_array(n, n+2), d)
         print "finished test_shortcuts"
 
+
+    def test_unsorted(self):
+        "Test DateArray on unsorted data"
+        dates = ts.DateArray([2001, 2007, 2003, 2002, 2001], freq='Y')
+        assert(dates.has_duplicated_dates())
+        assert(dates.has_missing_dates())
+        assert_equal(dates.start_date.value, 2001)
+        assert_equal(dates.end_date.value, 2007)
+        #
+        dates = ts.DateArray(['2001', '2007', '2003', '2002', '2001'], freq='Y')
+        assert(dates.has_duplicated_dates())
+        assert(dates.has_missing_dates())
+        assert_equal(dates.start_date.value, 2001)
+        assert_equal(dates.end_date.value, 2007)
+        #
+        dates = ts.DateArray([ts.Date('A',year=i)
+                              for i in (2001, 2007, 2003, 2002, 2001)],
+                             freq='Y')
+        assert(dates.has_duplicated_dates())
+        assert(dates.has_missing_dates())
+        assert_equal(dates.start_date.value, 2001)
+        assert_equal(dates.end_date.value, 2007)
+        #
+        dates = ts.date_array([2001, 2007, 2003, 2002, 2001], freq='Y')
+        assert(dates.has_duplicated_dates())
+        assert(dates.has_missing_dates())
+        assert_equal(dates.start_date.value, 2001)
+        assert_equal(dates.end_date.value, 2007)
 
 
 class TestDateProperties(TestCase):
@@ -270,6 +298,7 @@ class TestDateProperties(TestCase):
         assert_equal(s_date.hour, 0)
         assert_equal(s_date.minute, 0)
         assert_equal(s_date.second, 0)
+
 
 
 def dArrayWrap(date):
@@ -1000,8 +1029,8 @@ class TestMethods(TestCase):
 
     def test_empty_datearray(self):
         empty_darray = DateArray([], freq='Business')
-        assert_equal(empty_darray.isfull(), True)
-        assert_equal(empty_darray.isvalid(), True)
+        assert_equal(empty_darray.is_full(), True)
+        assert_equal(empty_darray.is_valid(), True)
         assert_equal(empty_darray.get_steps(), None)
 
 

@@ -214,7 +214,7 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
         """
         _names = self.dtype.names
         _dates = self._dates
-        if np.size(_dates) > 2 and self._dates.isvalid():
+        if np.size(_dates) > 2 and self._dates.is_valid():
             timestr = "[%s ... %s]" % (str(_dates[0]),str(_dates[-1]))
         else:
             timestr = str(_dates)
@@ -353,7 +353,7 @@ def time_records(data, dates=None, start_date=None, freq=None, mask=nomask,
 #!!!:   > if one of the series is not a TimeSeries, keep going.
 
 def fromarrays(arraylist, dates=None, start_date=None, freq='U',
-               fill_value=None,
+               fill_value=None, autosort=True,
                dtype=None, shape=None, formats=None,
                names=None, titles=None, aligned=False, byteorder=None,):
     """
@@ -377,6 +377,8 @@ def fromarrays(arraylist, dates=None, start_date=None, freq='U',
     fill_value : {var}, optional
         Value used to fill in the masked values when necessary.
         If None, a default based on the datatype is used.
+    autosort : {True, False}, optional
+        Whether the records should be sorted chronologically.
 
     See Also
     --------
@@ -395,18 +397,20 @@ def fromarrays(arraylist, dates=None, start_date=None, freq='U',
                             byteorder=byteorder, fill_value=fill_value)
     _dates = _getdates(dates, length=len(_array), start_date=start_date, 
                        freq=freq)
-    if _dates._unsorted is not None:
-        idx = _dates._unsorted
-        _array = _array[idx]
-        _dates._unsorted = None
+#    if _dates._unsorted is not None:
+#        idx = _dates._unsorted
+#        _array = _array[idx]
+#        _dates._unsorted = None
     result = _array.view(trecarray)
     result._dates = _dates
+    if autosort:
+        result.sort_chronologically()
     return result
 
 
 #..............................................................................
 def fromrecords(reclist, dates=None, freq=None, start_date=None,
-                fill_value=None, mask=nomask,
+                fill_value=None, mask=nomask, autosort=True,
                 dtype=None, shape=None, formats=None, names=None,
                 titles=None, aligned=False, byteorder=None):
     """
@@ -439,6 +443,9 @@ def fromrecords(reclist, dates=None, freq=None, start_date=None,
     fill_value : {var}, optional
         Value used to fill in the masked values when necessary.
         If None, a default based on the datatype is used.
+    autosort : {True, False}, optional
+        Whether the records should be sorted chronologically.
+        
 
     See Also
     --------
@@ -465,13 +472,11 @@ def fromrecords(reclist, dates=None, freq=None, start_date=None,
         dates = getattr(reclist, '_dates', None)
     _dates = _getdates(dates=dates, newdates=newdates, length=len(_data),
                        freq=freq, start_date=start_date)
-    if _dates._unsorted is not None:
-        idx = _dates._unsorted
-        _data = _data[idx]
-        _dates._unsorted = None
     #
     result = _data.view(trecarray)
     result._dates = _dates
+    if autosort:
+        result.sort_chronologically()
     return result
 
 

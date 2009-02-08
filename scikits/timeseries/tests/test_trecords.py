@@ -232,6 +232,7 @@ class TestTimeSeriesRecords(TestCase):
         (a,b) = zip(*[(3.,30), (2.,20), (1.,10),])
         ndtype = [('a', np.float), ('b',np.int)]
         controldates = date_array(dates, freq='D')
+        controldates.sort_chronologically()
         series = time_series(zip(*(a,b)), dates, freq='D',dtype=ndtype)
         assert_equal(series._data.tolist(), [(1.,10), (2.,20), (3.,30)])
         assert_equal(series._dates, controldates)

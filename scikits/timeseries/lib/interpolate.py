@@ -2,6 +2,7 @@
 The :mod:`scikits.timeseries.lib.interpolate` submodule contains functions for
 interpolating and filling missing values in MaskedArray's and TimeSeries
 objects.
+
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author$)"
 __revision__ = "$Revision$"
