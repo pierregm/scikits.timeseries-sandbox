@@ -1567,8 +1567,21 @@ static PyMemberDef DateObject_members[] = {
 };
 
 static char DateObject_toordinal_doc[] =
-"Return the proleptic Gregorian ordinal of the date, where January 1 of\n"
-"year 1 has ordinal 1";
+"Returns the proleptic Gregorian ordinal of the date, as an integer.\n"
+"This corresponds to the number of days since Jan., 1st, 1AD.\n\n"
+"When the instance has a frequency less than daily, the proleptic date \n"
+"is calculated for the last day of the period.\n\n"
+"   >>> ts.Date('D', '2001-01-01').toordinal()\n"
+"   730486\n"
+"   >>> ts.Date('H', '2001-01-01 18:00').toordinal()\n"
+"   730486\n"
+"   >>> ts.Date('M', '2001-01-01').toordinal()\n"
+"   730516\n"
+"   >>> # Note that 730516 = 730486 + 31 - 1\n"
+"   >>> ts.Date('Y', '2001-01-01').toordinal()\n"
+"   730850\n"
+"   >>> # Note that 730850 = 730486 + 365 - 1\n";
+
 static PyObject *
 DateObject_toordinal(DateObject* self)
 {
@@ -1588,31 +1601,37 @@ DateObject_toordinal(DateObject* self)
 static char DateObject_asfreq_doc[] =
 "   asfreq(freq, relation='END')\n"
 "\n"
-"   Returns a date converted to a specified frequency.\n"
+"   Returns a :class:`Date` object converted to a specified frequency.\n"
 "\n"
-"   Parameters\n"
-"   ----------\n"
-"   freq : {freq_spec}\n"
-"      Frequency to convert the Date to. Accepts any valid frequency\n"
-"      specification (string or integer).\n"
+"   :Parameters:\n"
 "\n"
-"   relation : {'END', 'START'} (optional)\n"
-"      Applies only when converting a lower frequency Date to a higher\n"
-"      frequency Date, or when converting a weekend Date to a business\n"
-"      frequency Date. Valid values are 'START' and 'END'. For example,\n"
-"      when converting a monthly date to a daily frequency, relation='START'\n"
-"      gives the first day of the month while relation='END' gives\n"
-"      the last day of the month.\n"
+"      **freq** : {string, integer}\n"
+"         Frequency to convert the instance to. Accepts any valid frequency\n"
+"         specification (string or integer).\n"
 "\n"
-"   Examples\n"
-"   --------\n"
-"   >>> D = ts.Date('D', year=2007, month=12, day=31)\n"
-"   >>> D.asfreq('M')\n"
-"   <M: Dec-2007>\n"
-"   >>> D.asfreq('H')\n"
-"   <H : 31-Dec-2007 23:00>\n"
-"   >>> D.asfreq('Y')\n"
-"   <A-DEC : 2007>\n";
+"      **relation** : {'END', 'START'} (optional)\n"
+"         Applies only when converting a :class:`Date` to a higher frequency,\n"
+"         or when converting a weekend Date to a business frequency Date.\n"
+"         Valid values are 'START' and 'END'.\n"
+"         For example, when converting a monthly :class:`Date` to the daily\n"
+"         frequency, ``relation='START'`` gives the first day of the month\n"
+"         while ``relation='END'`` gives the last day of the month.\n"
+"\n"
+"   .. warning::\n"
+"\n"
+"      Some information will be lost when a :class:`Date` is converted to \n"
+"      a lower frequency and then back to the original one.\n"
+"      For example, if a daily :class:`Date` is converted to monthly and \n"
+"      then back to a daily one, the :attr:`day` information is lost::\n"
+"\n"
+"         >>> D = ts.Date('D', year=2007, month=12, day=15)\n"
+"         >>> D.asfreq('M')\n"
+"         <M: Dec-2007>\n"
+"         >>> D.asfreq('M').asfreq('D', relation='START')\n"
+"         <D: 01-Dec-2007>\n"
+"         >>> D.asfreq('M').asfreq('D', relation=\"END\")\n"
+"         <D: 31-Dec-2007>\n"
+"\n";
 
 static PyObject *
 DateObject_asfreq(DateObject *self, PyObject *args, PyObject *kwds)
@@ -1694,22 +1713,142 @@ static char DateObject_strfmt_doc[] =
 "Deprecated alias for strftime method";
 
 static char DateObject_strftime_doc[] =
-"Returns string representation of Date object according to format specified.\n\n"
-"Parameters\n"
-"----------\n"
-"fmt : {str}\n"
-"   Formatting string. Uses the same directives as in the time.strftime\n"
-"   function in the standard Python time module. In addition, a few other\n"
-"   directives are supported:\n"
-"   '%q' - the 'quarter' of the date\n"
-"   '%f' - Year without century as a decimal number [00,99]. The\n"
-"          'year' in this case is the year of the date determined by\n"
-"          the year for the current quarter. This is the same as %y\n"
-"          unless the Date is one of the 'qtr-s' frequencies\n"
-"   '%F' - Year with century as a decimal number. The 'year' in this\n"
-"          case is the year of the date determined by the year for\n"
-"          the current quarter. This is the same as %Y unless the\n"
-"          Date is one of the 'qtr-s' frequencies\n";
+"\n"
+"   Returns the string representation of the :class:`Date`, \n"
+"   depending on the selected :keyword:`format`.\n"
+"   :keyword:`format` must be a string containing one or several directives.\n"
+"   The method recognizes the same directives as the :func:`time.strftime` \n"
+"   function of the standard Python distribution, as well as the specific \n"
+"   additional directives ``%f``, ``%F``, ``%q``.\n"
+"\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | Directive | Meaning                        | Notes |\n"
+"   +===========+================================+=======+\n"
+"   | ``%a``    | Locale's abbreviated weekday   |       |\n"
+"   |           | name.                          |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%A``    | Locale's full weekday name.    |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%b``    | Locale's abbreviated month     |       |\n"
+"   |           | name.                          |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%B``    | Locale's full month name.      |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%c``    | Locale's appropriate date and  |       |\n"
+"   |           | time representation.           |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%d``    | Day of the month as a decimal  |       |\n"
+"   |           | number [01,31].                |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%f``    | 'Fiscal' year without a        | \(1)  |\n"
+"   |           | century  as a decimal number   |       |\n"
+"   |           | [00,99]                        |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%F``    | 'Fiscal' year with a century   | \(2)  |\n"
+"   |           | as a decimal number            |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%H``    | Hour (24-hour clock) as a      |       |\n"
+"   |           | decimal number [00,23].        |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%I``    | Hour (12-hour clock) as a      |       |\n"
+"   |           | decimal number [01,12].        |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%j``    | Day of the year as a decimal   |       |\n"
+"   |           | number [001,366].              |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%m``    | Month as a decimal number      |       |\n"
+"   |           | [01,12].                       |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%M``    | Minute as a decimal number     |       |\n"
+"   |           | [00,59].                       |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%p``    | Locale's equivalent of either  | \(3)  |\n"
+"   |           | AM or PM.                      |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%q``    | Quarter as a decimal number    |       |\n"
+"   |           | [01,04]                        |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%S``    | Second as a decimal number     | \(4)  |\n"
+"   |           | [00,61].                       |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%U``    | Week number of the year        | \(5)  |\n"
+"   |           | (Sunday as the first day of    |       |\n"
+"   |           | the week) as a decimal number  |       |\n"
+"   |           | [00,53].  All days in a new    |       |\n"
+"   |           | year preceding the first       |       |\n"
+"   |           | Sunday are considered to be in |       |\n"
+"   |           | week 0.                        |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%w``    | Weekday as a decimal number    |       |\n"
+"   |           | [0(Sunday),6].                 |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%W``    | Week number of the year        | \(5)  |\n"
+"   |           | (Monday as the first day of    |       |\n"
+"   |           | the week) as a decimal number  |       |\n"
+"   |           | [00,53].  All days in a new    |       |\n"
+"   |           | year preceding the first       |       |\n"
+"   |           | Monday are considered to be in |       |\n"
+"   |           | week 0.                        |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%x``    | Locale's appropriate date      |       |\n"
+"   |           | representation.                |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%X``    | Locale's appropriate time      |       |\n"
+"   |           | representation.                |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%y``    | Year without century as a      |       |\n"
+"   |           | decimal number [00,99].        |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%Y``    | Year with century as a decimal |       |\n"
+"   |           | number.                        |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%Z``    | Time zone name (no characters  |       |\n"
+"   |           | if no time zone exists).       |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"   | ``%%``    | A literal ``'%'`` character.   |       |\n"
+"   +-----------+--------------------------------+-------+\n"
+"\n"
+"   .. note::\n"
+"\n"
+"      (1)\n"
+"         The ``%f`` directive is the same as ``%y`` if the frequency is \n"
+"         not quarterly.\n"
+"         Otherwise, it corresponds to the 'fiscal' year, as defined by \n"
+"         the :attr:`qyear` attribute.\n"
+"\n"
+"      (2)\n"
+"         The ``%F`` directive is the same as ``%Y`` if the frequency is \n"
+"         not quarterly.\n"
+"         Otherwise, it corresponds to the 'fiscal' year, as defined by \n"
+"         the :attr:`qyear` attribute.\n"
+"\n"
+"      (3)\n"
+"         The ``%p`` directive only affects the output hour field \n"
+"         if the ``%I`` directive is used to parse the hour.\n"
+"\n"
+"      (4)\n"
+"         The range really is ``0`` to ``61``; this accounts for leap seconds \n"
+"         and the (very rare) double leap seconds.\n"
+"\n"
+"      (5)\n"
+"         The ``%U`` and ``%W`` directives are only used in calculations \n"
+"         when the day of the week and the year are specified.\n"
+"\n"
+"\n"
+"   .. rubric::  Examples\n"
+"\n"
+"   >>> a = ts.Date(freq='q-jul', year=2006, quarter=1)\n"
+"   >>> a.strftime('%F-Q%q')\n"
+"   '2006-Q1'\n"
+"   >>> # Output the last month in the quarter of this date\n"
+"   >>> a.strftime('%b-%Y')\n"
+"   'Oct-2005'\n"
+"   >>> \n"
+"   >>> a = ts.Date(freq='d', year=2001, month=1, day=1)\n"
+"   >>> a.strftime('%d-%b-%Y')\n"
+"   '01-Jan-2006'\n"
+"   >>> a.strftime('%b. %d, %Y was a %A')\n"
+"   'Jan. 01, 2001 was a Monday'\n";
 static PyObject *
 DateObject_strftime(DateObject *self, PyObject *args)
 {
@@ -2005,7 +2144,7 @@ DateObject___subtract__(PyObject *left, PyObject *right)
     int result;
     DateObject *dleft;
     if (!DateObject_Check(left)) {
-        PyErr_SetString(PyExc_ValueError, "Cannot subtract Date from non-Date value");
+        PyErr_SetString(PyExc_ValueError, "Cannot subtract a Date from a non-Date object.");
         return NULL;
     }
 
@@ -2014,7 +2153,7 @@ DateObject___subtract__(PyObject *left, PyObject *right)
     if (DateObject_Check(right)) {
         DateObject *dright = (DateObject*)right;
         if (dleft->freq != dright->freq) {
-            PyErr_SetString(PyExc_ValueError, "Cannot subtract Dates with different frequency");
+            PyErr_SetString(PyExc_ValueError, "Cannot subtract Date objects with different frequencies.");
             return NULL;
         }
         result = dleft->value - dright->value;
@@ -2030,7 +2169,7 @@ DateObject___compare__(DateObject * obj1, DateObject * obj2)
 {
     if (obj1->freq != obj2->freq) {
         PyErr_SetString(PyExc_ValueError,
-                        "Cannot compare dates with different frequency");
+                        "Cannot compare Date objects with different frequencies.");
         return -1;
     }
 
@@ -2173,6 +2312,13 @@ DateObject_day(DateObject *self, void *closure) {
 
 static PyObject *
 DateObject_weekday(DateObject *self, void *closure) {
+    struct date_info dinfo;
+    if(DateObject_set_date_info(self, &dinfo) == -1) return NULL;
+    return PyInt_FromLong(dinfo.day_of_week);
+}
+
+static PyObject *
+DateObject_day_of_week(DateObject *self, void *closure) {
     struct date_info dinfo;
     if(DateObject_set_date_info(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong(dinfo.day_of_week);
@@ -2734,7 +2880,7 @@ DateArray_getDateInfo(PyObject *self, PyObject *args)
             skip_periods = __skip_periods_day(freq);
             break;
         case 'W': //day of week
-            getDateInfo = &DateObject_weekday;
+            getDateInfo = &DateObject_day_of_week;
             skip_periods = __skip_periods_day(freq);
             break;
         case 'I': //week of year

@@ -10,11 +10,11 @@
 .. toctree::
    :maxdepth: 2
 
-   about
-   installing
-   core/index
-   lib/index
-   support
+   introduction
+   installation
+   core
+   lib
+
 
 .. htmlonly::
 

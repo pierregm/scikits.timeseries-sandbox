@@ -1,7 +1,9 @@
 .. currentmodule:: scikits.timeseries.lib.interpolate
 
-Interpolate & Fill Missing Values
-=================================
+
+=============
+Interpolation
+=============
 
 .. automodule:: scikits.timeseries.lib.interpolate
    :members:

@@ -140,6 +140,8 @@ class TimeSeriesCompatibilityError(TimeSeriesError):
             msg = "Incompatible starting dates! (%s <> %s)"
         elif mode in ('size', 'shape'):
             msg = "Incompatible sizes! (%s <> %s)"
+        elif mode == 'order':
+            msg = "The series must be sorted in chronological order !"
         else:
             msg = "Incompatibility !  (%s <> %s)"
         msg = msg % (first, second)
@@ -165,7 +167,12 @@ def _timeseriescompat(a, b, raise_error=True):
     # Make sure a.freq is not None
     if afreq is None:
         return True
-    # Check the dates ...................
+    # Make sure that the series are sorted in chronological order
+    if (not a.is_chronological()) or (not b.is_chronological()):
+        if raise_error:
+            raise TimeSeriesCompatiblityError('sort', None, None)
+        return False
+    # Check the starting dates ..........
     (astart, bstart) = (getattr(a, 'start_date'), getattr(b, 'start_date'))
     if astart != bstart:
         if raise_error:

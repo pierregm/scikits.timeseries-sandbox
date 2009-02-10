@@ -1,13 +1,19 @@
 .. currentmodule:: scikits.timeseries.lib.reportlib
+.. moduleauthor:: Matt Knox <mattknox.ca@hotmail.com>
 
 =======
 Reports
 =======
 
-The scikits.timeseries.lib.reportlib sub-module provides the :class:`Report`
-class for generating text based time series reports.
+The :mod:`~scikits.timeseries.lib.reportlib` sub-module provides the :class:`Report` class for generating text based time series reports.
+
+
+
+The :class:`Report` class
+=========================
 
 .. autoclass:: Report
+
 
 Examples
 ========
@@ -48,6 +54,7 @@ Example 1: Basic report
    15-Feb-2007 |             -- |  71.2844695721 | --
    16-Feb-2007 |             -- |  87.1665936067 | --
 
+
 Example 2: csv report for excel
 -------------------------------
 
@@ -76,6 +83,7 @@ Example 2: csv report for excel
    >>> csvReport(output=mycsv) # output to file
 
 
+
 Example 3: HTML report
 ----------------------
 
@@ -100,12 +108,16 @@ Example 3: HTML report
    <tr><td>Total      </td><td>116.36</td><td> 21.75</td><td>                         </td></tr>
 
 
+
 Example 4: Extra Options
 ------------------------
 
    >>> basicReport = rl.Report(ser1, ser2, ser3, dates=dArray)
 
-Output report with a header.
+
+Output report with a header
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 By default, a line of dashes will separate the header and the first row of data.
 Optionally, you can specify a label for the Date column as well (so a list with
 four entries instead of three like this example), If you wish to get rid of the
@@ -119,7 +131,9 @@ separator line, or use a different character, specify: ``header_char=''``
    08-Feb-2007 | -21.6432010416 |  4.83754030508 | yet another, string
 
 
-Change column justification for the report.
+Change column justification for the report
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 You can specify a single string (*'right'*, *'left'*, or *'center'*) and this
 will impact all columns, or you can specify a list of strings
 (optionally including the Date column, which is *'left'* by default)
@@ -129,14 +143,18 @@ will impact all columns, or you can specify a list of strings
    07-Feb-2007 | -24.1064434097 | 86.0387977626  |      another string
    08-Feb-2007 | -21.6432010416 | 4.83754030508  | yet another, string
 
+
 Change formatting of Date column
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
    >>> basicReport(datefmt='%d')
    06 |  2.59583929443 | -96.2110139217 | some string
    07 | -24.1064434097 |  86.0387977626 | another string
    08 | -21.6432010416 |  4.83754030508 | yet another, string
 
+
 Add a separater line between each row
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
    >>> basicReport(row_char='-')
    06-Feb-2007 |  2.59583929443 | -96.2110139217 | some string
@@ -145,7 +163,10 @@ Add a separater line between each row
    -------------------------------------------------------------------
    08-Feb-2007 | -21.6432010416 |  4.83754030508 | yet another, string
 
-Report different series.
+
+Report different series
+~~~~~~~~~~~~~~~~~~~~~~~
+
 Notice that the other options set remain intact (ie. dates=dArray)
 
    >>> basicReport(ser1)
@@ -153,7 +174,10 @@ Notice that the other options set remain intact (ie. dates=dArray)
    07-Feb-2007 | -24.1064434097
    08-Feb-2007 | -21.6432010416
 
-Specify column widths.
+
+Specify column widths
+~~~~~~~~~~~~~~~~~~~~~
+
 Just as in the header and justify options, you can specify a single value to
 affect all columns, or a list which optionally includes a specification for the
 Date column.

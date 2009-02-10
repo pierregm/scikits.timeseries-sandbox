@@ -81,8 +81,8 @@ Classes
      :class:`~scikits.timeseries.TimeSeries` has no missing values.
 
    * if the initial :class:`~scikits.timeseries.TimeSeries` has named fields
-     (flexible type), the resulting ndarray will have the same fields as the
-     initial array, with the same name, with the addition of an extra field
+     (structured type), the resulting ndarray will have the same fields as 
+     the initial array, with the same name, with the addition of an extra field
      ``_dates``.
      Each field (except ``_dates``) will have two nested subfields, ``_data``
      and ``_mask``.
@@ -145,11 +145,13 @@ from tables.parameters import EXPECTED_ROWS_TABLE
 
 _doc_parameters = dict(
 mareturn="""
+masked_array
     Depending on the value of the ``field`` parameter, the method returns either
-    * a ndarray, if ``field=='_data'`` or if ``field=='_mask'``;
-    * a :class:`~numpy.ma.MaskedArray`, if ``field`` is None or a valid field.
+       * a ndarray, if ``field=='_data'`` or if ``field=='_mask'``;
+       * a :class:`~numpy.ma.MaskedArray`, if ``field`` is None or a valid field.
 """,
 tsreturn="""
+time_series
     Depending on the value of the ``field`` parameter, the method returns:
     
     * a :class:`~scikits.timeseries.TimeSeries`, if ``field`` is None or a valid
@@ -159,26 +161,26 @@ tsreturn="""
     * a :class:`~numpy.ma.MaskedArray`, if ``field=='_series'``.
 """,
 readinput="""
-    start : {None, int}, optional
-        Index of the first record to read.
-        If None, records will be read starting from the very first one.
-    stop : {None, int}, optional
-        Index of the last record to read.
-        If None, records will be read until the very last one.
-    step : {None, int}, optional
-        Increment between succesive records to read.
-        If None, all the records between ``start`` and ``stop`` will be read.
-    field : {None, str}, optional
-        Name of the field to read.
-        If None, all the fields from each record are read.
+start : {None, int}, optional
+    Index of the first record to read.
+    If None, records will be read starting from the very first one.
+stop : {None, int}, optional
+    Index of the last record to read.
+    If None, records will be read until the very last one.
+step : {None, int}, optional
+    Increment between succesive records to read.
+    If None, all the records between ``start`` and ``stop`` will be read.
+field : {None, str}, optional
+    Name of the field to read.
+    If None, all the fields from each record are read.
 """,
 readcoordinateinput="""
-    coords : sequence
-        A sequence of integers, corresponding to the indices of the rows to
-        retrieve
-    field : {None, str}, optional
-        Name of the field to read.
-        If None, all the fields from each record are read.
+coords : sequence
+    A sequence of integers, corresponding to the indices of the rows to
+    retrieve
+field : {None, str}, optional
+    Name of the field to read.
+    If None, all the fields from each record are read.
 """,
 )
 

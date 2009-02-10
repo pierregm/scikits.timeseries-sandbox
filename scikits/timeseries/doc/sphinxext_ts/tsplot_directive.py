@@ -109,7 +109,8 @@ def run(arguments, options, state_machine, lineno):
     # change to doc directory if not already there
     for x in range(len(path_parts) - 1 - doc_idx): os.chdir('..')
 
-    srcdir = 'source/lib'
+    # srcdir = 'source/lib'
+    srcdir = 'source'
     outdir = 'build/plots'
 
     outdir = os.path.abspath(outdir)

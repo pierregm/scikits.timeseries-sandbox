@@ -1,18 +1,3 @@
-.. currentmodule:: scikits.timeseries
-
-========
-Plotting
-========
-
-
-The :mod:`scikits.timeseries.lib.plotlib` submodule makes it relatively simple to produce
-time series plots using matplotlib_.
-It relieves the user from the burden of having to setup appropriately spaced and
-formatted tick labels.
-
-If you have never used matplotlib_, you should first go through the tutorial on
-the matplotlib web-site before following the examples below.
-
 
 .. _matplotlib: http://matplotlib.sourceforge.net
 
@@ -20,11 +5,13 @@ the matplotlib web-site before following the examples below.
 Examples
 ========
 
-Adaptation of date_demo2.py from matplotlib tutorial
-----------------------------------------------------
+
+Adaptation of :file:`date_demo2.py` from matplotlib_ tutorial
+-------------------------------------------------------------
 
 .. plot:: plotting/yahoo.py
    :include-source:
+
 
 Monthly Data with an exponential moving average
 -----------------------------------------------
@@ -32,11 +19,13 @@ Monthly Data with an exponential moving average
 .. plot:: plotting/expmave.py
    :include-source:
 
+
 Separate scales for left and right axis
 ---------------------------------------
 
 .. plot:: plotting/sepaxis.py
    :include-source:
+
 
 Sample plots at various levels of zoom
 --------------------------------------
@@ -52,9 +41,3 @@ With interactive plotting, labels will be updated dynamically as you scroll and 
 .. plot:: plotting/zoom3.py
 
 .. plot:: plotting/zoom4.py
-
-
-Module Details
-==============
-
-.. automodule:: scikits.timeseries.lib.plotlib

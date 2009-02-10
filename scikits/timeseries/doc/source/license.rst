@@ -1,19 +1,22 @@
+License 
+-------
+
+
 Overview
---------
+~~~~~~~~
 
-The :mod:`scikits.timeseries` scikit is free for both commercial and non-commercial use,
-under the `BSD <http://www.opensource.org/licenses/bsd-license.php>`_ license.
+The :mod:`scikits.timeseries` scikit is free for both commercial and 
+under the BSD_ license.
 
-Part of the date string parser was borrowed from the :mod:`mx.DateTime` package,
-submitted to the EGENIX license agreement reproduced below.
+Part of the date string parser was borrowed from versions 2.0.6 and 3.0.0 of the :mod:`mx.DateTime` package, and as such, is subject to versions 1.0.0 and 1.1.0 of the EGENIX.COM PUBLIC LICENSE AGREEMENT which are included below.
 
-The timeseries scikit contains code borrowed from the EGENIX mx.DateTime
-package. It uses code from versions 2.0.6 and 3.0.0 of the mx.DateTime package
-and as such, is subject to versions 1.0.0 and 1.1.0 of the EGENIX.COM PUBLIC
-LICENSE AGREEMENT which are included below.
+
+.. _BSD: http://www.opensource.org/licenses/bsd-license.php
+
+
 
 EGENIX.COM PUBLIC LICENSE AGREEMENT VERSION 1.0.0
--------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ::
 
@@ -103,8 +106,10 @@ EGENIX.COM PUBLIC LICENSE AGREEMENT VERSION 1.0.0
     By downloading, copying, installing or otherwise using the Software, Licensee
     agrees to be bound by the terms and conditions of this License Agreement.
 
+
+
 EGENIX.COM PUBLIC LICENSE AGREEMENT VERSION 1.1.0
--------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ::
 
