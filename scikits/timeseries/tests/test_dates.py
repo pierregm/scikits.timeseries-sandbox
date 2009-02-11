@@ -1118,6 +1118,33 @@ class TestMethods(TestCase):
         self.failUnless(not isinstance(test, DateArray))
         assert_equal(test, [2, 1, 0])
 
+    def test_sort_wcached(self):
+        
+        "Test cache update w/ sorting"
+        dates = ts.DateArray([2002, 2000, 2001, 2002], freq='A')
+        assert_equal(dates.is_chronological(), False)
+        assert_equal(dates.has_duplicated_dates(), True)
+        # Sort w/ function
+        sorted_dates = np.sort(dates)
+        assert_equal(sorted_dates.is_chronological(), True)
+        assert_equal(sorted_dates.has_duplicated_dates(), True)
+        assert_equal(dates.is_chronological(), False)
+        # Sort w/ method
+        dates.sort()
+        assert_equal(dates.is_chronological(), True)
+        assert_equal(dates.has_duplicated_dates(), True)
+        # Sort 2D data w/ function
+        dates = ts.DateArray([[2002, 2000], [2001, 2002]], freq='A')
+        assert_equal(dates.is_chronological(), False)
+        assert_equal(dates.has_duplicated_dates(), True)
+        sorted_dates = np.sort(dates)
+        assert_equal(sorted_dates.is_chronological(), False)
+        assert_equal(sorted_dates.has_duplicated_dates(), True)
+        # Sort 2D data w/ method
+        dates.sort()
+        assert_equal(dates.is_chronological(), False)
+        assert_equal(dates.has_duplicated_dates(), True)
+
 
 ###############################################################################
 #------------------------------------------------------------------------------

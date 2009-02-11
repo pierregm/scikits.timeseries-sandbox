@@ -760,6 +760,16 @@ class DateArray(ndarray):
         """
         return self.__array__().argsort(axis=axis, kind=kind, order=order)
 
+    def sort(self, axis=-1, kind='quicksort', order=None):
+        "(This docstring should be overwritten)"
+        ndarray.sort(self, axis=axis, kind=kind, order=order)
+        _cached = self._cachedinfo
+        kwargs = dict(toobj=None, toord=None, tostr=None)
+        if self.ndim == 1:
+            kwargs.update(ischrono=True, chronidx=np.array([], dtype=int))
+        _cached.update(**kwargs)
+        return None
+    sort.__doc__ = ndarray.sort.__doc__
 
 
 def fill_missing_dates(dates, freq=None):
@@ -797,7 +807,6 @@ def fill_missing_dates(dates, freq=None):
     # ...and now, fill it ! ......
     (tstart, tend) = dates[[0,-1]]
     return date_array(start_date=tstart, end_date=tend)
-
 DateArray.fill_missing_dates = fill_missing_dates
 
 nodates = DateArray([])
@@ -1069,5 +1078,5 @@ def convert_to_float(datearray, ofreq):
     else:
         raise NotImplementedError(errmsg)
     return output
-
+DateArray.tofloat = convert_to_float
 

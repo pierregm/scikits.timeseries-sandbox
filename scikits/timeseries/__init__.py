@@ -23,7 +23,10 @@ from extras import tsfromtxt
 from scikits.timeseries.version import __version__
 
 __all__ = ['const', 'tdates','tseries','trecords']
-__all__ += tdates.__all__
-__all__ += tseries.__all__
-__all__ += trecords.__all__
+__all__.extend(tdates.__all__)
+__all__.extend(tseries.__all__)
+__all__.extend(trecords.__all__)
 #__all__ += ['tsfromtxt']
+
+from numpy.testing import Tester
+test = Tester("scikits.timeseries").test
