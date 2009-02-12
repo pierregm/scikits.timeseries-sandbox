@@ -353,6 +353,7 @@ Conversion methods
    :toctree: generated/
    
    DateArray.tovalue
+   DateArray.tofloat
    DateArray.toordinal
    DateArray.tostring
    DateArray.tolist
