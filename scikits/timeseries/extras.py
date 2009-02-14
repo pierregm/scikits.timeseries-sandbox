@@ -210,7 +210,6 @@ def guess_freq(dates):
 
 
 
-
 def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
               skiprows=0, converters=None, dateconverter=None,
               missing='', missing_values=None,
@@ -261,7 +260,8 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
         ``converters = {3: lambda s: float(s or 0)}``.
     dateconverter : {function}, optional
         Function to convert the date information to a Date object. 
-        This function requires as many parameters as number of datecols
+        This function requires as many parameters as number of datecols.
+        This parameter is mandatory if ``dtype=None``.
     missing : {string}, optional
         A string representing a missing value, irrespective of the column where
         it appears (e.g., `'missing'` or `'unused'`).
@@ -309,6 +309,8 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
     * When the variable are named (either by a flexible dtype or with `names`,
       there must not be any header in the file (else a :exc:ValueError exception
       is raised).
+    * If the datatype is not given explicitly (:keyword:`dtype=None`),
+      a :keyword:`dateconverter` must be given explicitly.
 
     Examples
     --------
@@ -329,22 +331,38 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
             dateconv = converters['dates']
             del(converters['dates'])
     else:
+        converters = {}
         dateconv = lambda s: Date(freq, string=s)
     if dateconverter:
         dateconv = dateconverter
     # Update the dtype (if needed) ....
+    idtype = None
     if (dtype is not None):
         dtype = np.dtype(dtype)
+        idtype = dtype
         # Crash if we can't find the datecols
         if datecols is None:
             raise TypeError("No column selected for the dates!")
         # Make sure we can iterate on the datecols
         if isinstance(datecols, (np.int, np.float)):
             datecols = (datecols,)
-        # Make sure we have a converters dictionary
-        if converters is None:
-            converters = {}
-        converters.update([(_, str) for _ in datecols])
+        # Update the converter
+        update = [(_, str) for _ in datecols]
+        # Don't use the ew structure just yet
+        if dtype.names:
+            convdict = {'b': bool, 'i': int, 'l':int, 'u': int,
+                        'f': float, 'd': float, 'g': float,
+                        'c': complex, 'D': complex, 
+                        'S': str, 'U': str, 'a': str}
+            dnames = dtype.names
+            idx = range(len(datecols)+len(dnames))
+            for i in datecols:
+                del idx[idx.index(i)]
+            update.extend([(i, convdict[dtype[name].char])
+                           for (i, name) in zip(idx, dnames)])
+            dtype = None
+        converters.update(update)
+        #
     # Update the optional arguments ...
     kwargs = dict(dtype=dtype, comments=comments, delimiter=delimiter, 
                   skiprows=skiprows, converters=converters,
@@ -358,6 +376,8 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
     if not mrec.shape:
         mrec.shape = -1
     names = mrec.dtype.names
+    # Revert to the original dtype.....
+    dtype = idtype
     # Get the date columns ............
     if datecols is None:
         import re
@@ -368,6 +388,9 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
             raise TypeError("No column selected for the dates!")
     elif isinstance(datecols, (np.int, np.float)):
         datecols = (datecols,)
+    # Fix the date columns if usecols was given
+    if usecols is not None:
+        datecols = tuple([list(usecols).index(d) for d in datecols])
     # Get the date info ...............
     if names:
         dateinfo = [mrec[names[i]] for i in datecols]
@@ -376,10 +399,10 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
     if len(dateinfo) == 1:
         dateinfo = np.array(dateinfo[0], copy=False, ndmin=1)
         dates = date_array([dateconv(args) for args in dateinfo],
-                           autosort=False)
+                           freq=freq, autosort=False)
     else:
         dates = date_array([dateconv(*args) for args in zip(*dateinfo)],
-                           autosort=False)
+                           freq=freq, autosort=False)
     # Resort the array according to the dates
     sortidx = dates.argsort()
     dates = dates[sortidx]
@@ -393,8 +416,11 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
                              dates=dates)
         for name in output.dtype.names:
             output[name] = mrec[name]
-        if (dtype is not None) and (dtype.names is None):
-            dtype = (dtype, len(output.dtype.names))
+        if (idtype is not None):
+            if (idtype.names is None):
+                dtype = (idtype, len(output.dtype.names))
+            else:
+                dtype = idtype
             output = output.view(dtype)
     else:
         dataidx = [i for i in range(mrec.shape[-1]) if i not in datecols]
@@ -404,4 +430,3 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
         from trecords import TimeSeriesRecords
         return output.view(TimeSeriesRecords)
     return output
-
