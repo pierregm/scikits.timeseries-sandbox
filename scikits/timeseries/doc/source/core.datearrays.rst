@@ -74,7 +74,7 @@ the result is a :class:`Date` object with the same frequency as the input.
 Otherwise, the result is a :class:`DateArray` with the same frequency 
 as the input.
 Note that when using a slice to access specific elements 
-of a :class:`DateArray`, the result is always a :class:`DateArray`
+of a :class:`DateArray`, the result is always a :class:`DateArray`.
 
 
    >>> dates = ts.date_array(start_date=ts.Date('M', '2001-01'), length=36)
@@ -121,7 +121,7 @@ Adding (subtracting) two :class:`DateArray` or a :class:`DateArray` and
 a :class:`Date` is possible only if the two objects have the same frequency.
 The result is then a :class:`~numpy.ndarray`.
 If the inputs do not share the same frequency, 
-a :exc:`FrequencyDateError` exception is raised.
+a :exc:`~scikits.timeseries.FrequencyDateError` exception is raised.
 
 
 
@@ -209,51 +209,54 @@ Date information
 The following attributes give some information about the dates.
 They are read-only.
 
-+--------------------------------------+------------------------------------+---------+
-| Name                                 | Description                        |  Range  |
-+======================================+====================================+=========+
-| Integer ndarrays, with the same size as the instance.                               |
-+--------------------------------------+------------------------------------+---------+
-| .. attribute:: DateArray.year        | Year                               |   ...   |
-| .. attribute:: DateArray.years       |                                    |         |
-+--------------------------------------+------------------------------------+---------+
-| .. attribute:: DateArray.qyear       | Quarter Year (1)                   |   ...   |
-+--------------------------------------+------------------------------------+---------+
-| .. attribute:: DateArray.quarter     | Quarter                            | [1-4]   |
-| .. attribute:: DateArray.quarters    |                                    |         |
-+--------------------------------------+------------------------------------+---------+
-| .. attribute:: DateArray.month       | Month                              | [1-12]  |
-| .. attribute:: DateArray.months      |                                    |         |
-+--------------------------------------+------------------------------------+---------+
-| .. attribute:: DateArray.week        | Week                               | [1-53]  |
-| .. attribute:: DateArray.weeks       |                                    |         |
-+--------------------------------------+------------------------------------+---------+
-| .. attribute:: DateArray.day         | Day of the month                   | [1-31]  |
-| .. attribute:: DateArray.days        |                                    |         |
-+--------------------------------------+------------------------------------+---------+
-| .. attribute:: DateArray.day_of_week | Day of the week, starting Monday   | [0-6]   |
-| .. attribute:: DateArray.weekdays    |                                    |         |
-+--------------------------------------+------------------------------------+---------+
-| .. attribute:: DateArray.day_of_year | Day of the year, starting Jan-01   | [1-366] |
-| .. attribute:: DateArray.yeardays    |                                    |         |
-+--------------------------------------+------------------------------------+---------+
-| .. attribute:: DateArray.hour        | Hour                               | [00-23] |
-| .. attribute:: DateArray.hours       |                                    |         |
-+--------------------------------------+------------------------------------+---------+
-| .. attribute:: DateArray.minute      | Minute                             | [00-59] |
-| .. attribute:: DateArray.minutes     |                                    |         |
-+--------------------------------------+------------------------------------+---------+
-| .. attribute:: DateArray.second      | Seconds                            | [00-59] |
-| .. attribute:: DateArray.seconds     |                                    |         |
-+--------------------------------------+------------------------------------+---------+
-| Single :class:`Date` objects, with the same frequency as the instance               |
-+--------------------------------------+------------------------------------+---------+
-| .. attribute:: DateArray.start_date  | First date of the series           |         |
-|                                      | (in chronological order).          |         |
-+--------------------------------------+------------------------------------+---------+
-| .. attribute:: DateArray.end_date    | Last date of the series            |         |
-|                                      | (in chronological order).          |         |
-+--------------------------------------+------------------------------------+---------+
+
+.. htmlonly::
+
+   +--------------------------------------+------------------------------------+---------+
+   | Name                                 | Description                        |  Range  |
+   +======================================+====================================+=========+
+   | Integer ndarrays, with the same size as the instance.                               |
+   +--------------------------------------+------------------------------------+---------+
+   | .. attribute:: DateArray.year        | Year                               |   ...   |
+   | .. attribute:: DateArray.years       |                                    |         |
+   +--------------------------------------+------------------------------------+---------+
+   | .. attribute:: DateArray.qyear       | Quarter Year (1)                   |   ...   |
+   +--------------------------------------+------------------------------------+---------+
+   | .. attribute:: DateArray.quarter     | Quarter                            | [1-4]   |
+   | .. attribute:: DateArray.quarters    |                                    |         |
+   +--------------------------------------+------------------------------------+---------+
+   | .. attribute:: DateArray.month       | Month                              | [1-12]  |
+   | .. attribute:: DateArray.months      |                                    |         |
+   +--------------------------------------+------------------------------------+---------+
+   | .. attribute:: DateArray.week        | Week                               | [1-53]  |
+   | .. attribute:: DateArray.weeks       |                                    |         |
+   +--------------------------------------+------------------------------------+---------+
+   | .. attribute:: DateArray.day         | Day of the month                   | [1-31]  |
+   | .. attribute:: DateArray.days        |                                    |         |
+   +--------------------------------------+------------------------------------+---------+
+   | .. attribute:: DateArray.day_of_week | Day of the week, starting Monday   | [0-6]   |
+   | .. attribute:: DateArray.weekdays    |                                    |         |
+   +--------------------------------------+------------------------------------+---------+
+   | .. attribute:: DateArray.day_of_year | Day of the year, starting Jan-01   | [1-366] |
+   | .. attribute:: DateArray.yeardays    |                                    |         |
+   +--------------------------------------+------------------------------------+---------+
+   | .. attribute:: DateArray.hour        | Hour                               | [00-23] |
+   | .. attribute:: DateArray.hours       |                                    |         |
+   +--------------------------------------+------------------------------------+---------+
+   | .. attribute:: DateArray.minute      | Minute                             | [00-59] |
+   | .. attribute:: DateArray.minutes     |                                    |         |
+   +--------------------------------------+------------------------------------+---------+
+   | .. attribute:: DateArray.second      | Seconds                            | [00-59] |
+   | .. attribute:: DateArray.seconds     |                                    |         |
+   +--------------------------------------+------------------------------------+---------+
+   | Single :class:`Date` objects, with the same frequency as the instance               |
+   +--------------------------------------+------------------------------------+---------+
+   | .. attribute:: DateArray.start_date  | First date of the series           |         |
+   |                                      | (in chronological order).          |         |
+   +--------------------------------------+------------------------------------+---------+
+   | .. attribute:: DateArray.end_date    | Last date of the series            |         |
+   |                                      | (in chronological order).          |         |
+   +--------------------------------------+------------------------------------+---------+
 
 
 
@@ -316,17 +319,29 @@ Information methods
 The following methods give some information about the distribution of dates.
 They do not need any argument.
 
+.. htmlonly::
+   ==========================================  =============================================================================================
+   .. method:: DateArray.get_steps             Returns the time steps between consecutive dates, in the same unit as the instance frequency.
+   .. method:: DateArray.has_missing_dates     Returns whether the instance has missing dates.
+   .. method:: DateArray.has_duplicated_dates  Returns whether the instance has duplicated dates.
+   .. method:: DateArray.is_full               Returns whether the instance has no missing dates.
+   .. method:: DateArray.is_valid              Returns whether the instance is valid (that there are no missing nor duplicated dates).
+   .. method:: Date.is_chronological           Returns whether the instance is sorted in chronological order.
+   ==========================================  =============================================================================================
 
-==========================================  ========================================================================================
-.. method:: DateArray.get_steps             Returns the time steps between consecutive dates,
-                                            in the same unit as the instance frequency.
-.. method:: DateArray.has_missing_dates     Returns whether the instance has missing dates.
-.. method:: DateArray.has_duplicated_dates  Returns whether the instance has duplicated dates.
-.. method:: DateArray.is_full               Returns whether the instance has no missing dates.
-.. method:: DateArray.is_valid              Returns whether the instance is valid (that there are no missing nor duplicated dates).
-.. method:: Date.is_chronological           Returns whether the instance is sorted in chronological order.
-==========================================  ========================================================================================
-
+.. latexonly::
+   .. method:: DateArray.get_steps
+      Returns the time steps between consecutive dates, in the same unit as the instance frequency.
+   .. method:: DateArray.has_missing_dates
+      Returns whether the instance has missing dates.
+   .. method:: DateArray.has_duplicated_dates
+      Returns whether the instance has duplicated dates.
+   .. method:: DateArray.is_full
+      Returns whether the instance has no missing dates.
+   .. method:: DateArray.is_valid
+      Returns whether the instance is valid (that there are no missing nor duplicated dates).
+   .. method:: Date.is_chronological
+      Returns whether the instance is sorted in chronological order.
 
 
 Indexing methods

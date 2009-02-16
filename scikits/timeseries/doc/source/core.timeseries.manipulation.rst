@@ -17,6 +17,7 @@ In the following, only the significant differences will be illustrated.
    core.timeseries.operations
    core.timeseries.conversion
    core.timeseries.dates_manipulation
+   core.timeseries.io
 
 ..
 	Let's construct a list of months, starting on Jan 2005 and ending on Dec 2006, with a gap from Oct 2005 to Jan 2006.

@@ -1,11 +1,14 @@
 .. currentmodule:: scikits.timeseries.lib.reportlib
 .. moduleauthor:: Matt Knox <mattknox.ca@hotmail.com>
 
+.. _scikits_timeseries_report:
+
 =======
 Reports
 =======
 
-The :mod:`~scikits.timeseries.lib.reportlib` sub-module provides the :class:`Report` class for generating text based time series reports.
+The :mod:`~scikits.timeseries.lib.reportlib` sub-module provides 
+the :class:`Report` class for generating text based time series reports.
 
 
 

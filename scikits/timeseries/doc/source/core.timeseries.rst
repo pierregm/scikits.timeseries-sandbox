@@ -267,15 +267,32 @@ Date information
 
 The following methods access information about the :attr:`dates` attribute:
 
-===========================================  ========================================================================================
-.. method:: TimeSeries.get_steps             Returns the time steps between consecutive dates,
-                                             in the same unit as the instance frequency.
-.. method:: TimeSeries.has_missing_dates     Returns whether the instance has missing dates.
-.. method:: TimeSeries.has_duplicated_dates  Returns whether the instance has duplicated dates.
-.. method:: TimeSeries.is_full               Returns whether the instance has no missing dates.
-.. method:: TimeSeries.is_valid              Returns whether the instance is valid (that there are no missing nor duplicated dates).
-.. method:: TimeSeries.is_chronological      Returns whether the instance is sorted in chronological order.
-===========================================  ========================================================================================
+.. htmlonly::
+   ===========================================  ========================================================================================
+   .. method:: TimeSeries.get_steps             Returns the time steps between consecutive dates,
+                                                in the same unit as the instance frequency.
+   .. method:: TimeSeries.has_missing_dates     Returns whether the instance has missing dates.
+   .. method:: TimeSeries.has_duplicated_dates  Returns whether the instance has duplicated dates.
+   .. method:: TimeSeries.is_full               Returns whether the instance has no missing dates.
+   .. method:: TimeSeries.is_valid              Returns whether the instance is valid (that there are no missing nor duplicated dates).
+   .. method:: TimeSeries.is_chronological      Returns whether the instance is sorted in chronological order.
+   ===========================================  ========================================================================================
+
+.. latexonly::
+   .. method:: TimeSeries.get_steps
+      Returns the time steps between consecutive dates,
+      in the same unit as the instance frequency.
+   .. method:: TimeSeries.has_missing_dates
+      Returns whether the instance has missing dates.
+   .. method:: TimeSeries.has_duplicated_dates
+      Returns whether the instance has duplicated dates.
+   .. method:: TimeSeries.is_full
+      Returns whether the instance has no missing dates.
+   .. method:: TimeSeries.is_valid
+      Returns whether the instance is valid (that there are no missing nor duplicated dates).
+   .. method:: TimeSeries.is_chronological
+      Returns whether the instance is sorted in chronological order.
+
 
 .. autosummary::
    :toctree: generated/
