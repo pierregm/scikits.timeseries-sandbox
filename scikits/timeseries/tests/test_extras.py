@@ -216,24 +216,24 @@ year, month, A, B
 
     def test_explicit_structured_dtype(self):
         "Test tsfromtxt with an explicit structured dtype"
-        data = StringIO("2007,12,31,24,34,56,0")
-        dateconverter = lambda y, m, d: ts.Date('D', year=int(y), month=int(m),
-                                                day=int(d))
+        data = StringIO.StringIO("2007,12,31,24,34,56,0")
+        dateconverter = lambda y, m, d: Date('D', year=int(y), month=int(m),
+                                             day=int(d))
         ndtype = [('tobs', int), ('tmin', float), ('tmax', float), ('rain', float)]
         test = tsfromtxt(data, delimiter=",", dtype=ndtype,
                          datecols=(0, 1, 2), dateconverter=dateconverter)
         control = time_series([(24, 34.0, 56.0, 0.0)],
                               dtype=ndtype,
-                              start_date=ts.Date('D', '2007-12-01'))
+                              start_date=Date('D', '2007-12-01'))
         assert_equal(test, control)
         #
-        data = StringIO("2007,12,31,24,34,56,0")
+        data = StringIO.StringIO("2007,12,31,24,34,56,0")
         ndtype = [('tobs', int), ('tmin', int), ('tmax', int), ('rain', complex)]
         test = tsfromtxt(data, delimiter=",", dtype=ndtype,
                          datecols=(0, 1, 2), dateconverter=dateconverter)
         control = time_series([(24, 34.0, 56.0, 0.0)],
                               dtype=ndtype,
-                              start_date=ts.Date('D', '2007-12-01'))
+                              start_date=Date('D', '2007-12-01'))
         assert_equal(test, control)
 
 

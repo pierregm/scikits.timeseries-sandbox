@@ -215,7 +215,7 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
               missing='', missing_values=None,
               usecols=None, datecols=None,
               names=None, excludelist=None, deletechars=None,
-              case_sensitive=True, unpack=None, usemask=False, loose=True,
+              case_sensitive=True, unpack=None, loose=True,
               asrecarray=False):
     """
     Load a TimeSeries from a text file.
@@ -223,26 +223,26 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
     Each line of the input after the first `skiprows` ones is split at
     `delimiter`. Characters occuring after `comments` are discarded.
 
-    If a column is named 'dates' (case insensitive), it will be used to define
-    the dates. The `freq` parameter should be set to the expected frequency of
+    If a column is named ``'dates'`` (case insensitive), it is used to define
+    the dates. The ``freq`` parameter should be set to the expected frequency of
     the output series.
     If the date information spans several columns (for example, year in col #1,
     month in col #2...), a specific conversion function must be defined with
-    the `dateconverter` parameter. This function should accept as many inputs
-    as date columns, and return a valid Date object.
+    the ``dateconverter`` parameter. This function should accept as many inputs
+    as date columns, and return a valid :class:`Date` object.
 
     Parameters
     ----------
     fname : file or string
-        File or filename to read.  If the filename extension is `.gz` or `.bz2`,
-        the file is first decompressed.
-    dtype : data-type
-        Data type of the resulting array.  If this is a flexible data-type,
-        the resulting array will be 1-dimensional, and each row will be
-        interpreted as an element of the array. In this case, the number
-        of columns used must match the number of fields in the data-type,
-        and the names of each field will be set by the corresponding name
-        of the dtype.
+        File or filename to read.
+        If the file extension is ``.gz`` or ``.bz2``, the file is first
+        decompressed.
+    dtype : data-type, optional
+        Data type of the resulting array.
+        If it is a structured data-type, the resulting array is 1-dimensional,
+        and each row is interpreted as an element of the array. In this case, 
+        the number of columns used must match the number of fields in the dtype
+        and the names of each field are set by the corresponding name of the dtype.
         If None, the dtypes will be determined by the contents of each
         column, individually.
     comments : {string}, optional
@@ -259,8 +259,8 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
         provide a default value for missing data:
         ``converters = {3: lambda s: float(s or 0)}``.
     dateconverter : {function}, optional
-        Function to convert the date information to a Date object. 
-        This function requires as many parameters as number of datecols.
+        Function to convert the date information to a :class:`Date` object. 
+        This function requires as many parameters as number of ``datecols``.
         This parameter is mandatory if ``dtype=None``.
     missing : {string}, optional
         A string representing a missing value, irrespective of the column where
@@ -269,20 +269,21 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
         A dictionary mapping a column number to a string indicating whether the
         corresponding field should be masked.
     usecols : {None, sequence}, optional
-        Which columns to read, with 0 being the first.  For example,
-        ``usecols = (1,4,5)`` will extract the 2nd, 5th and 6th columns.
+        Which columns to read, with 0 the first column.  For example,
+        ``usecols = (1,4,5)`` extracts the 2nd, 5th and 6th columns only.
     datecols : {None, int, sequence}, optional
         Which columns store the date information.
     names : {True, string, sequence}, optional
-        If `names` is True, the field names are read from the first valid line
-        after the first `skiprows` lines.
-        If `names` is a sequence or a single-string of comma-separated names,
-        the names will be used to define the field names in a flexible dtype.
-        If `names` is None, the names of the dtype fields will be used, if any.
+        If ``names`` is ``True``, the field names are read from the first
+        valid line after the first ``skiprows`` lines.
+        If it is a sequence or a single-string of comma-separated names,
+        the names are used to define the field names in a structured dtype.
+        If ``None``, the names of the ``dtype`` fields will be used, if any.
     excludelist : {sequence}, optional
         A list of names to exclude. This list is appended to the default list
-        ['return','file','print']. Excluded names are appended an underscore:
-        for example, `file` would become `file_`.
+        ``['return','file','print']``. 
+        Excluded names are appended an underscore: for example, ``file`` would
+        become ``file_``.
     deletechars : {string}, optional
         A string combining invalid characters that must be deleted from the names.
     case_sensitive : {True, False], optional
@@ -291,11 +292,9 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
     unpack : {bool}, optional
         If True, the returned array is transposed, so that arguments may be
         unpacked using ``x, y, z = loadtxt(...)``
-    usemask : {bool}, optional
-        If True, returns a masked array.
-        If False, return a regular standard array.
-    asrecarray : {False, True}
-        Whether to return a TimeSeriesRecords or a series with flexible dtype.
+    asrecarray : {False, True}, optional
+        Whether to return a TimeSeriesRecords or a series with a structured 
+        dtype.
 
     Returns
     -------
@@ -307,14 +306,14 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
     * When spaces are used as delimiters, or when no delimiter has been given
       as input, there should not be any missing data between two fields.
     * When the variable are named (either by a flexible dtype or with `names`,
-      there must not be any header in the file (else a :exc:ValueError exception
-      is raised).
-    * If the datatype is not given explicitly (:keyword:`dtype=None`),
+      there must not be any header in the file (else a :exc:`ValueError`
+      exception is raised).
+    * If the datatype is not given explicitly (``dtype=None``),
       a :keyword:`dateconverter` must be given explicitly.
 
     Examples
     --------
-    >>> data = "year, month, a, b\n 2001, 01, 0.0, 10.\n 2001, 02, 1.1, 11."
+    >>> data = "year, month, a, b\\n 2001, 01, 0.0, 10.\\n 2001, 02, 1.1, 11."
     >>> dateconverter = lambda y, m: Date('M', year=int(y), month=int(m))
     >>> series = tsfromtxt(StringIO.StringIO(data), delimiter=',', names=true,
     ...                    datecols=(0,1), dateconverter=dateconverter,)

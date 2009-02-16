@@ -147,18 +147,17 @@ _doc_parameters = dict(
 mareturn="""
 masked_array
     Depending on the value of the ``field`` parameter, the method returns either
-       * a ndarray, if ``field=='_data'`` or if ``field=='_mask'``;
-       * a :class:`~numpy.ma.MaskedArray`, if ``field`` is None or a valid field.
+    *(i)* a ndarray, if ``field=='_data'`` or if ``field=='_mask'``;
+    *(ii)* a :class:`~numpy.ma.MaskedArray`, if ``field`` is None or a valid field.
 """,
 tsreturn="""
 time_series
     Depending on the value of the ``field`` parameter, the method returns:
-    
-    * a :class:`~scikits.timeseries.TimeSeries`, if ``field`` is None or a valid
-      field;
-    * a :class:`~scikits.timeseries.DateArray`, if ``field=='_dates'``;
-    * a ndarray, if ``field=='_data'`` or if ``field=='_mask'``;
-    * a :class:`~numpy.ma.MaskedArray`, if ``field=='_series'``.
+    *(i)*  a :class:`~scikits.timeseries.TimeSeries`, if ``field`` is None
+    or a valid field;
+    *(ii)* a :class:`~scikits.timeseries.DateArray`, if ``field=='_dates'``;
+    *(iii)* a ndarray, if ``field=='_data'`` or if ``field=='_mask'``;
+    *(iv)* a :class:`~numpy.ma.MaskedArray`, if ``field=='_series'``.
 """,
 readinput="""
 start : {None, int}, optional
