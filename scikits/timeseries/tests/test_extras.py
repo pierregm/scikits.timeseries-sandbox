@@ -77,6 +77,25 @@ class TestCountmissing(TestCase):
         result = accept_atmost_missing(series.convert('A'),0.05,True)
         assert_equal(result._mask.all(-1), [1,1])
 
+    def test_convert_to_annual(self):
+        "Test convert_to_annual"
+        base = dict(D=1, H=24, T=24*60, S=24*3600)
+        #for fq in ('D', 'H', 'T', 'S'):
+        # Don't test for minuTe and Second frequency, too time consuming.
+        for fq in ('D', 'H'):
+            dates = date_array(start_date=Date(fq, '2001-01-01 00:00:00'),
+                               end_date=Date(fq, '2004-12-31 23:59:59'))
+            bq = base[fq]
+            series = time_series(range(365*bq)*3+range(366*bq),
+                                 dates=dates)
+            control = ma.masked_all((4, 366*bq), dtype=series.dtype)
+            control[0, :58*bq] = range(58*bq)
+            control[0, 59*bq:] = range(58*bq, 365*bq)
+            control[[1, 2]] = control[0]
+            control[3] = range(366*bq)
+            test = convert_to_annual(series)
+            assert_equal(test, control)
+
 
 
 class TestFromTxt(TestCase):

@@ -994,7 +994,7 @@ class TimeSeriesPlot(Subplot, object):
     def tsplot(self,*args,**kwargs):
         """
     Plots the data parsed in argument to the current axes.
-    This command accepts the same optional keywords as :func:`matplotlib.plot`.
+    This command accepts the same optional keywords as :func:`matplotlib.pyplot.plot`.
 
     The argument ``args`` is a variable length argument, allowing for multiple
     data to be plotted at once. Acceptable combinations are:
@@ -1013,7 +1013,7 @@ class TimeSeriesPlot(Subplot, object):
           >>> tsplot('r-')
 
     a :class:`~scikits.timeseries.TimeSeries` object or one of its subclass
-       with or without a format string:
+    with or without a format string:
        The given time series is plotted with the given format.
        If no format string is given, the default format is used instead.
 

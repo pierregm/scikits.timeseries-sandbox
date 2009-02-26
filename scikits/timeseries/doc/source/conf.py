@@ -221,6 +221,7 @@ latex_use_modindex = False
 # -----------------------------------------------------------------------------
 intersphinx_mapping = {'http://docs.python.org/dev': None,
                        'http://docs.scipy.org/doc/numpy': None,
+                       'http://docs.scipy.org/doc/scipy/reference': None,
                        'http://matplotlib.sourceforge.net': None}
 
 

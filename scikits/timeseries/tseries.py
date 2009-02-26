@@ -1304,7 +1304,7 @@ def _extrema(self, method, axis=None,fill_value=None):
             _d = np.rollaxis(_dates,axis,0)[idx]
             _s = np.choose(idx, np.rollaxis(_series,axis,0))
             _d = np.choose(idx, np.rollaxis(_dates,axis,0))
-            result = time_series(_s, dates=_d)
+            result = time_series(_s, dates=_d, freq=_dates.freq)
         return result
 
 def _max(self, axis=None, fill_value=None):

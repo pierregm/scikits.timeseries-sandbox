@@ -23,7 +23,7 @@ from tseries import TimeSeries, time_series
 #from _preview import genfromtxt
 
 __all__ = ['accept_atmost_missing',
-           'count_missing',
+           'convert_to_annual', 'count_missing',
            'guess_freq',
            'isleapyear',
            'tsfromtxt']
@@ -96,6 +96,60 @@ def count_missing(series):
     elif period not in (12,7):
         raise NotImplementedError, "Not yet implemented for that frequency..."
     return missing
+
+
+
+def convert_to_annual(series):
+    """
+    Group a series by years, taking leap years into account.
+    
+    The output has as many rows as distinct years in the original series,
+    and as many columns as the length of a leap year in the units corresponding
+    to the original frequency (366 for daily frequency, 366*24 for hourly...).
+    The fist column of the output corresponds to Jan. 1st, 00:00:00,
+    while the last column corresponds to Dec, 31st, 23:59:59.
+    Entries corresponding to Feb. 29th are masked for non-leap years.
+
+    For example, if the initial series has a daily frequency, the 59th column
+    of the output always corresponds to Feb. 28th, the 61st column to Mar. 1st,
+    and the 60th column is masked for non-leap years.
+    With a hourly initial frequency, the (59*24)th column of the output always
+    correspond to Feb. 28th 23:00, the (61*24)th column to Mar. 1st, 00:00, and
+    the 24 columns between (59*24) and (61*24) are masked.
+
+    If the original frequency is less than daily, the output is equivalent to
+    ``series.convert('A', func=None)``.
+
+
+    Parameters
+    ----------
+    series : TimeSeries
+        A valid :class:`~scikits.timeseries.TimeSeries` object.
+
+    Returns
+    -------
+    aseries : TimeSeries
+        A 2D  :class:`~scikits.timeseries.TimeSeries` object with annual ('A')
+        frequency.
+    
+    """
+    dates = series.dates
+    if dates.freq < _c.FR_DAY:
+        return series.convert('A')
+    idx0228 = dates.date_to_index(Date(dates.freq,
+                                       year=dates[0].year, month=2, day=28,
+                                       hour=00, minute=00, second=00))
+    idx0301 = dates.date_to_index(Date(dates.freq,
+                                       year=dates[0].year, month=3, day=1,
+                                       hour=00, minute=00, second=00))
+    aseries = series.convert('A')
+    leapcondition = isleapyear(aseries.dates.years)
+    leapidx = np.arange(len(aseries), dtype=int)[~leapcondition]
+    aseries[leapidx, idx0301:] = aseries[leapidx, idx0228:idx0228-idx0301]
+    aseries[leapidx, idx0228:idx0301] = ma.masked
+    return aseries
+
+
 
 #.............................................................................
 def accept_atmost_missing(series, max_missing, strict=False):

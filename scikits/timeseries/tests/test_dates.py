@@ -122,7 +122,6 @@ class TestCreation(TestCase):
         # test from datetime.datetime object
         _dt = ts.Date(freq='D', datetime=datetime.datetime(2007, 1, 1, 0, 0, 0, 0))
         assert_equal(_dt, _tsdt)
-        print "finished test_fromsobjects"
 
 
     def test_consistent_value(self):
@@ -144,7 +143,6 @@ class TestCreation(TestCase):
         d = date_array(start_date=n, length=3)
         assert_equal(date_array(n,length=3), d)
         assert_equal(date_array(n, n+2), d)
-        print "finished test_shortcuts"
 
 
     def test_unsorted(self):

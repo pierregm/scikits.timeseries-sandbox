@@ -49,7 +49,8 @@ The following methods converts :class:`TimeSeries` from one frequency to another
 
 
 .. warning::
-   Be careful not to confuse the two methods :meth:`asfreq` and :meth:`convert`.
+   Be careful not to confuse the two methods :meth:`~TimeSeries.asfreq` 
+   and :meth:`~TimeSeries.convert`.
 
    * :meth:`~TimeSeries.asfreq` simply takes every date
      in the :attr:`~TimeSeries.dates` attribute of the
@@ -61,3 +62,10 @@ The following methods converts :class:`TimeSeries` from one frequency to another
      at the new frequency with no missing nor duplicated dates and intelligently
      places the data from the original series into appropriate points in the new
      series.
+
+
+.. autosummary::
+   :toctree: generated/
+
+   convert
+   scikits.timeseries.extras.convert_to_annual
