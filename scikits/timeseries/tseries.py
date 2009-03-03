@@ -262,8 +262,14 @@ def get_varshape(data, dates):
     err_args = ('shape', "data: %s" % str(dshape), "dates: %s" % str(tshape))
     # Same size: all is well
     #???: The (not dates.size) is introduced to deal with masked
-    if (not dates.size) or (dates.size == data.size):
+    if (not dates.size):
         return ()
+    if (dates.size == data.size):
+        if (dates.ndim > 1) or (data.ndim < 2):
+            return ()
+#    if (dates.size == data.size):
+#        if (dates.ndim > 1) or (data.ndim == 1):
+#            return ()
     # More dates than data: not good
     if (dates.size > data.size) or (data.ndim == 1):
         raise TimeSeriesCompatibilityError(*err_args)
@@ -478,13 +484,13 @@ class TimeSeries(MaskedArray, object):
         _data = MaskedArray.__new__(cls, data, mask=mask, **maparms)
 
         # Get the data .......................................................
-        if not subok or not isinstance(_data,TimeSeries):
+        if not subok or not isinstance(_data, TimeSeries):
             _data = _data.view(cls)
         if _data is masked:
             assert(np.size(dates)==1)
             return _data.view(cls)
         # Check that the dates and data are compatible in shape.
-        _data._varshape = get_varshape(_data,dates)
+        _data._varshape = get_varshape(_data, dates)
         # Set the dates
         _data._dates = dates
         if autosort:
@@ -1592,10 +1598,6 @@ def time_series(data, dates=None, start_date=None, length=None, freq=None,
         Constructor for the :class:`DateArray` class.
 
     """
-    maparms = dict(copy=copy, dtype=dtype, fill_value=fill_value, subok=True,
-                   keep_mask=keep_mask, hard_mask=hard_mask,)
-    data = masked_array(data, mask=mask, **maparms)
-
     freq = check_freq(freq)
 
     if dates is None:
@@ -1615,15 +1617,15 @@ def time_series(data, dates=None, start_date=None, length=None, freq=None,
         if (freq != _c.FR_UND) and (_dates.freq != freq):
             _dates = _dates.asfreq(freq)
     else:
-        dshape = data.shape
+        dshape = np.shape(data)
         if len(dshape) > 0:
             length = length or dshape[0]
             _dates = date_array(start_date=start_date, freq=freq, length=length)
         else:
             _dates = date_array([], freq=freq)
 
-    return TimeSeries(data=data, dates=_dates,
-                      copy=copy, dtype=dtype,
+    return TimeSeries(data=data, mask=mask, dates=_dates,
+                      copy=copy, dtype=dtype, subok=True,
                       fill_value=fill_value, keep_mask=keep_mask,
                       hard_mask=hard_mask, autosort=autosort)
 

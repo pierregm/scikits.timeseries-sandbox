@@ -133,15 +133,18 @@ def convert_to_annual(series):
         frequency.
     
     """
-    dates = series.dates
-    if dates.freq < _c.FR_DAY:
+    freq = series._dates.freq
+    if freq < _c.FR_DAY:
         return series.convert('A')
-    idx0228 = dates.date_to_index(Date(dates.freq,
-                                       year=dates[0].year, month=2, day=28,
-                                       hour=00, minute=00, second=00))
-    idx0301 = dates.date_to_index(Date(dates.freq,
-                                       year=dates[0].year, month=3, day=1,
-                                       hour=00, minute=00, second=00))
+    baseidx = np.array((59, 60), dtype=int)
+    if (freq == _c.FR_DAY):
+        (idx0228, idx0301) = baseidx
+    elif (freq == _c.FR_HR):
+        (idx0228, idx0301) = baseidx*24
+    elif (freq == _c.FR_MIN):
+        (idx0228, idx0301) = baseidx*24*60
+    elif (freq == _c.FR_SEC):
+        (idx0228, idx0301) = baseidx*24*3600
     aseries = series.convert('A')
     leapcondition = isleapyear(aseries.dates.years)
     leapidx = np.arange(len(aseries), dtype=int)[~leapcondition]

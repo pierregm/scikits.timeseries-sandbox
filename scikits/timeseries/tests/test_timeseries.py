@@ -292,6 +292,18 @@ class TestCreation(TestCase):
             raise TimeSeriesCompatibilityError(errmsg)
 
 
+    def test_varshape(self):
+        "Test some corner case of varshape"
+        test = ts.time_series(np.ones((10, 2)), start_date=ts.now('d'))
+        assert(test.varshape, (2,))
+        #
+        test = ts.time_series(np.ones((10, 1)), start_date=ts.now('d'))
+        assert(test.varshape, (1,))
+        #
+        test = ts.time_series(np.ones((10,)), start_date=ts.now('d'))
+        assert(test.varshape, ())
+
+
 #------------------------------------------------------------------------------
 
 class TestArithmetics(TestCase):
@@ -882,7 +894,7 @@ class TestTimeSeriesMethods(TestCase):
         test = series.reshape((-1, 1))
         control = ts.time_series([[[1, 2]], [[3, 4]]],
                                  mask=[[[0, 0]], [[1, 0]]],
-                                 dates=series.dates.reshape(-1, 1))
+                                 dates=series.dates)
         assert_equal(test, control)
         assert_equal(test.mask, control.mask)
         assert_equal(test.dates, control.dates)
@@ -890,7 +902,7 @@ class TestTimeSeriesMethods(TestCase):
         test = series.reshape((1, -1, 1))
         control = ts.time_series([[[[1, 2]], [[3, 4]]]],
                                  mask= [[[[0, 0]], [[1, 0]]]],
-                                 dates=series.dates.reshape(1, -1, 1))
+                                 dates=series.dates)
         assert_equal(test, control)
         assert_equal(test.mask, control.mask)
         assert_equal(test.dates, control.dates)
