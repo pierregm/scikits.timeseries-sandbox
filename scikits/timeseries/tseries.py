@@ -910,8 +910,8 @@ class TimeSeries(MaskedArray, object):
 
     def reshape(self, *newshape, **kwargs):
         """
-
     Returns a time series containing the data of a, but with a new shape.
+
     The result is a view to the original array; if this is not possible,
     a ValueError is raised.
 
@@ -938,10 +938,10 @@ class TimeSeries(MaskedArray, object):
         if self._varshape:
             try:
                 bkdtype = (self.dtype, self._varshape)
-                _series = self.view([('', bkdtype)])
-                result = MaskedArray.reshape(_series, *newshape, **kwargs)
-                result = result.view(bkdtype)
-#                result._dates = ndarray.reshape(self._dates, *newshape, **kwargs)
+                _series = self._series.view([('', bkdtype)])
+                result = _series.reshape(*newshape, **kwargs)
+                result = result.view(dtype=bkdtype, type=type(self))
+                result._dates = ndarray.reshape(self._dates, *newshape, **kwargs)
             except:
                 err_msg = "Reshaping a nV/nD series is not implemented yet !"
                 raise NotImplementedError(err_msg)
@@ -949,6 +949,7 @@ class TimeSeries(MaskedArray, object):
         else:
             result = MaskedArray.reshape(self, *newshape, **kwargs)
             result._dates = ndarray.reshape(self._dates, *newshape, **kwargs)
+            result._varshape = ()
         return result
 
     #.........................................................................

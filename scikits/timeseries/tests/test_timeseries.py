@@ -739,97 +739,6 @@ class TestTimeSeriesMethods(TestCase):
         del(self.info['i'])
         return
 
-    def test_reshaping_1D(self):
-        "Tests the reshaping of a 1D series."
-        series1D = self.info['series1D']
-        newshape = (3,1)
-        test1D = series1D.reshape(newshape)
-        assert_equal(test1D.shape, newshape)
-        assert_equal(test1D.series.shape, newshape)
-        assert_equal(test1D.dates.shape, newshape)
-        # Make sure we haven't propagated the new shape
-        self.failUnless(test1D.shape != series1D.shape)
-        self.failUnless(test1D.dates.shape != series1D.dates.shape)
-        # Using .shape
-        test1D = series1D.copy()
-        test1D.shape = newshape
-        assert_equal(test1D.shape, newshape)
-        assert_equal(test1D.series.shape, newshape)
-        assert_equal(test1D.dates.shape, newshape)
-        self.failUnless(series1D.dates.shape != newshape)
-        # Using multiple args
-        test1D = series1D.reshape(*newshape)
-        assert_equal(test1D.shape, newshape)
-
-
-    def test_reshaping_2D(self):
-        "Tests the reshaping of a nV/nD series."
-        series3V = self.info['series3V']
-        newshape = (1, 3, 3)
-        try:
-            test3V = series3V.reshape(newshape)
-            assert_equal(test3V.shape, newshape)
-            assert_equal(test3V.series.shape, newshape)
-            assert_equal(test3V.dates.shape, (1, 3))
-        except NotImplementedError:
-            pass
-        else:
-            raise Exception("Reshaping nV/nD series should be implemented!")
-        # Using .shape
-        try:
-            test3V = series3V.copy()
-            test3V.shape = newshape
-            assert_equal(test3V.shape, newshape)
-            assert_equal(test3V.series.shape, newshape)
-            assert_equal(test3V.dates.shape, (1, 3))
-        except NotImplementedError:
-            pass
-        else:
-            raise Exception("Reshaping nV/nD series should be implemented!")
-
-
-    def test_ravel_1D(self):
-        "Test .ravel on 1D data"
-        series = ts.time_series([1, 2, 3, 4],
-                                mask=[0, 0, 1, 0],
-                                start_date=ts.Date('M','2009-01'))
-        test = series.ravel()
-        assert_equal(test, series)
-        assert_equal(test.mask, series.mask)
-        assert_equal(test.dates, series.dates)
-
-    def test_ravel_1V(self):
-        "Test .ravel on nD/1V data"
-        dates = ts.date_array(start_date=ts.Date('M', '2009-01'),
-                              length=4)
-        series = ts.time_series([[1, 2], [3, 4]],
-                                mask=[[0, 0], [1, 0]],
-                                dates=dates)
-        test = series.ravel()
-        assert_equal(test.data, series.data.ravel())
-        assert_equal(test.mask, series.mask.ravel())
-        assert_equal(test.dates, series.dates.ravel())
-
-    def test_ravel_2V(self):
-        "Test .ravel on 2V data"
-        series = ts.time_series([[1, 2], [3, 4]],
-                                mask=[[0, 0], [1, 0]],
-                                start_date=ts.Date('M', '2009-01'),)
-        test = series.ravel()
-        assert_equal(test.data, series.data)
-        assert_equal(test.mask, series.mask)
-        assert_equal(test.dates, series.dates)
-        #
-        dates = ts.date_array(start_date=ts.Date('M', '2009-01'),
-                              length=2)
-        series = ts.time_series([[[1, 2]], [[3, 4]]],
-                                mask=[[[0, 0]], [[1, 0]]],
-                                dates=dates.reshape(1, 2))
-        test = series.ravel()
-        assert_equal(test.data, [[1, 2], [3, 4]])
-        assert_equal(test.mask, [[0, 0], [1, 0]])
-        assert_equal(test.dates, series.dates.ravel())
-
 
     def test_toflex_1D(self):
         "Test conversion to records on 1D series"
@@ -885,6 +794,15 @@ class TestTimeSeriesMethods(TestCase):
         assert_equal(test, control)
         assert_equal(test.mask, control.mask)
         assert_equal(test.dates, control.dates)
+        assert_equal(test.varshape, series.varshape)
+        #
+        test = series.copy()
+        test.shape = (2, 2)
+        assert_equal(test, control)
+        assert_equal(test.mask, control.mask)
+        assert_equal(test.dates, control.dates)
+        assert_equal(test.varshape, series.varshape)
+
 
     def test_reshape_1V(self):
         "Test reshape on series w/ 2 variables"
@@ -894,18 +812,132 @@ class TestTimeSeriesMethods(TestCase):
         test = series.reshape((-1, 1))
         control = ts.time_series([[[1, 2]], [[3, 4]]],
                                  mask=[[[0, 0]], [[1, 0]]],
-                                 dates=series.dates)
+                                 dates=series.dates.reshape((-1, 1)))
         assert_equal(test, control)
         assert_equal(test.mask, control.mask)
         assert_equal(test.dates, control.dates)
+        assert_equal(test.varshape, control.varshape)
         #
         test = series.reshape((1, -1, 1))
         control = ts.time_series([[[[1, 2]], [[3, 4]]]],
                                  mask= [[[[0, 0]], [[1, 0]]]],
-                                 dates=series.dates)
+                                 dates=series.dates.reshape((1, -1, 1)))
         assert_equal(test, control)
         assert_equal(test.mask, control.mask)
         assert_equal(test.dates, control.dates)
+
+
+    def test_reshaping_1D(self):
+        "Tests the reshaping of a 1D series."
+        series1D = self.info['series1D']
+        newshape = (3,1)
+        test1D = series1D.reshape(newshape)
+        assert_equal(test1D.shape, newshape)
+        assert_equal(test1D.series.shape, newshape)
+        assert_equal(test1D.dates.shape, newshape)
+        assert_equal(test1D.varshape, series1D.varshape)
+        # Make sure we haven't propagated the new shape
+        self.failUnless(test1D.shape != series1D.shape)
+        self.failUnless(test1D.dates.shape != series1D.dates.shape)
+        # Using .shape
+        test1D = series1D.copy()
+        test1D.shape = newshape
+        assert_equal(test1D.shape, newshape)
+        assert_equal(test1D.series.shape, newshape)
+        assert_equal(test1D.dates.shape, newshape)
+        self.failUnless(series1D.dates.shape != newshape)
+        assert_equal(test1D.varshape, series1D.varshape)
+        # Using multiple args
+        test1D = series1D.reshape(*newshape)
+        assert_equal(test1D.shape, newshape)
+        assert_equal(test1D.varshape, series1D.varshape)
+
+
+    def test_reshape_batch(self):
+        "Test a succession of reshape"
+        a = ts.time_series([1,2,3], start_date=ts.now('D'))
+        test = a.reshape(-1, 1)
+        assert_equal(test.shape, (3, 1))
+        assert_equal(test.varshape, ())
+        test = a.reshape(-1, 1).reshape(-1)
+        assert_equal(test.shape, (3,))
+        assert_equal(test.varshape, ())
+
+
+    def test_reshaping_2D(self):
+        "Tests the reshaping of a nV/nD series."
+        series3V = self.info['series3V']
+        newshape = (1, 3, 3)
+        try:
+            test3V = series3V.reshape(newshape)
+            assert_equal(test3V.shape, newshape)
+            assert_equal(test3V.series.shape, newshape)
+            assert_equal(test3V.dates.shape, (1, 3))
+            assert_equal(test3V.varshape, series3V.varshape)
+        except NotImplementedError:
+            pass
+        else:
+            raise Exception("Reshaping nV/nD series should be implemented!")
+        # Using .shape
+        try:
+            test3V = series3V.copy()
+            test3V.shape = newshape
+            assert_equal(test3V.shape, newshape)
+            assert_equal(test3V.series.shape, newshape)
+            assert_equal(test3V.dates.shape, (1, 3))
+            assert_equal(test3V.varshape, series3V.varshape)
+        except NotImplementedError:
+            pass
+        else:
+            raise Exception("Reshaping nV/nD series should be implemented!")
+
+
+    def test_ravel_1D(self):
+        "Test .ravel on 1D data"
+        series = ts.time_series([1, 2, 3, 4],
+                                mask=[0, 0, 1, 0],
+                                start_date=ts.Date('M','2009-01'))
+        test = series.ravel()
+        assert_equal(test, series)
+        assert_equal(test.mask, series.mask)
+        assert_equal(test.dates, series.dates)
+        assert_equal(test.varshape, series.varshape)
+
+    def test_ravel_1V(self):
+        "Test .ravel on nD/1V data"
+        dates = ts.date_array(start_date=ts.Date('M', '2009-01'),
+                              length=4)
+        series = ts.time_series([[1, 2], [3, 4]],
+                                mask=[[0, 0], [1, 0]],
+                                dates=dates)
+        test = series.ravel()
+        assert_equal(test.data, series.data.ravel())
+        assert_equal(test.mask, series.mask.ravel())
+        assert_equal(test.dates, series.dates.ravel())
+        assert_equal(test.varshape, series.varshape)
+        assert_equal(test.varshape, ())
+
+    def test_ravel_2V(self):
+        "Test .ravel on 2V data"
+        series = ts.time_series([[1, 2], [3, 4]],
+                                mask=[[0, 0], [1, 0]],
+                                start_date=ts.Date('M', '2009-01'),)
+        test = series.ravel()
+        assert_equal(test.data, series.data)
+        assert_equal(test.mask, series.mask)
+        assert_equal(test.dates, series.dates)
+        assert_equal(test.varshape, series.varshape)
+        #
+        dates = ts.date_array(start_date=ts.Date('M', '2009-01'),
+                              length=2)
+        series = ts.time_series([[[1, 2]], [[3, 4]]],
+                                mask=[[[0, 0]], [[1, 0]]],
+                                dates=dates.reshape(1, 2))
+        test = series.ravel()
+        assert_equal(test.data, [[1, 2], [3, 4]])
+        assert_equal(test.mask, [[0, 0], [1, 0]])
+        assert_equal(test.dates, series.dates.ravel())
+        assert_equal(test.varshape, (2,))
 
 
 #------------------------------------------------------------------------------
