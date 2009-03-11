@@ -46,16 +46,19 @@ import const as _c
 import cseries
 
 __all__ = ['TimeSeries','TimeSeriesCompatibilityError','TimeSeriesError',
-           'adjust_endpoints', 'align_series', 'align_with','aligned','asrecords',
+           'adjust_endpoints', 'align_series', 'align_with', 'aligned',
+           'asrecords',
            'compressed', 'concatenate', 'convert',
            'day','day_of_year',
            'empty_like',
-           'fill_missing_dates','first_unmasked_val','flatten',
+           'fill_missing_dates', 'find_duplicated_dates', 'first_unmasked_val',
+           'flatten',
            'hour',
            'last_unmasked_val',
            'minute','month',
            'pct',
            'quarter',
+           'remove_duplicated_dates',
            'second','split','stack',
            'time_series','tofile','tshift','masked','nomask',
            'week','weekday',
@@ -773,6 +776,17 @@ class TimeSeries(MaskedArray, object):
     def sort_chronologically(self):
         """
     Sort the series by chronological order (in place).
+
+    Notes
+    -----
+    This method sorts the series **in place**.
+    To sort the a copy of the series, use the :func:`sort_chronologically`
+    function.
+
+    See Also
+    --------
+    sort_chronologically
+        Equivalent function.
         """
         _dates = self._dates
         _series = self._series
@@ -1277,6 +1291,7 @@ def _tsreconstruct(genclass, baseclass, baseshape, dateshape, basetype, fill_val
     return genclass.__new__(genclass, _series, dates=_dates, mask=_mask,
                             dtype=basetype, fill_value=fill_value)
 
+
 def _attrib_dict(series, exclude=[]):
     """this function is used for passing through attributes of one
 time series to a new one being created"""
@@ -1630,10 +1645,21 @@ def time_series(data, dates=None, start_date=None, length=None, freq=None,
                       fill_value=fill_value, keep_mask=keep_mask,
                       hard_mask=hard_mask, autosort=autosort)
 
+
+
+
 ##### --------------------------------------------------------------------------
 #---- ... Additional functions ...
 ##### --------------------------------------------------------------------------
 
+
+def sort_chronologically(series):
+    """
+    Returns a copy of series, sorted chronologically.
+    """
+    series = series.copy()
+    series.sort_chronologically()
+    return series
 
 
 def asrecords(series):
@@ -1868,6 +1894,8 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
     newseries._update_from(series)
     return newseries
 
+
+
 def convert(series, freq, func=None, position='END', *args, **kwargs):
     """
     Converts a series from one frequency to another, by manipulating both the
@@ -1946,7 +1974,8 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
     return obj
 TimeSeries.convert = convert
 
-#...............................................................................
+
+
 def tshift(series, nper, copy=True):
     """
     Returns a series of the same size as `series`, with the same `start_date`
@@ -1996,6 +2025,7 @@ def tshift(series, nper, copy=True):
     newseries._update_from(series)
     return newseries
 TimeSeries.tshift = tshift
+
 #...............................................................................
 def _get_type_num_double(dtype):
     """
@@ -2006,7 +2036,8 @@ def _get_type_num_double(dtype):
     if dtype.num  < np.dtype('f').num:
         return np.dtype('d')
     return dtype
-#...............................................................................
+
+
 def pct(series, nper=1):
     """
     Returns the rolling percentage change of the series.
@@ -2049,7 +2080,9 @@ def pct(series, nper=1):
     newseries._update_from(series)
     return newseries
 TimeSeries.pct = pct
-#...............................................................................
+
+
+
 def fill_missing_dates(data, dates=None, freq=None, fill_value=None):
     """
     Finds and fills the missing dates in a time series. The data
@@ -2158,7 +2191,61 @@ def fill_missing_dates(data, dates=None, freq=None, fill_value=None):
     _data._dates = newdates
     return _data
 TimeSeries.fill_missing_dates = fill_missing_dates
-#..............................................................................
+
+
+
+def find_duplicated_dates(series):
+    """
+    Return a dictionary (duplicated dates <> indices) for the input series.
+
+    The indices are given as a tuple of ndarrays, a la :meth:`nonzero`.
+
+    Parameters
+    ----------
+    series : TimeSeries, DateArray
+        A valid :class:`TimeSeries` or :class:`DateArray` object.
+
+    Examples
+    --------
+    >>> series = time_series(np.arange(10),
+                            dates=[2000, 2001, 2002, 2003, 2003,
+                                   2003, 2004, 2005, 2005, 2006], freq='A')
+    >>> test = find_duplicated_dates(series)
+     {<A-DEC : 2003>: (array([3, 4, 5]),), <A-DEC : 2005>: (array([7, 8]),)}
+    """
+    dates = getattr(series, '_dates', series)
+    steps = dates.get_steps()
+    duplicated_dates = tuple(set(dates[steps==0]))
+    indices = {}
+    for d in duplicated_dates:
+        indices[d] = (dates==d).nonzero()
+    return indices
+
+
+
+def remove_duplicated_dates(series):
+    """
+    Remove the entries of `series` corresponding to duplicated dates.
+
+    The series is first sorted in chronological order.
+    Only the first occurence of a date is then kept, the others are discarded.
+
+    Parameters
+    ----------
+    series : TimeSeries
+        Time series to process
+    """
+    dates = getattr(series, '_dates', series)
+    steps = np.concatenate(([1,], dates.get_steps()))
+    if not dates.is_chronological():
+        series = series.copy()
+        series.sort_chronologically()
+        dates = series._dates
+    return series[steps.nonzero()]
+
+
+
+
 def stack(*series):
     """
     Performs a column_stack on the data from each series, and the
@@ -2172,6 +2259,8 @@ def stack(*series):
     _timeseriescompat_multiple(*series)
     return time_series(ma.column_stack(series), series[0]._dates,
                        **_attrib_dict(series[0]))
+
+
 
 def concatenate(series, axis=0, remove_duplicates=True, fill_missing=False):
     """
@@ -2230,7 +2319,9 @@ def concatenate(series, axis=0, remove_duplicates=True, fill_missing=False):
     if fill_missing:
         result = fill_missing_dates(result)
     return result
-#...............................................................................
+
+
+
 def empty_like(series):
     """
     Returns an empty series with the same dtype, mask and dates as series.

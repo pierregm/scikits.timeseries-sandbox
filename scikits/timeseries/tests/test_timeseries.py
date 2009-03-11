@@ -25,7 +25,8 @@ from scikits.timeseries import \
     TimeSeries, TimeSeriesError, TimeSeriesCompatibilityError, \
     tseries, Date, date_array, now, time_series, \
     adjust_endpoints, align_series, align_with, \
-    concatenate, fill_missing_dates, split, stack
+    concatenate, fill_missing_dates, find_duplicated_dates, \
+    remove_duplicated_dates, split, stack
 
 get_varshape = tseries.get_varshape
 _timeseriescompat_multiple = tseries._timeseriescompat_multiple
@@ -1261,6 +1262,75 @@ test_dates test suite.
         self.failUnless(_pct[0] is masked)
         assert_equal(_pct[1], 1.0)
         assert_equal(_pct[2], 0.5)
+
+
+    def test_find_duplicated_dates(self):
+        "Test find_duplicated_dates"
+        years = ['2000', '2001', '2002', '2003', '2003',
+                 '2003', '2004', '2005', '2005', '2006']
+        series = time_series(np.arange(len(years)), dates=years, freq='A')
+        test = find_duplicated_dates(series)
+        control = {Date('A', '2003'): (np.array([3, 4, 5]),),
+                   Date('A', '2005'): (np.array([7, 8]),),}
+        assert_equal(test, control)
+    #
+    def test_find_duplicated_dates_allduplicated(self):
+        "Test find_duplicated_dates w/all duplicates"
+        series = time_series([0, 1, 2, 3, 4],
+                             dates=[2000, 2000, 2000, 2000, 2000], freq='A')
+        test = find_duplicated_dates(series)
+        control = {Date('A', '2000'): (np.array([0, 1, 2, 3, 4]),),}
+        assert_equal(test, control)
+    #
+    def test_find_duplicated_dates_noduplicates(self):
+        "Test find_duplicated_dates w/o duplicates"
+        series = time_series(np.arange(5), start_date=Date('A', '2001'))
+        test = find_duplicated_dates(series)
+        assert_equal(test, {})
+
+
+    def test_remove_duplicated_dates(self):
+        "Test remove_duplicated_dates"
+        years = ['2000', '2001', '2002', '2003', '2003',
+                 '2003', '2004', '2005', '2005', '2006']
+        series = time_series(np.arange(len(years)), dates=years, freq='A')
+        test = remove_duplicated_dates(series)
+        control = time_series([0, 1, 2, 3, 6, 7, 9], 
+                              start_date=Date('A', '2000'))
+        assert_equal(test, control)
+        assert_equal(test._dates, control._dates)
+    #
+    def test_remove_duplicated_dates_allduplicates(self):
+        "Test remove_duplicated_dates w/ all duplicates"
+        years = ['2000', '2000', '2000', '2000', '2000']
+        series = time_series(np.arange(len(years)), dates=years, freq='A')
+        test = remove_duplicated_dates(series)
+        control = time_series([0,], 
+                              start_date=Date('A', '2000'))
+        assert_equal(test, control)
+        assert_equal(test._dates, control._dates)
+    #
+    def test_remove_duplicated_dates_noduplicates(self):
+        "Test remove_duplicated_dates w/o duplicates"
+        series = time_series(np.arange(5), start_date=Date('A', '2001'))
+        test = remove_duplicated_dates(series)
+        assert_equal(test, series)
+        assert_equal(test._dates, series._dates)
+    #
+    def test_remove_duplicated_dates_nonchrono(self):
+        "Test remove_duplicated_dates on non-chronological series"
+        series = time_series([0, 1, 2, 3, 4, 5, 6],
+                             dates=[2005, 2005, 2004, 2003, 2002, 2002, 2002],
+                             freq='A',
+                             autosort=False)
+        test = remove_duplicated_dates(series)
+        control = time_series([0, 2, 3, 4],
+                              dates=[2005, 2004, 2003, 2002], freq='A',
+                              autosort=True)
+        assert_equal(test, control)
+        assert_equal(test._dates, control._dates)
+
+
 
 
 #------------------------------------------------------------------------------

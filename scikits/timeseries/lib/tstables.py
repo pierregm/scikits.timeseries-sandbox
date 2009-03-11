@@ -126,8 +126,6 @@ Methods
 
 """
 
-
-
 import itertools
 
 import numpy as np
@@ -137,10 +135,14 @@ from numpy.ma import MaskedArray, masked
 
 from scikits.timeseries import TimeSeries, DateArray, time_series
 
-import tables
-from tables import File, Table, openFile
-from tables.file import _checkfilters
-from tables.parameters import EXPECTED_ROWS_TABLE
+try:
+    import tables
+    from tables import File, Table, openFile
+    from tables.file import _checkfilters
+    from tables.parameters import EXPECTED_ROWS_TABLE
+except ImportError:
+    import warnings
+    warnings.warn("The 'pytables' module is not installed!")
 
 
 _doc_parameters = dict(
