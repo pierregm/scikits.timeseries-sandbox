@@ -18,3 +18,6 @@ except DistributionNotFound:
     else:
         # package not installed through setup tools, just leave version undefined
         __version__ = None
+
+# Make an alias (sometimes it's easier to drop the _).
+version = __version__

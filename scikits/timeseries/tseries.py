@@ -198,9 +198,11 @@ def _timeseriescompat(a, b, raise_error=True):
     return True
 
 def _timeseriescompat_multiple(*series):
-    """Checks the date compatibility of multiple TimeSeries objects.
+    """
+    Checks the date compatibility of multiple TimeSeries objects.
     Returns True if everything's fine, or raises an exception. Unlike
-    the binary version, all items must be TimeSeries objects."""
+    the binary version, all items must be TimeSeries objects.
+    """
 
     defsteps = series[0]._dates.get_steps()
 
@@ -872,12 +874,12 @@ class TimeSeries(MaskedArray, object):
 
     def ravel(self):
         """
-    Returns a flattened version of the instance.
+    Returns a ravelled view of the instance.
 
     If the instance corresponds to one variable (e.g., ``self.varshape == ()``),
     the result is the ravelled view of the input.
     Otherwise, the result is actually a TimeSeries where the `series` attribute
-    is a reshaped version of the input and where the `dates` attribute is
+    is a reshaped view of the input and where the `dates` attribute is
     a ravelled view of the input `dates` attribute.
 
     Examples
@@ -1337,7 +1339,7 @@ def _max(self, axis=None, fill_value=None):
     ----------
     axis : int, optional
         Axis along which to perform the operation.
-        If None, applies to a flattened version of the array.
+        If None, applies to a flattened view of the array.
     fill_value : {var}, optional
         Value used to fill in the masked values.
         If None, use the the output of maximum_fill_value().
@@ -1353,7 +1355,7 @@ def _min(self,axis=None,fill_value=None):
     ----------
     axis : int, optional
         Axis along which to perform the operation.
-        If None, applies to a flattened version of the array.
+        If None, applies to a flattened view of the array.
     fill_value : {var}, optional
         Value used to fill in the masked values.
         If None, use the the output of minimum_fill_value().
