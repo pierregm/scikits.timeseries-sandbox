@@ -573,8 +573,9 @@ class DateArray(ndarray):
 
         fromfreq = self.freq
         if fromfreq == _c.FR_UND:
-            fromfreq = _c.FR_DAY
-        new = cseries.DA_asfreq(np.asarray(self), fromfreq, tofreq, relation[0])
+            new = self.__array__()
+        else:
+            new = cseries.DA_asfreq(self.__array__(), fromfreq, tofreq, relation[0])
         return DateArray(new, freq=freq)
 
     def find_dates(self, *dates):

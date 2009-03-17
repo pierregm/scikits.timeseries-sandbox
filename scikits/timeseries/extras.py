@@ -193,78 +193,56 @@ def accept_atmost_missing(series, max_missing, strict=False):
         series[missing >= max_missing] = masked
     return series
 
-
 def guess_freq(dates):
     """
-    Tries to estimate the frequency of a list of dates or datetime objects
-    by checking the steps between consecutive dates.
-    The steps should be in days.
-    Returns a frequency code.
+    Return an estimate of the frequency from a list of dates.
+
+    The frequency is estimated from the difference of dates (in days or seconds)
+    after chronological sorting.
+
+
+    Parameters
+    ----------
+    dates : var
+        Sequence of dates
+
+    Notes
+    -----
+    * In practice, the list of dates is first transformed into a list of
+      :class:`datetime.datetime` objects.
+    * The estimated frequency can *never* be ``_c.FR_BUS`` (weekdays).
     """
-    # To do: consolidate currently separate logic for dates being datetime
-    # objects vs timeseries dates or ints
-
-    if type(dates[0]) is dt.datetime:
-        sorted_dates = np.sort(dates)
-        ddif = np.diff(sorted_dates)
-        dset = set(ddif)
-        try:
-            dset.remove(dt.timedelta(0))
-        except:
-            pass
-        res = min(dset)
-        if getattr(res, 'seconds', 0) >= 1:
-            fcode = _c.FR_SEC
-        elif getattr(res, 'seconds', 0) >= 60:
-            fcode = _c.FR_MIN
-        elif getattr(res, 'seconds', 0) >= 60*60:
-            fcode = _c.FR_HR
-        elif getattr(res, 'day', 0) >= 1:
-            fcode = _c.FR_DAY
-        elif getattr(res, 'day', 0) >= 7:
-            fcode = _c.FR_WK
-        elif getattr(res, 'month', 0) >= 1:
-            fcode = _c.FR_MTH
-        elif getattr(res, 'month', 0) >= 3:
-            fcode = _c.FR_QTR
-        elif getattr(res, 'year', 0) >= 1:
-            fcode = _c.FR_ANN
+    # Set to an array of datetimes
+    dates = np.array(ts.date_array(dates, freq='S').tolist())
+    # Sort and take the differences
+    ddif = np.diff(np.sort(dates))
+    incs = np.fromiter((d.seconds for d in ddif), dtype=int)
+    if incs.any():
+        minincs = min(incs)
+        if (minincs > 3599) and not np.all(incs % 3600 > 0):
+            freq = _c.FR_HR
+        elif minincs < 59:
+            freq = _c.FR_SEC
         else:
-            warnings.warn("Unable to estimate the frequency! %s" % res.__str__())
-            fcode = _c.FR_UND
+            freq = _c.FR_MIN
+        return freq
+    incs = np.fromiter(((d.days % 365) for d in ddif), dtype=int)
+    (mindays, maxdays) = (min(incs), max(incs))
+    if mindays > 360:
+        freq = _c.FR_ANN
+    elif (mindays > 88):
+        qincs = [89, 90, 91, 92, 273, 274, 275, 276, 277]
+        if np.all([i in qincs for i in (incs % 365)]):
+            freq = _c.FR_QTR
+        else:
+            freq = _c.FR_MTH
+    elif (mindays > 27):
+        freq = _c.FR_MTH
+    elif (mindays % 7 == 0) and np.all((incs % 7) == 0):
+        freq = _c.FR_WK
     else:
-        ddif = np.asarray(np.diff(dates))
-        ddif.sort()
-        if ddif.size == 0:
-            fcode = _c.FR_UND
-        elif ddif[0] == ddif[-1] == 1.:
-            fcode = _c.FR_DAY
-        elif (ddif[0] == 1.) and (ddif[-1] == 3.):
-            fcode = _c.FR_BUS
-        elif (ddif[0] > 3.) and  (ddif[-1] == 7.):
-            fcode = _c.FR_WK
-        elif (ddif[0] >= 28.) and (ddif[-1] <= 31.):
-            fcode = _c.FR_MTH
-        elif (ddif[0] >= 90.) and (ddif[-1] <= 92.):
-            fcode = _c.FR_QTR
-        elif (ddif[0] >= 365.) and (ddif[-1] <= 366.):
-            fcode = _c.FR_ANN
-        elif np.abs(24.*ddif[0] - 1) <= 1e-5 and \
-             np.abs(24.*ddif[-1] - 1) <= 1e-5:
-            fcode = _c.FR_HR
-        elif np.abs(1440.*ddif[0] - 1) <= 1e-5 and \
-             np.abs(1440.*ddif[-1] - 1) <= 1e-5:
-            fcode = _c.FR_MIN
-        elif np.abs(86400.*ddif[0] - 1) <= 1e-5 and \
-             np.abs(86400.*ddif[-1] - 1) <= 1e-5:
-            fcode = _c.FR_SEC
-        else:
-            warnings.warn("Unable to estimate the frequency! %.3f<>%.3f" %\
-                          (ddif[0], ddif[-1]))
-            fcode = _c.FR_UND
-
-    return fcode
-
+        freq = _c.FR_DAY
+    return freq
 
 
 def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
