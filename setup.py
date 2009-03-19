@@ -3,9 +3,9 @@ setuptools must be installed first. If you do not have setuptools installed
 please download and install it from http://pypi.python.org/pypi/setuptools
 """
 
-version = '0.90.0'
+version = '0.91.0'
 
-classifiers = ['Development Status :: 0.90.0 - Beta',
+classifiers = ['Development Status :: 0.91.0',
                'Intended Audience :: Science/Research',
                'Intended Audience :: Developers',
                'Programming Language :: C',
@@ -56,7 +56,7 @@ def configuration(parent_package='',top_path=None):
 def setup_package():
 
     setup(
-          install_requires='numpy',
+          install_requires='numpy >= 1.3.0b1',
           namespace_packages=['scikits'],
           packages=setuptools.find_packages(),
           test_suite = 'nose.collector',
