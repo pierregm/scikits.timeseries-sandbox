@@ -22,11 +22,9 @@ from numpy.testing import *
 from numpy.ma.testutils import assert_equal, assert_array_equal, assert_equal_records
 
 import scikits.timeseries as ts
-from scikits.timeseries.trecords import \
-    TimeSeriesRecords, TimeSeries,\
-    fromarrays, fromtextfile, fromrecords, \
-    date_array, time_series, time_records
-
+from scikits.timeseries import \
+    TimeSeries, date_array, time_series, \
+    TimeSeriesRecords, fromrecords, fromarrays, time_records, tsfromtxt
 
 #..............................................................................
 class TestTimeSeriesRecords(TestCase):
@@ -200,7 +198,7 @@ class TestTimeSeriesRecords(TestCase):
         mrecfr = fromrecords(mrec.data, dates=dates, mask=m)
         assert_equal(mrecfr.recordmask, m)
 
-    def test_fromtextfile(self):
+    def test_tsfromtxt(self):
         "Tests reading from a text file."
         fcontent = """#
 'Dates', 'One (S)','Two (I)','Three (F)','Four (M)','Five (-)','Six (C)'
@@ -215,8 +213,9 @@ class TestTimeSeriesRecords(TestCase):
         (tmp_fd,tmp_fl) = tempfile.mkstemp()
         os.write(tmp_fd, fcontent)
         os.close(tmp_fd)
-        mrectxt = fromtextfile(tmp_fl, delimitor=',', varnames='ABCDEFG',
-                               dates_column=0, skiprows=2)
+
+        mrectxt = tsfromtxt(tmp_fl, delimiter=',', names=tuple('ABCDEFG'),
+                               datecols=0, skiprows=2, asrecarray=True)
         os.remove(tmp_fl)
         #
         dlist = ['2007-%02i' % i for i in (1,2,3,5)]
@@ -292,7 +291,7 @@ class TestViewTS(TestCase):
     def setUp(self):
         (a, b) = (np.arange(10), np.random.rand(10))
         ndtype = [('a',np.float), ('b',np.float)]
-        tarr = ts.time_series(np.array(zip(a,b), dtype=ndtype), 
+        tarr = ts.time_series(np.array(zip(a,b), dtype=ndtype),
                               start_date=ts.now('M'))
         tarr.mask[3] = (False, True)
         self.data = (tarr, a, b)
@@ -327,4 +326,3 @@ class TestViewTS(TestCase):
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
     run_module_suite()
-
