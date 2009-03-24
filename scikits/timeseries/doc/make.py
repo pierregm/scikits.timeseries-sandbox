@@ -36,7 +36,8 @@ def check_build():
     as_gen = "python sphinxext/autosummary_generate.py "
 
     for rf in rst_files:
-        os.system(as_gen + rf + " -p dump.xml -o source/generated")
+        if os.system(as_gen + rf + " -p dump.xml -o source/generated"):
+            raise SystemExit("Failed to auto generate summary from %s" % rf)
 
 def html():
 

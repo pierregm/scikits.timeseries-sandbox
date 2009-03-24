@@ -178,6 +178,7 @@ latex_documents = [
 
 # Additional stuff for the LaTeX preamble.
 latex_preamble = r'''
+\usepackage{ucs}
 \usepackage{amsmath}
 
 % In the parameters section, place a newline after the Parameters
