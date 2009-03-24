@@ -16,6 +16,7 @@ python make.py html
 """
 
 import os
+import glob
 import shutil
 import sys
 
@@ -29,6 +30,13 @@ def check_build():
             os.mkdir(d)
         except OSError:
             pass
+
+    rst_files = glob.glob("source/*.rst")
+
+    as_gen = "python sphinxext/autosummary_generate.py "
+
+    for rf in rst_files:
+        os.system(as_gen + rf + " -p dump.xml -o source/generated")
 
 def html():
 
@@ -64,6 +72,9 @@ def latex():
 def clean():
     if os.path.exists('build'):
         shutil.rmtree('build')
+
+    if os.path.exists('source/generated'):
+        shutil.rmtree('source/generated')
 
 def all():
     clean()
