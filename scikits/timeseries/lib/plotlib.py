@@ -11,14 +11,12 @@ Classes
 -----------------------
 
 .. autoclass:: TimeSeriesPlot
-   :members:
 
 
 :class:`TimeSeriesFigure`
 -------------------------
 
 .. autoclass:: TimeSeriesFigure
-   :members:
 
 
 Functions
@@ -807,7 +805,7 @@ class TimeSeriesPlot(Subplot, object):
     :attr:`freq` frequency, using their :meth:`~scikits.timeseries.TimeSeries.asfreq`
     method.
 
-    The same parameters used for the instanciation of a standard 
+    The same parameters used for the instanciation of a standard
     :class:`matplotlib.axes.Subplot` are recognized.
 
     Parameters
@@ -881,7 +879,7 @@ class TimeSeriesPlot(Subplot, object):
     #....
     def get_series(self):
         """
-    Returns the data part of the time series associated with the plot, 
+    Returns the data part of the time series associated with the plot,
     as a (subclass of) :class:`MaskedArray`.
     """
         return self._series
@@ -1018,7 +1016,7 @@ class TimeSeriesPlot(Subplot, object):
        If no format string is given, the default format is used instead.
 
     an array or sequence, with or without a format string:
-       The data is plotted with the given format 
+       The data is plotted with the given format
        using the :attr:`~TimeSeriesPlot.xdata` attribute of the plot as abscissae.
 
     two arrays or sequences, with or without a format string:
@@ -1154,7 +1152,7 @@ def add_yaxis(fsp=None, position='right', yscale=None, basey=10, subsy=None,):
     ----------
     fsp : {None, TimeSeriesPlot}
         Subplot to which the secondary y-axis is added.
-        If None, the current subplot is selected: in that case, it should be 
+        If None, the current subplot is selected: in that case, it should be
         a valid :class:`TimeSeriesPlot`.
         When used as a :class:`TimeSeriesPlot` method, this parameter points
         automatically to the calling subplot.
@@ -1169,7 +1167,7 @@ def add_yaxis(fsp=None, position='right', yscale=None, basey=10, subsy=None,):
         Sequence of the location of the minor ticks;
         None defaults to autosubs, which depend on the number of decades in
         the plot.
-        Eg for base 10, ``subsy=(1,2,5)`` will  put minor ticks on 1, 2, 5, 11, 
+        Eg for base 10, ``subsy=(1,2,5)`` will  put minor ticks on 1, 2, 5, 11,
         12,15, 21, ....
         To turn off minor ticking, set ``subsy=[]``.
 
@@ -1226,7 +1224,7 @@ class TimeSeriesFigure(Figure):
     Create a new :class:`~matplotlib.figure.Figure` object.
     All the subplots share the same time series.
 
-    The same parameters used for the creation of a standard 
+    The same parameters used for the creation of a standard
     :class:`~matplotlib.figure.Figure` are accepted.
 
     Parameters
