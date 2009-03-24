@@ -12,7 +12,7 @@
        **data** : {array_like}
            Data portion of the array.
            Any data that is valid for constructing a :class:`~numpy.ma.MaskedArray` can be used here:
-           
+
            * a sequence of objects (numbers, characters, objects);
            * a :class:`~numpy.ndarray` or one of its subclass.
              In particular, :class:`~numpy.ma.MaskedArray` and :class:`TimeSeries` are recognized.
@@ -63,10 +63,10 @@ Attributes
       :data:`~numpy.ma.nomask` (equivalent to :const:`False`).
       This attribute is writable and can be modified.
 
-      If :attr:`data` has a standard :attr:`~numpy.dtype` (no named fields), 
+      If :attr:`data` has a standard :attr:`~numpy.dtype` (no named fields),
       the :attr:`~numpy.dtype` of the mask is boolean.
       If :attr:`data` is a structured array with named fields, the mask
-      has the same structure as the :attr:`data`\'s, but each field is 
+      has the same structure as the :attr:`data`\'s, but each field is
       atomically boolean.
 
       In any case, a value of :const:`True` in the mask indicates that the
@@ -96,7 +96,7 @@ Attributes
 
 ============================== ===========================
 :attr:`~DateArray.freq`        :attr:`~DateArray.freqstr`
-:attr:`~DateArray.year`        :attr:`~DateArray.years`    
+:attr:`~DateArray.year`        :attr:`~DateArray.years`
 :attr:`~DateArray.qyear`
 :attr:`~DateArray.quarter`     :attr:`~DateArray.quarters`
 :attr:`~DateArray.month`       :attr:`~DateArray.months`
@@ -146,8 +146,6 @@ Attributes
    TimeSeries.real
 
    TimeSeries.flat
-   TimeSeries.__array_priority__
-
 
 
 Construction
@@ -182,8 +180,8 @@ For example, we can create a 4-element series:
       dates = [01-Jan-2009 ... 04-Jan-2009],
       freq  = D)
 
-Note that with the use of the :keyword:`start_date` keyword,  the size 
-of the :attr:`dates` attribute is automatically adjusted by :func:`time_series` 
+Note that with the use of the :keyword:`start_date` keyword,  the size
+of the :attr:`dates` attribute is automatically adjusted by :func:`time_series`
 to match the size of the input data.
 
 The :attr:`dates` can now be modified in place.
@@ -201,7 +199,7 @@ Setting the :attr:`dates` attribute to an object of a different type raises a :e
 
 
 It is often convenient to manipulate a series of several variables at once.
-Once possibility is to use a `structured array <http://docs.scipy.org/doc/numpy/user/basics.rec.html>`_ as input, 
+Once possibility is to use a `structured array <http://docs.scipy.org/doc/numpy/user/basics.rec.html>`_ as input,
 as illustrated by the following example:
 
    >>>  series = ts.time_series(zip(np.random.normal(0, 1, 10),
@@ -464,7 +462,7 @@ Calculations
 
 	.. autosummary::
 	   :toctree: generated/
-   
+
 	   TimeSeries.__iadd__
 	   TimeSeries.__isub__
 	   TimeSeries.__imul__
@@ -570,4 +568,3 @@ Calculations
 	   :toctree: generated/
 
 	   TimeSeries.count
-

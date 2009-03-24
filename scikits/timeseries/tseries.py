@@ -480,6 +480,9 @@ class TimeSeries(MaskedArray, object):
         ndarray with support for missing data.
     scikits.timeseries.DateArray
     """
+
+    __array_priority__ = 20
+
     def __new__(cls, data, dates, mask=nomask, dtype=None, copy=False,
                 fill_value=None, subok=True, keep_mask=True, hard_mask=False,
                 autosort=True, **options):
@@ -773,7 +776,7 @@ class TimeSeries(MaskedArray, object):
     dates = property(fget=lambda self:self._dates,
                      fset=__setdates__)
 
-    
+
     #
     def sort_chronologically(self):
         """
@@ -1203,7 +1206,7 @@ class TimeSeries(MaskedArray, object):
     * the ``_data`` field stores the ``_data`` part of the series;
     * the ``_mask`` field stores the mask.
 
-    
+
     Returns
     -------
     record : ndarray
@@ -1211,7 +1214,7 @@ class TimeSeries(MaskedArray, object):
         contains the date (as an integer), the second element contains the
         corresponding value and the third the corresponding mask boolean.
         The returned record shape matches the shape of the instance.
-    
+
         """
         if not series._varshape:
             desctype = [('_dates', int),
@@ -1567,12 +1570,12 @@ def time_series(data, dates=None, start_date=None, length=None, freq=None,
     If ``data`` is not a :class:`TimeSeries`, then ``dates`` must be either
     ``None`` or an object recognized by the :func:`date_array` function (used
     internally):
-     
+
         * an existing :class:`DateArray` object;
         * a sequence of :class:`Date` objects with the same frequency;
         * a sequence of :class:`datetime.datetime` objects;
         * a sequence of dates in string format;
-        * a sequence of integers corresponding to the representation of 
+        * a sequence of integers corresponding to the representation of
           :class:`Date` objects.
 
     In any of the last four possibilities, the ``freq`` parameter is mandatory.
@@ -1695,7 +1698,7 @@ def adjust_endpoints(a, start_date=None, end_date=None, copy=False):
     if a.freq == 'U':
         errmsg = "Cannot adjust a series with 'Undefined' frequency."
         raise TimeSeriesError(errmsg,)
-            
+
     if not a._dates.is_valid():
         errmsg = "Cannot adjust a series with missing or duplicated dates."
         raise TimeSeriesError(errmsg,)
@@ -1774,8 +1777,8 @@ TimeSeries.adjust_endpoints = adjust_endpoints
 def align_series(*series, **kwargs):
     """
     Aligns several TimeSeries, so that their starting and ending dates match.
-    
-    Series are resized and filled with masked values accordingly. 
+
+    Series are resized and filled with masked values accordingly.
 
     The resulting series have no missing dates (ie. ``series.is_valid() == True``
     for each of the resulting series).
@@ -1919,7 +1922,7 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
         parameter to perform a calculation on each period of values
         to aggregate results.
         For example, when converting a daily series to a monthly series, use
-        :func:`numpy.ma.mean` to get a series of monthly averages. 
+        :func:`numpy.ma.mean` to get a series of monthly averages.
         If the first or last value from a period, the functions
         :func:`~scikits.timeseries.first_unmasked_val` and
         :func:`~scikits.timeseries.last_unmasked_val` should be used instead.
