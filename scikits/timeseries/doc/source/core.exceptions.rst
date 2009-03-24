@@ -1,38 +1,5 @@
 .. currentmodule:: scikits.timeseries
 
-
-
-Additional functions
-====================
-
-.. _timeseries_functions:
-
-
-Finding dates
-~~~~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated/
-
-   now
-   prevbusday
-
-
-
-Misc
-~~~~
-
-.. autosummary::
-   :toctree: generated/
-
-   first_unmasked_val
-   last_unmasked_val
-
-   empty_like
-   pct
-
-
-
 .. _timeseries_exceptions:
 
 Exceptions

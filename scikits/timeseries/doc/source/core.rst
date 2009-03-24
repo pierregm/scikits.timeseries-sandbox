@@ -8,4 +8,5 @@ Core objects
    core.datearrays
    core.timeseries
    core.timeseries.manipulation
-   core.reference
+   core.constants
+   core.exceptions

@@ -24,4 +24,4 @@ array, after having converted the object with the :meth:`~TimeSeries.toflex`
 method.
 
 Another possibility is to use the :class:`~lib.reportlib.Report` class,
-described in the ref:`scikits_timeseries_report` section.
+described in the :ref:`scikits_timeseries_report` section.
