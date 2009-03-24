@@ -51,21 +51,21 @@ def latex():
     check_build()
     os.chdir('source')
     # LaTeX format.
-    if os.system(sphinx-build + ' -a -b latex -d ../build/doctrees . ../build/latex'):
+    if os.system(sphinx_build + ' -a -b latex -d ../build/doctrees . ../build/latex'):
         raise SystemExit("Building LaTeX failed.")
 
     # Produce pdf.
     os.chdir('../build/latex')
 
     # first call to pdflatex used to generate .idx files
-    os.system('pdflatex scikitstimeseries.tex')
+    os.system('pdflatex TimeSeries.tex')
 
     # convert .idx files to indices
-    os.system('makeindex -s python.ist scikitstimeseries.idx')
-    os.system('makeindex -s python.ist modscikitstimeseries.idx')
+    os.system('makeindex -s python.ist TimeSeries.idx')
+    os.system('makeindex -s python.ist modTimeSeries.idx')
 
     # regenerate pdf with proper indices
-    os.system('pdflatex scikitstimeseries.tex')
+    os.system('pdflatex TimeSeries.tex')
 
     os.chdir('../..')
 
