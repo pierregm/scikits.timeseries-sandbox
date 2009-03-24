@@ -17,7 +17,7 @@ from numpy.testing import *
 import numpy.ma as ma
 from numpy.ma import MaskedArray, masked, nomask
 from numpy.ma.testutils import assert_equal, assert_array_equal, assert_not_equal,\
-                               assert_equal_records
+                               assert_equal_records, assert_almost_equal
 
 import scikits.timeseries as ts
 
@@ -1003,7 +1003,7 @@ class TestFunctions(TestCase):
         shift_positive = series.tshift(1)
         result_data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] + [999]
         result_mask = [0, 0, 0, 0, 1, 0, 0, 0, 0,  1,  0,  0,  0,  0] + [  1]
-        shift_positive_result = time_series(result_data, 
+        shift_positive_result = time_series(result_data,
                                             dates=series.dates,
                                             mask=result_mask)
 
@@ -1263,6 +1263,50 @@ test_dates test suite.
         assert_equal(_pct[1], 1.0)
         assert_equal(_pct[2], 0.5)
 
+        series = ts.time_series(
+             [2.,1.,2.,3.], start_date=ts.Date(freq='A', year=2005))
+
+        # standard pct
+        result = series.pct()
+        assert_almost_equal(
+            result,
+            ma.array([999, -0.5, 1.0, 0.5], mask=[1,0,0,0])
+        )
+
+        result = series.pct(2)
+        assert_almost_equal(
+            result,
+            ma.array([999, 999, 0.0, 2.0], mask=[1,1,0,0])
+        )
+
+        # log pct
+        result = series.pct_log()
+        assert_almost_equal(
+            result,
+            ma.array(
+                [999, -0.69314718056, 0.69314718056, 0.405465108108],
+                mask=[1,0,0,0])
+        )
+
+        result = series.pct_log(2)
+        assert_almost_equal(
+            result,
+            ma.array([999, 999, 0.0, 1.09861228867], mask=[1,1,0,0])
+        )
+
+        # symmetric pct
+        result = series.pct_symmetric()
+        assert_almost_equal(
+            result,
+            ma.array(
+                [999, -0.666666666667, 0.666666666667, 0.4], mask=[1,0,0,0])
+        )
+
+        result = series.pct_symmetric(2)
+        assert_almost_equal(
+            result,
+            ma.array([999, 999, 0.0, 1.0], mask=[1,1,0,0])
+        )
 
     def test_find_duplicated_dates(self):
         "Test find_duplicated_dates"
@@ -1295,7 +1339,7 @@ test_dates test suite.
                  '2003', '2004', '2005', '2005', '2006']
         series = time_series(np.arange(len(years)), dates=years, freq='A')
         test = remove_duplicated_dates(series)
-        control = time_series([0, 1, 2, 3, 6, 7, 9], 
+        control = time_series([0, 1, 2, 3, 6, 7, 9],
                               start_date=Date('A', '2000'))
         assert_equal(test, control)
         assert_equal(test._dates, control._dates)
@@ -1305,7 +1349,7 @@ test_dates test suite.
         years = ['2000', '2000', '2000', '2000', '2000']
         series = time_series(np.arange(len(years)), dates=years, freq='A')
         test = remove_duplicated_dates(series)
-        control = time_series([0,], 
+        control = time_series([0,],
                               start_date=Date('A', '2000'))
         assert_equal(test, control)
         assert_equal(test._dates, control._dates)
@@ -1507,7 +1551,7 @@ class TestViewTimeSeries(TestCase):
     def setUp(self):
         (a, b) = (np.arange(10), np.random.rand(10))
         ndtype = [('a',np.float), ('b',np.float)]
-        tarr = ts.time_series(np.array(zip(a,b), dtype=ndtype), 
+        tarr = ts.time_series(np.array(zip(a,b), dtype=ndtype),
                               start_date=ts.now('M'))
         tarr.mask[3] = (False, True)
         self.data = (tarr, a, b)
@@ -1560,4 +1604,3 @@ class TestViewTimeSeries(TestCase):
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
     run_module_suite()
-

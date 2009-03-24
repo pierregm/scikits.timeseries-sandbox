@@ -56,7 +56,7 @@ __all__ = ['TimeSeries','TimeSeriesCompatibilityError','TimeSeriesError',
            'hour',
            'last_unmasked_val',
            'minute','month',
-           'pct',
+           'pct', 'pct_log', 'pct_symmetric',
            'quarter',
            'remove_duplicated_dates',
            'second','split','stack',
@@ -2042,6 +2042,20 @@ def _get_type_num_double(dtype):
         return np.dtype('d')
     return dtype
 
+def _pct_generic(series, nper, pct_func):
+    "helper function for the pct_* functions"
+    _dtype = _get_type_num_double(series.dtype)
+    if _dtype != series.dtype:
+        series = series.astype(_dtype)
+    newdata = masked_array(np.empty(series.shape, dtype=series.dtype),
+                           mask=True)
+    if nper < newdata.size:
+        mseries = series.view(MaskedArray)
+        newdata[nper:] = pct_func(mseries, nper)
+    newseries = newdata.view(type(series))
+    newseries._dates = series._dates
+    newseries._update_from(series)
+    return newseries
 
 def pct(series, nper=1):
     """
@@ -2062,7 +2076,8 @@ def pct(series, nper=1):
 
     Examples
     --------
-    >>> series = time_series([2.,1.,2.,3.], start_date=Date(freq='A', year=2005))
+    >>> series = ts.time_series(
+    ...     [2.,1.,2.,3.], start_date=ts.Date(freq='A', year=2005))
     >>> series.pct()
     timeseries([-- -0.5 1.0 0.5],
                dates = [2005 ... 2008],
@@ -2073,20 +2088,86 @@ def pct(series, nper=1):
                freq  = A-DEC)
 
     """
-    _dtype = _get_type_num_double(series.dtype)
-    if _dtype != series.dtype:
-        series = series.astype(_dtype)
-    newdata = masked_array(np.empty(series.shape, dtype=series.dtype),
-                           mask=True)
-    if nper < newdata.size:
-        newdata[nper:] = (series._series[nper:]/series._series[:-nper] - 1)
-    newseries = newdata.view(type(series))
-    newseries._dates = series._dates
-    newseries._update_from(series)
-    return newseries
+    def pct_func(series, nper):
+        return series[nper:]/series[:-nper] - 1
+    return _pct_generic(series, nper, pct_func)
 TimeSeries.pct = pct
 
+def pct_log(series, nper=1):
+    """
+    Returns the rolling log percentage change of the series. This is defined as
+    the log of the ratio of series[T]/series[T-nper]
 
+    Parameters
+    ----------
+    series : {TimeSeries}
+        TimeSeries object to to calculate log percentage chage for. Ignore this
+        parameter if calling this as a method.
+    nper : {int}
+        Number of periods for percentage change.
+
+    Notes
+    -----
+    Series of integer types will be upcast
+    1.0 == 100% in result
+
+    Examples
+    --------
+    >>> series = ts.time_series(
+    ...     [2.,1.,2.,3.], start_date=ts.Date(freq='A', year=2005))
+    >>> series.pct_log()
+    timeseries([-- -0.69314718056 0.69314718056 0.405465108108],
+               dates = [2005 ... 2008],
+               freq  = A-DEC)
+    >>> series.pct_log(2)
+    timeseries([-- -- 0.0 1.09861228867],
+               dates = [2005 ... 2008],
+               freq  = A-DEC)
+
+    """
+    def pct_func(series, nper):
+        return ma.log(series[nper:]/series[:-nper])
+    return _pct_generic(series, nper, pct_func)
+TimeSeries.pct_log = pct_log
+
+def pct_symmetric(series, nper=1):
+    """
+    Returns the rolling symmetric percentage change of the series. This is
+    defined as 2*(series[T] - series[T-nper])/(series[T] - series[T-nper])
+
+    Parameters
+    ----------
+    series : {TimeSeries}
+        TimeSeries object to to calculate symmetric percentage chage for. Ignore
+        this parameter if calling this as a method.
+    nper : {int}
+        Number of periods for percentage change.
+
+    Notes
+    -----
+    Series of integer types will be upcast
+    1.0 == 100% in result
+
+    Examples
+    --------
+    >>> series = ts.time_series(
+    ...     [2.,1.,2.,3.], start_date=ts.Date(freq='A', year=2005))
+    >>> series.pct_symmetric()
+    timeseries([-- -0.666666666667 0.666666666667 0.4],
+               dates = [2005 ... 2008],
+               freq  = A-DEC)
+    >>> series.pct_symmetric(2)
+    timeseries([-- -- 0.0 1.0],
+               dates = [2005 ... 2008],
+               freq  = A-DEC)
+
+    """
+    def pct_func(series, nper):
+        return \
+            2 * (series[nper:] - series[:-nper]) / \
+                (series[nper:] + series[:-nper])
+    return _pct_generic(series, nper, pct_func)
+TimeSeries.pct_symmetric = pct_symmetric
 
 def fill_missing_dates(data, dates=None, freq=None, fill_value=None):
     """

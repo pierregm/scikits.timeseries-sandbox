@@ -383,6 +383,8 @@ Calculations
    TimeSeries.mean
    TimeSeries.min
    TimeSeries.pct
+   TimeSeries.pct_log
+   TimeSeries.pct_symmetric
    TimeSeries.prod
    TimeSeries.product
    TimeSeries.ptp
