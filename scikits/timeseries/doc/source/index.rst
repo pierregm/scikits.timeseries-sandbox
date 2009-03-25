@@ -11,9 +11,11 @@
    :maxdepth: 2
 
    introduction
+   license
    installation
    core
    lib
+   support
 
 
 .. htmlonly::

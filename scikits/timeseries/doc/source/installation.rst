@@ -68,7 +68,6 @@ This command will create a :file:`timeseries` folder in the current directory.
 On Windows, you can also use a SVN client such as `Tortoise SVN <http://tortoisesvn.net/>`_.
 
 
-
 Installation
 ============
 
@@ -83,15 +82,3 @@ please see the following page in the cookbook:
 
 We do plan to begin doing official releases and distributing windows binaries in the not too distant future.
 In the mean time, please bear with us.
-
-
-
-Information
-===========
-
-.. toctree::
-
-   about
-   license
-   support
-

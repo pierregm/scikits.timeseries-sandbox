@@ -1,27 +1,11 @@
 .. currentmodule:: scikits.timeseries
 
-
 ************
 Introduction
 ************
 
-Conventions
-===========
-
-By convention, the following imports are assumed throughout the documentation::
-
-   >>> import numpy as np
-   >>> import numpy.ma as ma
-   >>> import datetime
-   >>> import scikits.timeseries as ts
-
-Input variables and keywords are represented in :keyword`this type`. 
-
-
-
-
-Introduction
-============
+About
+=====
 
 The :mod:`scikits.timeseries` module provides classes and functions for
 manipulating, reporting, and plotting time series of various frequencies.
@@ -43,31 +27,16 @@ the :mod:`scikits.timeseries` module useful:
 These are just some of the scenarios that are made very simple with the
 :mod:`scikits.timeseries` module.
 
+History
+=======
 
+The :mod:`scikits.timeseries` module was originally developed by Matt Knox to
+manipulate financial and economic data of weekday (Monday-Friday), monthly, and
+quarterly frequencies and to compare data series of differing frequencies. Matt
+created a large number of frequency conversion algorithms (implemented in C for
+extra speed) for reshaping the series. The initial version was released winter
+2006 as a module in the (now defunct) :mod:`SciPy` sandbox.
 
-Overview
-========
-
-The :mod:`scikits.timeseries` module is desined to manipulate time series.
-
-
-As an example, let us construct a series of 600 random elements, starting 600
-business days ago, at  a business daily frequency:
-
-   >>> data = np.random.uniform(-100,100,600)
-   >>> today = ts.now('B')
-   >>> series = ts.time_series(data, dtype=np.float_, freq='B', start_date=today-600)
-
-We can check that ``series.dates`` is a :class:`~DateArray` object and that
-``series.series`` is a :class:`~numpy.ma.MaskedArray` object.
-
-   >>> isinstance(series.dates, ts.DateArray)
-   True
-   >>> isinstance(series.series, ma.MaskedArray)
-   True
-
-
-So, if you are already familiar with the :mod:`numpy.ma` module, using the
-:mod:`scikits.timeseries` package should be straightforward.
-.. Just keep in mind that another attribute is always present, :attr:`dates`.
-
+Pierre Gerard-Marchant rewrote the original prototype late December 2006 and
+adapted it to be based on the :class:`numpy.ma.MaskedArray` class for handling
+missing data in order to work with environmental time series.

@@ -4,6 +4,7 @@ Core objects
 
 .. toctree::
 
+   core.overview
    core.dates
    core.datearrays
    core.timeseries
