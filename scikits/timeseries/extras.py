@@ -213,7 +213,7 @@ def guess_freq(dates):
     * The estimated frequency can *never* be ``_c.FR_BUS`` (weekdays).
     """
     # Set to an array of datetimes
-    dates = np.array(ts.date_array(dates, freq='S').tolist())
+    dates = np.array(date_array(dates, freq='S').tolist())
     # Sort and take the differences
     ddif = np.diff(np.sort(dates))
     incs = np.fromiter((d.seconds for d in ddif), dtype=int)

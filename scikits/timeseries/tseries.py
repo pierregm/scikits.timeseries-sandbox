@@ -1256,6 +1256,7 @@ class TimeSeries(MaskedArray, object):
                  self._dates.shape,
                  np.asarray(self._dates).tostring(),
                  self.freq,
+                 self._optinfo,
                  )
         return state
     #
@@ -1271,13 +1272,15 @@ class TimeSeries(MaskedArray, object):
         - a binary string for the data
         - a binary string for the mask.
         """
-        (ver, shp, typ, isf, raw, msk, flv, dsh, dtm, frq) = state
+        (ver, shp, typ, isf, raw, msk, flv, dsh, dtm, frq, infodict) = state
         MaskedArray.__setstate__(self, (ver, shp, typ, isf, raw, msk, flv))
         _dates = self._dates
         _dates.__setstate__((dsh, dtype(int_), isf, dtm))
         _dates.freq = frq
         _dates._cachedinfo.update(dict(full=None, hasdups=None, steps=None,
                                        toobj=None, toord=None, tostr=None))
+        # Update the _optinfo dictionary
+        self._optinfo.update(infodict)
 #
     def __reduce__(self):
         """Returns a 3-tuple for pickling a MaskedArray."""

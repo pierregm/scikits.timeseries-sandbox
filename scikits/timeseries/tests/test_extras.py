@@ -19,8 +19,10 @@ from numpy.ma import masked
 from numpy.ma.testutils import assert_equal, assert_almost_equal
 
 from scikits.timeseries import Date, TimeSeries, date_array, time_series
+import scikits.timeseries.const as _c
 import scikits.timeseries.extras
 from scikits.timeseries.extras import *
+
 
 #..............................................................................
 class TestMisc(TestCase):
@@ -29,9 +31,11 @@ class TestMisc(TestCase):
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
 
+
     def test_leapyear(self):
         leap = isleapyear([1900,1901,1902,1903,1904,2000,2001,2002,2003,2004])
         assert_equal(leap, [0,0,0,0,1,1,0,0,0,1])
+
 
     def test_convert_to_annual(self):
         "Test convert_to_annual"
@@ -60,7 +64,26 @@ class TestMisc(TestCase):
                                       -1))
 
 
-
+    def test_guessfreq(self):
+        "Test the guessing of frequency."
+        dates = ['2001-01-01 00:00', '2001-01-01 00:30', '2001-01-01 01:00',]
+        assert_equal(guess_freq(dates), _c.FR_MIN)
+        dates = ['2001-01-01 00:00', '2001-01-01 01:30', '2001-01-01 03:00',]
+        assert_equal(guess_freq(dates), _c.FR_MIN)
+        dates = ['2001-01-01 00:00', '2001-01-01 01:00', '2001-01-01 03:00',]
+        assert_equal(guess_freq(dates), _c.FR_HR)
+        dates = ['2001-01-01 00:00', '2001-01-01 01:00', '2002-01-01 03:00',]
+        assert_equal(guess_freq(dates), _c.FR_HR)
+        dates = ['2001-01-01 00:00', '2001-01-02 00:00', '2002-01-01 00:00',]
+        assert_equal(guess_freq(dates), _c.FR_DAY)
+        dates = ['2001-01-01 00:00', '2001-02-01 00:00', '2002-03-01 00:00',]
+        assert_equal(guess_freq(dates), _c.FR_MTH)
+        dates = ['2001-01-01 00:00', '2001-04-01 00:00', '2002-03-01 00:00',]
+        assert_equal(guess_freq(dates), _c.FR_MTH)
+        dates = ['2004-01-01 00:00', '2004-04-01 00:00', '2005-01-01 00:00',]
+        assert_equal(guess_freq(dates), _c.FR_QTR)
+        dates = ['2004-01-01 00:00', '2004-01-22 00:00', '2004-12-30 00:00',]
+        assert_equal(guess_freq(dates), _c.FR_WK)
 
 
 #..............................................................................

@@ -1126,6 +1126,16 @@ test_dates test suite.
         assert_equal(series_pickled.data, series.data)
         assert_equal(series_pickled.mask, series.mask)
         self.failUnless(isinstance(series_pickled._data, np.matrix))
+    #
+    def test_pickling_memo(self):
+        "Test the conservation of _optinfo"
+        import cPickle
+        control = ts.time_series(np.arange(10), start_date=ts.Date('A', 2001))
+        control._optinfo['memo'] = "Control information"
+        test = cPickle.loads(cPickle.dumps(control))
+        assert_equal(test._dates, control._dates)
+        assert_equal(test, control)
+        assert_equal(test._optinfo, control._optinfo)
 
 
     def test_empty_timeseries(self):
@@ -1263,14 +1273,13 @@ test_dates test suite.
         assert_equal(_pct[1], 1.0)
         assert_equal(_pct[2], 0.5)
 
-        series = ts.time_series(
-             [2.,1.,2.,3.], start_date=ts.Date(freq='A', year=2005))
+        series = ts.time_series([2.,1.,2.,3.],
+                                start_date=ts.Date(freq='A', year=2005))
 
         # standard pct
         result = series.pct()
-        assert_almost_equal(
-            result,
-            ma.array([999, -0.5, 1.0, 0.5], mask=[1,0,0,0])
+        assert_almost_equal(result,
+                            ma.array([999, -0.5, 1.0, 0.5], mask=[1,0,0,0])
         )
 
         result = series.pct(2)
