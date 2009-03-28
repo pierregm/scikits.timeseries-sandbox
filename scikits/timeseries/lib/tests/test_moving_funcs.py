@@ -174,6 +174,22 @@ class TestMovFuncs(TestCase):
         a[10] = np.nan
         assert_almost_equal(control, mf.mov_average(a,3))
 
+    def test_masked_exclude(self):
+        # ensure masked values are not allowed to cause floating point
+        # overflow problems
+        ser_a = ma.array(range(150), dtype=np.float32)
+        ser_a[:50] = ma.masked
+
+        ser_b = ser_a.copy()
+        # insert a very high value in the middle of the masked section of the
+        # array. This should have no impact on the final result because it is
+        # surround by masked values
+        ser_b[45] = 5.0e34
+
+        res_a = mf.mov_sum(ser_a, 60)
+        res_b = mf.mov_sum(ser_b, 60)
+        assert_almost_equal(res_a, res_b)
+
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
     run_module_suite()

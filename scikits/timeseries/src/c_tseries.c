@@ -324,10 +324,11 @@ _get_type_num(PyArray_Descr *dtype1, PyArray_Descr *dtype2)
 /* validates the standard arguments to moving functions and set the original
    mask, original ndarray, and mask for the result */
 static PyObject *
-check_mov_args(PyObject *orig_arrayobj, int span, int min_win_size,
-               PyObject **orig_ndarray, PyObject **result_mask) {
+check_mov_args(
+    PyObject *orig_arrayobj, int span, int min_win_size,
+    PyObject **orig_ndarray, PyObject **orig_mask, PyObject **result_mask
+) {
 
-    PyObject *orig_mask=NULL;
     PyArrayObject **orig_ndarray_tmp, **result_mask_tmp;
     int *raw_result_mask;
 
@@ -340,7 +341,7 @@ check_mov_args(PyObject *orig_arrayobj, int span, int min_win_size,
     if (PyObject_HasAttrString(orig_arrayobj, "_mask")) {
         PyObject *tempMask = PyObject_GetAttrString(orig_arrayobj, "_mask");
         if (PyArray_Check(tempMask)) {
-            orig_mask = PyArray_EnsureArray(tempMask);
+            *orig_mask = PyArray_EnsureArray(tempMask);
         } else {
             Py_DECREF(tempMask);
         }
@@ -373,14 +374,14 @@ check_mov_args(PyObject *orig_arrayobj, int span, int min_win_size,
         PyArrayObject *orig_mask_tmp;
         int i, valid_points=0, is_masked;
 
-        orig_mask_tmp = (PyArrayObject*)orig_mask;
+        orig_mask_tmp = (PyArrayObject*)(*orig_mask);
 
         for (i=0; i<((*orig_ndarray_tmp)->dimensions[0]); i++) {
 
             npy_intp idx = (npy_intp)i;
             is_masked=0;
 
-            if (orig_mask != NULL) {
+            if (*orig_mask != NULL) {
                 PyObject *valMask;
                 valMask = PyArray_GETITEM(orig_mask_tmp,
                                           PyArray_GetPtr(orig_mask_tmp, &idx));
@@ -408,13 +409,32 @@ check_mov_args(PyObject *orig_arrayobj, int span, int min_win_size,
     return 0;
 }
 
+// check if value at specified index is masked
+static int
+_is_masked(PyArrayObject *mask, npy_intp idx) {
+
+    if (mask != NULL) {
+        PyObject *val_mask;
+        int is_masked;
+
+        val_mask = PyArray_GETITEM(mask, PyArray_GetPtr(mask, &idx));
+        is_masked = (int)PyInt_AsLong(val_mask);
+        Py_DECREF(val_mask);
+        return is_masked;
+    } else {
+        return 0;
+    }
+
+}
+
 /* computation portion of moving sum. Appropriate mask is overlayed on top
    afterwards */
 static PyObject*
-calc_mov_sum(PyArrayObject *orig_ndarray, int span, int rtype)
+calc_mov_sum(
+    PyArrayObject *orig_ndarray, PyArrayObject *orig_mask, int span, int rtype)
 {
     PyArrayObject *result_ndarray=NULL;
-    int i;
+    int i=0, non_masked=0;
 
     result_ndarray = (PyArrayObject*)PyArray_ZEROS(
                                        orig_ndarray->nd,
@@ -426,32 +446,53 @@ calc_mov_sum(PyArrayObject *orig_ndarray, int span, int rtype)
 
         PyObject *val=NULL, *mov_sum_val=NULL;
         npy_intp idx = (npy_intp)i;
+        int curr_val_masked;
 
-        val = PyArray_GETITEM(orig_ndarray, PyArray_GetPtr(orig_ndarray, &idx));
+        curr_val_masked = _is_masked(orig_mask, idx);
 
-        if (i == 0) {
+        val = PyArray_GETITEM(
+            orig_ndarray, PyArray_GetPtr(orig_ndarray, &idx));
+
+        if (curr_val_masked == 0) {
+            non_masked += 1;
+        } else {
+            non_masked = 0;
+        }
+
+        if (
+            ((i == 0) || (curr_val_masked == 1)) ||
+            ((i > 0) && (_is_masked(orig_mask, i-1) == 1))
+        ) {
+            // if current or previous value is masked, reset moving sum
             mov_sum_val = val;
         } else {
-            idx = (npy_intp)(i-1);
             PyObject *mov_sum_prevval;
+
+            idx = (npy_intp)(i-1);
             mov_sum_prevval= PyArray_GETITEM(result_ndarray,
                                    PyArray_GetPtr(result_ndarray, &idx));
             mov_sum_val = np_add(val, mov_sum_prevval);
             Py_DECREF(mov_sum_prevval);
             ERR_CHECK(mov_sum_val)
 
-            if (i >= span) {
+            if (non_masked > span) {
                 PyObject *temp_val, *rem_val;
                 idx = (npy_intp)(i-span);
-                temp_val = mov_sum_val;
-                rem_val = PyArray_GETITEM(orig_ndarray,
-                                   PyArray_GetPtr(orig_ndarray, &idx));
 
-                mov_sum_val = np_subtract(temp_val, rem_val);
-                ERR_CHECK(mov_sum_val)
+                if (_is_masked(orig_mask, idx) == 0) {
+                    // don't subtract off old value if it was masked because it
+                    // is not included in moving sum
 
-                Py_DECREF(temp_val);
-                Py_DECREF(rem_val);
+                    temp_val = mov_sum_val;
+                    rem_val = PyArray_GETITEM(orig_ndarray,
+                                       PyArray_GetPtr(orig_ndarray, &idx));
+
+                    mov_sum_val = np_subtract(temp_val, rem_val);
+                    ERR_CHECK(mov_sum_val)
+
+                    Py_DECREF(temp_val);
+                    Py_DECREF(rem_val);
+                }
             }
         }
 
@@ -473,7 +514,7 @@ calc_mov_sum(PyArrayObject *orig_ndarray, int span, int rtype)
 PyObject *
 MaskedArray_mov_sum(PyObject *self, PyObject *args, PyObject *kwds)
 {
-    PyObject *orig_arrayobj=NULL, *orig_ndarray=NULL,
+    PyObject *orig_arrayobj=NULL, *orig_ndarray=NULL, *orig_mask=NULL,
              *result_ndarray=NULL, *result_mask=NULL,
              *result_dict=NULL;
     PyArray_Descr *dtype=NULL;
@@ -488,7 +529,7 @@ MaskedArray_mov_sum(PyObject *self, PyObject *args, PyObject *kwds)
                 PyArray_DescrConverter2, &dtype)) return NULL;
 
     check_mov_args(orig_arrayobj, span, 1,
-                   &orig_ndarray, &result_mask);
+                   &orig_ndarray, &orig_mask, &result_mask);
 
 	if (type_num_double) {
 		/* if the moving sum is being used as an intermediate step in something
@@ -499,8 +540,10 @@ MaskedArray_mov_sum(PyObject *self, PyObject *args, PyObject *kwds)
     	rtype = _get_type_num(((PyArrayObject*)orig_ndarray)->descr, dtype);
 	}
 
-    result_ndarray = calc_mov_sum((PyArrayObject*)orig_ndarray,
-                                  span, rtype);
+    result_ndarray = calc_mov_sum(
+        (PyArrayObject*)orig_ndarray, (PyArrayObject*)orig_mask,
+        span, rtype
+    );
     ERR_CHECK(result_ndarray)
 
     result_dict = PyDict_New();
@@ -697,7 +740,7 @@ calc_mov_ranked(PyArrayObject *orig_ndarray, int span, int rtype, char rank_type
 PyObject *
 MaskedArray_mov_median(PyObject *self, PyObject *args, PyObject *kwds)
 {
-    PyObject *orig_arrayobj=NULL, *orig_ndarray=NULL,
+    PyObject *orig_arrayobj=NULL, *orig_ndarray=NULL, *orig_mask=NULL,
              *result_ndarray=NULL, *result_mask=NULL, *result_dict=NULL;
     PyArray_Descr *dtype=NULL;
 
@@ -711,7 +754,7 @@ MaskedArray_mov_median(PyObject *self, PyObject *args, PyObject *kwds)
                 PyArray_DescrConverter2, &dtype)) return NULL;
 
     check_mov_args(orig_arrayobj, span, 1,
-                   &orig_ndarray, &result_mask);
+                   &orig_ndarray, &orig_mask, &result_mask);
 
     if ((span % 2) == 0) {
         rtype = _get_type_num_double(((PyArrayObject*)orig_ndarray)->descr, dtype);
@@ -736,7 +779,7 @@ MaskedArray_mov_median(PyObject *self, PyObject *args, PyObject *kwds)
 PyObject *
 MaskedArray_mov_min(PyObject *self, PyObject *args, PyObject *kwds)
 {
-    PyObject *orig_arrayobj=NULL, *orig_ndarray=NULL,
+    PyObject *orig_arrayobj=NULL, *orig_ndarray=NULL, *orig_mask=NULL,
              *result_ndarray=NULL, *result_mask=NULL, *result_dict=NULL;
     PyArray_Descr *dtype=NULL;
 
@@ -750,7 +793,7 @@ MaskedArray_mov_min(PyObject *self, PyObject *args, PyObject *kwds)
                 PyArray_DescrConverter2, &dtype)) return NULL;
 
     check_mov_args(orig_arrayobj, span, 1,
-                   &orig_ndarray, &result_mask);
+                   &orig_ndarray, &orig_mask, &result_mask);
 
     rtype = _get_type_num(((PyArrayObject*)orig_ndarray)->descr, dtype);
 
@@ -771,7 +814,7 @@ MaskedArray_mov_min(PyObject *self, PyObject *args, PyObject *kwds)
 PyObject *
 MaskedArray_mov_max(PyObject *self, PyObject *args, PyObject *kwds)
 {
-    PyObject *orig_arrayobj=NULL, *orig_ndarray=NULL,
+    PyObject *orig_arrayobj=NULL, *orig_ndarray=NULL, *orig_mask=NULL,
              *result_ndarray=NULL, *result_mask=NULL, *result_dict=NULL;
     PyArray_Descr *dtype=NULL;
 
@@ -785,7 +828,7 @@ MaskedArray_mov_max(PyObject *self, PyObject *args, PyObject *kwds)
                 PyArray_DescrConverter2, &dtype)) return NULL;
 
     check_mov_args(orig_arrayobj, span, 1,
-                   &orig_ndarray, &result_mask);
+                   &orig_ndarray, &orig_mask, &result_mask);
 
     rtype = _get_type_num(((PyArrayObject*)orig_ndarray)->descr, dtype);
 
