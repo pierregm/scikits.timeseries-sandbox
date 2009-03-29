@@ -190,6 +190,27 @@ class TestMovFuncs(TestCase):
         res_b = mf.mov_sum(ser_b, 60)
         assert_almost_equal(res_a, res_b)
 
+    def test_mov_average_expw(self):
+
+        ser_a = ma.array(range(150), dtype=np.float32)
+        ser_b = ser_a.copy()
+
+        # set extreme value to ensure masked values are not impacting result
+        ser_b[0] = 5e34
+        ser_b[0] = ma.masked
+
+        res_a = mf.mov_average_expw(ser_a, 10)
+        res_b = mf.mov_average_expw(ser_b, 10, tol=1e-6)
+
+        assert_almost_equal(res_a[-1], 144.5)
+
+        assert_almost_equal(res_a, res_b)
+
+        # with specified tolerance value, should be 69 masked values in res_b
+        assert_equal(np.sum(res_b.mask), 69)
+
+
+
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
     run_module_suite()

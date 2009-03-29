@@ -531,14 +531,14 @@ MaskedArray_mov_sum(PyObject *self, PyObject *args, PyObject *kwds)
     check_mov_args(orig_arrayobj, span, 1,
                    &orig_ndarray, &orig_mask, &result_mask);
 
-	if (type_num_double) {
-		/* if the moving sum is being used as an intermediate step in something
-		like a standard deviation calculation, etc... then _get_type_num_double
-		should be used to determine the appropriate return type. */
-		rtype = _get_type_num_double(((PyArrayObject*)orig_ndarray)->descr, dtype);
-	} else {
-    	rtype = _get_type_num(((PyArrayObject*)orig_ndarray)->descr, dtype);
-	}
+    if (type_num_double) {
+        /* if the moving sum is being used as an intermediate step in something
+        like a standard deviation calculation, etc... then _get_type_num_double
+        should be used to determine the appropriate return type. */
+        rtype = _get_type_num_double(((PyArrayObject*)orig_ndarray)->descr, dtype);
+    } else {
+        rtype = _get_type_num(((PyArrayObject*)orig_ndarray)->descr, dtype);
+    }
 
     result_ndarray = calc_mov_sum(
         (PyArrayObject*)orig_ndarray, (PyArrayObject*)orig_mask,
@@ -840,6 +840,113 @@ MaskedArray_mov_max(PyObject *self, PyObject *args, PyObject *kwds)
     MEM_CHECK(result_dict)
     PyDict_SetItemString(result_dict, "array", result_ndarray);
     PyDict_SetItemString(result_dict, "mask", result_mask);
+
+    Py_DECREF(result_ndarray);
+    Py_DECREF(result_mask);
+    return result_dict;
+}
+
+/* computation portion of exponentially weighted moving average. Appropriate
+   mask is overlayed on top afterwards */
+static PyObject*
+calc_mov_average_expw(
+    PyArrayObject *orig_ndarray, PyArrayObject *orig_mask, int span, int rtype)
+{
+    PyArrayObject *result_ndarray=NULL;
+    PyObject *decay_factor=NULL;
+    int i=0, initialized=0;
+
+    result_ndarray = (PyArrayObject*)PyArray_ZEROS(
+                                       orig_ndarray->nd,
+                                       orig_ndarray->dimensions,
+                                       rtype, 0);
+    ERR_CHECK(result_ndarray)
+
+    decay_factor = PyFloat_FromDouble(2.0/((double)(span + 1)));
+
+    for (i=0; i<orig_ndarray->dimensions[0]; i++) {
+
+        PyObject *val=NULL, *mov_avg_val=NULL;
+        npy_intp idx = (npy_intp)i;
+        int curr_val_masked;
+
+        curr_val_masked = _is_masked(orig_mask, idx);
+
+        val = PyArray_GETITEM(
+            orig_ndarray, PyArray_GetPtr(orig_ndarray, &idx));
+
+        if (initialized == 0) {
+            mov_avg_val = val;
+            if (curr_val_masked == 0) {
+                initialized = 1;
+            }
+        } else {
+            PyObject *mov_avg_prevval, *temp_val_a, *temp_val_b;
+            idx = (npy_intp)(i-1);
+            mov_avg_prevval = PyArray_GETITEM(result_ndarray,
+                               PyArray_GetPtr(result_ndarray, &idx));
+
+            if (curr_val_masked == 0) {
+                temp_val_a = np_subtract(val, mov_avg_prevval);
+                temp_val_b = np_multiply(decay_factor, temp_val_a);
+                mov_avg_val = np_add(mov_avg_prevval, temp_val_b);
+
+                Py_DECREF(mov_avg_prevval);
+                Py_DECREF(temp_val_a);
+                Py_DECREF(temp_val_b);
+                ERR_CHECK(mov_avg_val);
+            } else {
+                mov_avg_val = mov_avg_prevval;
+            }
+        }
+
+        idx = (npy_intp)i;
+
+        PyArray_SETITEM(result_ndarray,
+                        PyArray_GetPtr(result_ndarray, &idx),
+                        mov_avg_val);
+
+        if (mov_avg_val != val) { Py_DECREF(val); }
+
+        Py_DECREF(mov_avg_val);
+    }
+
+    return (PyObject*)result_ndarray;
+
+}
+
+PyObject *
+MaskedArray_mov_average_expw(PyObject *self, PyObject *args, PyObject *kwds)
+{
+    PyObject *orig_arrayobj=NULL, *orig_ndarray=NULL, *orig_mask=NULL,
+             *result_ndarray=NULL, *result_mask=NULL,
+             *result_dict=NULL;
+    PyArray_Descr *dtype=NULL;
+
+    int rtype, span;
+
+    static char *kwlist[] = {"array", "span", "dtype", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+                "Oi|O&:mov_average_expw(array, span, dtype)", kwlist,
+                &orig_arrayobj, &span,
+                PyArray_DescrConverter2, &dtype)) return NULL;
+
+    // note: we do not actually use the "result_mask" in this case
+    check_mov_args(orig_arrayobj, span, 1,
+                   &orig_ndarray, &orig_mask, &result_mask);
+
+    rtype = _get_type_num_double(((PyArrayObject*)orig_ndarray)->descr, dtype);
+
+    result_ndarray = calc_mov_average_expw(
+        (PyArrayObject*)orig_ndarray, (PyArrayObject*)orig_mask,
+        span, rtype
+    );
+    ERR_CHECK(result_ndarray)
+
+    result_dict = PyDict_New();
+    MEM_CHECK(result_dict)
+    PyDict_SetItemString(result_dict, "array", result_ndarray);
 
     Py_DECREF(result_ndarray);
     Py_DECREF(result_mask);

@@ -33,7 +33,7 @@ Centered moving windows
 
 .. autosummary::
    :toctree: generated/
-   
+
    cmov_average
    cmov_mean
    cmov_window
@@ -60,7 +60,7 @@ from numpy.ma import MaskedArray, nomask, getmask, getmaskarray, masked
 marray = ma.array
 
 from scikits.timeseries.cseries import \
-    MA_mov_sum, MA_mov_median, MA_mov_min, MA_mov_max
+    MA_mov_sum, MA_mov_median, MA_mov_min, MA_mov_max, MA_mov_average_expw
 
 
 _doc_parameters = dict(
@@ -68,41 +68,33 @@ data="""data : array-like
         Input data, as a sequence or (subclass of) ndarray.
         Masked arrays and TimeSeries objects are also accepted.
         The input array should be 1D or 2D at most.
-        If the input array is 2D, the function is applied on each column.
-""",
+        If the input array is 2D, the function is applied on each column.""",
 span="""span : int
-        Size of the filtering window.
-""",
+        Size of the filtering window.""",
 dtype="""dtype : dtype, optional
-        Data type of the result.
-""",
+        Data type of the result.""",
 ddof="""ddof : {0, integer}, optional
         Means Delta Degrees of Freedom.
         The divisor used in calculations of variance or standard deviation is
         ``N-ddof``.
         For biased estimates of the variance/standard deviation, use ``ddof=0``.
-        For unbiased estimates, use ``ddof=1``.
-""",
+        For unbiased estimates, use ``ddof=1``.""",
 x="""x : array-like
         First array to be included in the calculation.
         x must be a ndarray or a subclass of ndarray, such as MaskedArray or
-        TimeSeries objects. In that case, the type is saved.
-""",
+        TimeSeries objects. In that case, the type is saved.""",
 y="""y : array-like
         Second array to be included in the calculation.
         x must be a ndarray or a subclass of ndarray, such as MaskedArray or
-        TimeSeries objects. In that case, the type is saved.
-""",
-movfuncresults="""
-    Returns
+        TimeSeries objects. In that case, the type is saved.""",
+movfuncresults="""Returns
     -------
     filtered_series
         The result is always a masked array (preserves subclass attributes).
         The result at index i uses values from ``[i-span:i+1]``, and will be masked
         for the first ``span`` values.
         The result will also be masked at i if any of the input values in the slice
-        ``[i-span:i+1]`` are masked.
-    """
+        ``[i-span:i+1]`` are masked."""
 
 )
 
@@ -111,7 +103,7 @@ def _process_result_dict(orig_data, result_dict):
     "process the results from the c function"
 
     rarray = result_dict['array']
-    rmask = result_dict['mask']
+    rmask = result_dict.get('mask', ma.nomask)
 
     # makes a copy of the appropriate type
     data = orig_data.astype(rarray.dtype).copy()
@@ -141,7 +133,7 @@ def _moving_func(data, cfunc, kwargs):
                 result = data.astype(rtype)
                 print data.dtype, result.dtype
 
-            rmask = result_dict['mask']
+            rmask = result_dict.get('mask', ma.nomask)
 
             curr_col = marray(result_dict['array'], mask=rmask, copy=False)
             result[:,i] = curr_col
@@ -336,7 +328,7 @@ def mov_corr(x, y, span, dtype=None):
 
     return _covar / (_stddev_x * _stddev_y)
 #...............................................................................
-def mov_average_expw(data, span, tol=1e-6):
+def mov_average_expw(data, span, tol=1e-6, dtype=None):
     """
     Calculates the exponentially weighted moving average of a series.
 
@@ -351,27 +343,23 @@ def mov_average_expw(data, span, tol=1e-6):
         masked. Values in the result that would not be "significantly"
         impacted (as determined by this parameter) by the masked values are
         left unmasked.
+    %(dtype)s
 
     %(movfuncresults)s
     """
+    kwargs = {'span':span}
+    if dtype is not None:
+        kwargs['dtype'] = dtype
+    result = _moving_func(data, MA_mov_average_expw, kwargs)
+    mask = getattr(data, '_mask', ma.nomask)
+    result._mask = mask
 
-    data = marray(data, copy=True, subok=True)
-    ismasked = (data._mask is not nomask)
-    data._mask = np.zeros(data.shape, bool_)
-    _data = data._data
-    #
-    k = 2./float(span + 1)
-    def expmave_sub(a, b):
-        return a + k * (b - a)
-    #
-    data._data.flat = np.frompyfunc(expmave_sub, 2, 1).accumulate(_data)
-    if ismasked:
-        _unmasked = np.logical_not(data._mask).astype(float_)
-        marker = 1. - np.frompyfunc(expmave_sub, 2, 1).accumulate(_unmasked)
-        data._mask[marker > tol] = True
-    data._mask[0] = True
-    #
-    return data
+    if mask is not ma.nomask:
+        _unmasked = np.logical_not(mask).astype(float_)
+        marker = 1.0 - MA_mov_average_expw(array=_unmasked, span=span)['array']
+        result._mask[marker > tol] = True
+
+    return result
 #.............................................................................
 def cmov_window(data, span, window_type):
     """
