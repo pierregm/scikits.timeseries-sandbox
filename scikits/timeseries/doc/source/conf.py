@@ -29,8 +29,8 @@ sys.path.extend([
 
 # Check Sphinx version
 import sphinx
-if sphinx.__version__ < "0.5":
-    raise RuntimeError("Sphinx 0.5.dev or newer required")
+if sphinx.__version__ < "0.6":
+    raise RuntimeError("Sphinx 0.6 or newer required")
 
 
 
@@ -51,7 +51,7 @@ templates_path = ['_templates']
 source_suffix = '.rst'
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = 'contents'
 
 # General substitutions.
 project = 'TimeSeries'
@@ -100,15 +100,15 @@ pygments_style = 'sphinx'
 # The style sheet to use for HTML and HTML Help pages. A file of that name
 # must exist either in Sphinx' static/ path, or in one of the custom paths
 # given in html_static_path.
-html_style = 'scipy.css'
+html_style = 'timeseries.css'
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = "%s v%s Reference Guide (DRAFT)" % (project, version)
+html_title = "%s v%s Reference Guide" % (project, version)
 
 # The name of an image file (within the static path) to place at the top of
 # the sidebar.
-html_logo = 'scipyshiny_small.png'
+html_logo = '_static/scipyshiny_small.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -123,12 +123,15 @@ html_last_updated_fmt = '%b %d, %Y'
 # typographically correct entities.
 #html_use_smartypants = True
 
+# Content template for the index page.
+html_index = 'index.html'
+
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {'index': 'indexsidebar.html'}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
-#html_additional_pages = {'index': 'indexcontent.html',}
+html_additional_pages = {'index': 'index.html'}
 
 # If false, no module index is generated.
 html_use_modindex = True

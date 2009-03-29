@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% set title = 'scikits.timeseries: python time series analysis' %}
+
+
+{% block body %}
+  <h1>Welcome</h1>
+
+  <p>The scikits.timeseries module provides classes and functions for
+  manipulating, reporting, and plotting time series of various frequencies.
+  The focus is on convenient data access and manipulation while leveraging
+  the existing mathematical functionality in numpy and scipy.</p>
+
+  <p>If the following scenarios sound familiar to you, then you will likely find
+  the scikits.timeseries module useful:</p>
+
+  <ul>
+    <li>Compare many time series with different ranges of data (eg. stock
+        prices)</li>
+    <li>Create time series plots with intelligently spaced axis labels</li>
+    <li>Convert a daily time series to monthly by taking the average value
+        during each month</li>
+    <li>Work with data that has missing values</li>
+    <li>Determine the last business day of the previous month/quarter/year for
+        reporting purposes</li>
+    <li>Compute a moving standard deviation <i>efficiently</i></li>
+  </ul>
+
+  <p>These are just some of the scenarios that are made very simple with the
+  scikits.timeseries module.</p>
+
+{% endblock %}

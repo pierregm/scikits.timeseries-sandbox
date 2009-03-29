@@ -1,4 +1,23 @@
 {% extends "!layout.html" %}
+
 {% block rootrellink %}
-<li><a href="{{ pathto('index') }}">{{ shorttitle }}</a>{{ reldelim1 }}</li>
+        <li><a href="{{ pathto('index') }}">home</a>&nbsp;|&nbsp;</li>
+        <li><a href="{{ pathto('search') }}">search</a>&nbsp;|&nbsp;</li>
+        <li><a href="{{ pathto('contents') }}">documentation </a> &raquo;</li>
 {% endblock %}
+
+
+{% block relbar1 %}
+
+
+<div style="background-color: white; text-align: left; padding: 20px 20px 15px 15px">
+    <div style="font-size: 30pt; margin-bottom: 15px; font-weight: bold; color: #11557C;">SCIKITS.TIMESERIES</div>
+    <div style="font-size: 12pt; font-style: italic; color: #EE9816;">PYTHON TIME SERIES ANALYSIS</div>
+</div>
+
+{{ super() }}
+{% endblock %}
+
+{# put the sidebar before the body #}
+{% block sidebar1 %}{{ sidebar() }}{% endblock %}
+{% block sidebar2 %}{% endblock %}

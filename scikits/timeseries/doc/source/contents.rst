@@ -17,6 +17,10 @@
    lib
    support
 
+.. toctree::
+   :maxdepth: 1
+   
+   version
 
 .. htmlonly::
 
