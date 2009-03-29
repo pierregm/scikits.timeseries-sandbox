@@ -89,13 +89,16 @@ y="""y : array-like
         TimeSeries objects. In that case, the type is saved.""",
 movfuncresults="""Returns
     -------
-    filtered_series
+    result
         The result is always a masked array (preserves subclass attributes).
         The result at index i uses values from ``[i-span:i+1]``, and will be masked
         for the first ``span`` values.
         The result will also be masked at i if any of the input values in the slice
-        ``[i-span:i+1]`` are masked."""
-
+        ``[i-span:i+1]`` are masked.""",
+movfuncexpwresults="""Returns
+    -------
+    result
+        The result is always a masked array (preserves subclass attributes)."""
 )
 
 
@@ -337,7 +340,7 @@ def mov_average_expw(data, span, tol=1e-6, dtype=None):
     %(data)s
     span : int
         Time periods. The smoothing factor is 2/(span + 1)
-    tol : float, *[1e-6]*
+    tol : {1e-6, float}, optional
         Tolerance for the definition of the mask. When data contains masked
         values, this parameter determines what points in the result should be
         masked. Values in the result that would not be "significantly"
@@ -345,7 +348,7 @@ def mov_average_expw(data, span, tol=1e-6, dtype=None):
         left unmasked.
     %(dtype)s
 
-    %(movfuncresults)s
+    %(movfuncexpwresults)s
     """
     kwargs = {'span':span}
     if dtype is not None:

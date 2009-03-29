@@ -1,14 +1,17 @@
 .. currentmodule:: scikits.timeseries.lib.moving_funcs
 
 
-=========
-Filtering
-=========
+=======================
+Moving Window Functions
+=======================
 
 
-The :mod:`lib.moving_funcs` submodule contains an assortment of functions for doing moving window calculations such as moving averages, moving standard deviation, moving correlation, moving median, etc.
+The :mod:`lib.moving_funcs` submodule contains an assortment of functions for
+doing moving window calculations such as moving averages, moving standard
+deviation, moving correlation, moving median, etc.
 
-These functions are implemented in C and are much more efficient than what is possible using a brute force approach in pure Python.
+These functions are implemented in C and are much more efficient than what is
+possible using a brute force approach in pure Python.
 
 
 Moving windows
@@ -35,8 +38,7 @@ Centered moving windows
 
 .. autosummary::
    :toctree: generated/
-   
+
    cmov_average
    cmov_mean
    cmov_window
-
