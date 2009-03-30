@@ -10,19 +10,6 @@ __author__ = "Pierre GF Gerard-Marchant  & Matt Knox ($Author$)"
 __revision__ = "$Revision$"
 __date__     = '$Date$'
 
-
-try:
-    import const as _c
-except ImportError:
-    msg = """
-    Error importing the frequency constant module.
-    You should not try to import scikits.timeseries from its source directory.
-    Please exit the scikits.timeseries source tree and relaunch the Python
-    interpreter from there.
-    """
-    raise ImportError(msg)
-
-
 import const
 import tdates
 from tdates import *

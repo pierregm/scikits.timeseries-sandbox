@@ -2579,7 +2579,11 @@ PyObject *
 c_dates_now(PyObject *self, PyObject *args) {
 
     PyObject *freq, *init_args, *init_kwargs;
+#ifdef WIN32
+    __time64_t rawtime;
+#else
     time_t rawtime;
+#endif
     struct tm *timeinfo;
     int freq_val;
 
@@ -2589,8 +2593,20 @@ c_dates_now(PyObject *self, PyObject *args) {
 
     if ((freq_val = check_freq(freq)) == INT_ERR_CODE) return NULL;
 
+   #define time _time64
+
+#ifdef WIN32
+    _time64(&rawtime);
+#else
     time(&rawtime);
+#endif
+
+
+#ifdef WIN32
+    timeinfo = _localtime64(&rawtime);
+#else
     timeinfo = localtime(&rawtime);
+#endif
 
     init_args = PyTuple_New(0);
     init_kwargs = PyDict_New();
