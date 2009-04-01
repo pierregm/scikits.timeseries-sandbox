@@ -296,13 +296,13 @@ class TestCreation(TestCase):
     def test_varshape(self):
         "Test some corner case of varshape"
         test = ts.time_series(np.ones((10, 2)), start_date=ts.now('d'))
-        assert(test.varshape, (2,))
+        assert_equal(test.varshape, (2,))
         #
         test = ts.time_series(np.ones((10, 1)), start_date=ts.now('d'))
-        assert(test.varshape, (1,))
+        assert_equal(test.varshape, (1,))
         #
         test = ts.time_series(np.ones((10,)), start_date=ts.now('d'))
-        assert(test.varshape, ())
+        assert_equal(test.varshape, ())
 
 
 #------------------------------------------------------------------------------
