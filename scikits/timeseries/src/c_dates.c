@@ -2593,8 +2593,6 @@ c_dates_now(PyObject *self, PyObject *args) {
 
     if ((freq_val = check_freq(freq)) == INT_ERR_CODE) return NULL;
 
-   #define time _time64
-
 #ifdef WIN32
     _time64(&rawtime);
 #else
