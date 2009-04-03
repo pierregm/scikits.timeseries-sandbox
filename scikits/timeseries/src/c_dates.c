@@ -1440,7 +1440,7 @@ DateObject_init(DateObject *self, PyObject *args, PyObject *kwds) {
             } else {
                 PyObject *err_msg, *_type;
                 _type = PyObject_Type(datetime);
-                err_msg = PyString_FromString("expected datetime object, received: ");
+                err_msg = PyString_FromString("Expected datetime object, received: ");
                 PyString_ConcatAndDel(&err_msg, PyObject_Str(_type));
                 PyErr_SetString(PyExc_TypeError, PyString_AsString(err_msg));
                 Py_DECREF(_type);
@@ -1968,7 +1968,7 @@ DateObject_strftime(DateObject *self, PyObject *args)
                 }
 
             } else {
-                PyErr_SetString(PyExc_RuntimeError,"Unrecogized fmt string");
+                PyErr_SetString(PyExc_RuntimeError,"Unrecognized format string");
                 return NULL;
             }
 
@@ -1993,13 +1993,15 @@ DateObject___str__(DateObject* self)
     PyObject *string_arg, *retval;
 
     string_arg = NULL;
-    if (freq_group == FR_ANN) { string_arg = Py_BuildValue("(s)", "%Y"); }
+    if (freq_group == FR_UND) {
+        retval = PyString_FromFormat("%ld", self->value + 1);
+        return retval;}
+    else if (freq_group == FR_ANN) { string_arg = Py_BuildValue("(s)", "%Y"); }
     else if (freq_group == FR_QTR) { string_arg = Py_BuildValue("(s)", "%FQ%q"); }
     else if (freq_group == FR_MTH) { string_arg = Py_BuildValue("(s)", "%b-%Y"); }
     else if (freq_group == FR_DAY ||
              freq_group == FR_BUS ||
-             freq_group == FR_WK ||
-             freq_group == FR_UND) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y"); }
+             freq_group == FR_WK) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y"); }
     else if (freq_group == FR_HR) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y %H:00"); }
     else if (freq_group == FR_MIN) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y %H:%M"); }
     else if (freq_group == FR_SEC) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y %H:%M:%S"); }
@@ -2579,6 +2581,7 @@ PyObject *
 c_dates_now(PyObject *self, PyObject *args) {
 
     PyObject *freq, *init_args, *init_kwargs;
+
 #ifdef WIN32
     __time64_t rawtime;
 #else
@@ -2592,7 +2595,6 @@ c_dates_now(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "O:now(freq)", &freq)) return NULL;
 
     if ((freq_val = check_freq(freq)) == INT_ERR_CODE) return NULL;
-
 #ifdef WIN32
     _time64(&rawtime);
 #else

@@ -38,11 +38,11 @@ static PyMethodDef cseries_methods[] = {
 
     {"check_freq", (PyCFunction)c_dates_check_freq,
      METH_VARARGS,
-        "Translates a user specified frequency into frequency constant"},
+        "Translates a user specified frequency into the corresponding frequency constant"},
 
     {"check_freq_str", (PyCFunction)c_dates_check_freq_str,
      METH_VARARGS,
-        "translate user specified frequency into standard string representation"},
+        "Translates a user specified frequency into standard string representation"},
 
     {"get_freq_group", (PyCFunction)c_dates_get_freq_group,
      METH_VARARGS,
