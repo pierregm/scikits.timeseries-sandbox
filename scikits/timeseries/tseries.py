@@ -1886,7 +1886,16 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
         if func is None:
             newvarshape = tmpdata.shape[1:]
         else:
-            tmpdata = ma.apply_along_axis(func, -1, tmpdata, *args, **kwargs)
+            if func in [
+                ma.mean, ma.average, ma.min, ma.max, ma.sum, ma.prod,
+                ma.product, ma.prod, ma.median, ma.std, ma.var
+            ]:
+                # use axis argument instead of apply_along_axis for better
+                # performance for functions that support it
+                tmpdata = func(tmpdata, axis=-1, *args, **kwargs)
+            else:
+                tmpdata = ma.apply_along_axis(
+                    func, -1, tmpdata, *args, **kwargs)
             newvarshape = ()
     elif tmpdata.ndim == 1:
         newvarshape = ()
