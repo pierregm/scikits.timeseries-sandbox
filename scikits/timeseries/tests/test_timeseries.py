@@ -1262,6 +1262,13 @@ test_dates test suite.
         smax = series.max()
         assert_equal(smax.series, [9])
         assert_equal(smax.dates,date_array(series.dates[1]))
+
+        ser_m = ts.time_series(range(10), freq='M', start_date=now('M'))
+        ser_q = ser_m.convert(freq='Q')
+        mx = ser_q.max(-1)
+        assert_equal(mx, ma.array([2,5,8,9]))
+        self.failUnless(isinstance(mx, TimeSeries))
+
     #
     def test_pct(self):
         series = time_series(np.arange(1, 10), start_date=now('D'))

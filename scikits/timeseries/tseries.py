@@ -1316,6 +1316,7 @@ def _extrema(self, method, axis=None,fill_value=None):
     (_series, _dates) = (self._series, self._dates)
     func = getattr(_series, method)
     idx = func(axis,fill_value)
+
     # 1D series .......................
     if (_dates.size == _series.size):
         if axis is None:
@@ -1330,10 +1331,8 @@ def _extrema(self, method, axis=None,fill_value=None):
         else:
             _shape = _series.shape
             _dates = np.repeat(_dates,np.prod(_shape[1:])).reshape(_shape)
-            _s = np.rollaxis(_series,axis,0)[idx]
-            _d = np.rollaxis(_dates,axis,0)[idx]
-            _s = np.choose(idx, np.rollaxis(_series,axis,0))
-            _d = np.choose(idx, np.rollaxis(_dates,axis,0))
+            _s = ma.choose(idx, np.rollaxis(_series,axis,0))
+            _d = ma.choose(idx, np.rollaxis(_dates,axis,0))
             result = time_series(_s, dates=_d, freq=_dates.freq)
         return result
 
