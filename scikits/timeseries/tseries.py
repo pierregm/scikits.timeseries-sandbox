@@ -402,6 +402,10 @@ class _tsarraymethod(object):
         "Execute the call behavior."
         _name = self.__name__
         instance = self.obj
+        # Fallback: if the instance has not been set, use the first argument
+        if instance is None:
+            args = list(args)
+            instance = args.pop(0)
         _series = ndarray.__getattribute__(instance, '_series')
         _dates = ndarray.__getattribute__(instance, '_dates')
         func_series = getattr(_series, _name)
@@ -419,7 +423,7 @@ class _tsaxismethod(object):
 
     When called, returns a ndarray, as the result of the method applied on the
     series.
-"""
+    """
     def __init__ (self, methodname):
         """abfunc(fillx, filly) must be defined.
            abinop(x, filly) = x for all x to enable reduce.
@@ -434,7 +438,11 @@ class _tsaxismethod(object):
 
     def __call__ (self, *args, **params):
         "Execute the call behavior."
-        (_dates, _series) = (self.obj._dates, self.obj._series)
+        instance = self.obj
+        if instance is None:
+            args = list(args)
+            instance = args.pop(0)
+        (_dates, _series) = (instance._dates, instance._series)
         func = getattr(_series, self.__name__)
         result = func(*args, **params)
         if _dates.size == _series.size:
@@ -443,7 +451,7 @@ class _tsaxismethod(object):
             try:
                 axis = params.get('axis', args[0])
                 if axis in [-1, _series.ndim-1]:
-                    result = result.view(type(self.obj))
+                    result = result.view(type(instance))
                     result._dates = _dates
             except IndexError:
                 pass
@@ -824,10 +832,11 @@ class TimeSeries(MaskedArray, object):
     Calculates the repr representation, using masked for fill if it is
     enabled. Otherwise fill with fill value.
     """
+        _dates = self._dates
         if np.size(self._dates) > 2 and self.is_valid():
-            timestr = "[%s ... %s]" % (str(self._dates[0]),str(self._dates[-1]))
+            timestr = "[%s ... %s]" % (str(_dates[0]), str(_dates[-1]))
         else:
-            timestr = str(self.dates)
+            timestr = str(_dates)
         kwargs = {'data': str(self._series), 'time': timestr,
                   'freq': self.freqstr, 'dtype': self.dtype}
         names = kwargs['dtype'].names

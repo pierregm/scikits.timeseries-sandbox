@@ -1504,21 +1504,47 @@ class TestGenericMethods(TestCase):
         self.series = time_series(data, start_date=ts.now('D')-len(data))
     #
     def test_generic_methods(self):
-        #
+        "Tests some generic methods"
         series = self.series
         for method in self.methodlist:
             test = getattr(series, method).__call__()
             self.failUnless(isinstance(test, ts.TimeSeries))
             assert_equal(test, getattr(series.series, method).__call__())
             assert_equal(test.dates, series.dates)
-        #
+    #
     def test_generic_methods_w_subclassing(self):
+        "Tests generic method on subclasses of TimeSeries."
         subseries = self.series.view(self.SubTimeSeries)
         for method in self.methodlist:
             test = getattr(subseries, method).__call__()
             self.failUnless(isinstance(test, self.SubTimeSeries))
             assert_equal(test, getattr(subseries._series, method).__call__())
             assert_equal(test.dates, subseries.dates)
+    #
+    def test_generated_method(self):
+        "Test that TimeSeries.method(s) gives the same result as s.method"
+        series = ts.time_series(range(10), start_date=ts.now('D'))
+        control = ts.time_series(np.cumsum(range(10)), start_date=ts.now('D'))
+        #
+        test = series.cumsum()
+        assert_equal(test, control)
+        #
+        test = ts.TimeSeries.cumsum(series)
+        assert_equal(test, control)
+    #
+    def test_generated_axismethod(self):
+        "Test axismethod"
+        series = ts.time_series(np.arange(9).reshape(3,3),
+                                start_date=ts.now('D'))
+        control = ts.time_series([1., 4., 7.], start_date=ts.now('D'))
+        #
+        test = series.mean(1)
+        assert_equal(test, control)
+        #
+        test = ts.TimeSeries.mean(series, 1)
+        assert_equal(test, control)
+        test = ts.TimeSeries.mean(series, axis=1)
+        assert_equal(test, control)
 
 
 #------------------------------------------------------------------------------
