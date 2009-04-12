@@ -445,17 +445,14 @@ class _tsaxismethod(object):
         (_dates, _series) = (instance._dates, instance._series)
         func = getattr(_series, self.__name__)
         result = func(*args, **params)
-        if _dates.size == _series.size:
-            return result
-        else:
-            try:
-                axis = params.get('axis', args[0])
-                if axis in [-1, _series.ndim-1]:
-                    result = result.view(type(instance))
-                    result._dates = _dates
-            except IndexError:
-                pass
-            return result
+        if _dates.size != _series.size:
+            axis = params.get('axis', None)
+            if axis is None and len(args):
+                axis = args[0]
+            if axis in [-1, _series.ndim-1]:
+                result = result.view(type(instance))
+                result._dates = _dates
+        return result
 
 
 
@@ -1848,8 +1845,6 @@ def align_with(*series):
 #....................................................................
 def _convert1d(series, freq, func, position, *args, **kwargs):
     "helper function for `convert` function"
-    if not isinstance(series,TimeSeries):
-        raise TypeError("The argument should be a valid TimeSeries!")
     # Check the frequencies ..........................
     to_freq = check_freq(freq)
     from_freq = series.freq
@@ -1880,40 +1875,34 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
         return TimeSeries(series, freq=to_freq,
                           start_date=start_date.asfreq(to_freq))
 
-    tmpdata = series._series.filled()
-    tmpmask = getmaskarray(series)
+    data_ = series._series.filled()
+    mask_ = getmaskarray(series)
 
-    if (tmpdata.size // series._dates.size) > 1:
+    if (data_.size // series._dates.size) > 1:
         raise TimeSeriesError("convert works with 1D data only !")
 
-    cdictresult = cseries.TS_convert(tmpdata, from_freq, to_freq, position,
-                                     int(start_date), tmpmask)
+    cdictresult = cseries.TS_convert(data_, from_freq, to_freq, position,
+                                     int(start_date), mask_)
     start_date = Date(freq=to_freq, value=cdictresult['startindex'])
-    tmpdata = masked_array(cdictresult['values'], mask=cdictresult['mask'])
+    data_ = masked_array(cdictresult['values'], mask=cdictresult['mask'])
 
-    if tmpdata.ndim == 2:
+    if data_.ndim == 2:
         if func is None:
-            newvarshape = tmpdata.shape[1:]
+            newvarshape = data_.shape[1:]
         else:
-            if func in [
-                ma.mean, ma.average, ma.min, ma.max, ma.sum, ma.prod,
-                ma.product, ma.prod, ma.median, ma.std, ma.var
-            ]:
-                # use axis argument instead of apply_along_axis for better
-                # performance for functions that support it
-                tmpdata = func(tmpdata, axis=-1, *args, **kwargs)
-            else:
-                tmpdata = ma.apply_along_axis(
-                    func, -1, tmpdata, *args, **kwargs)
+            # Try to use an axis argument 
+            try:
+                data_ = func(data_, axis=-1, *args, **kwargs)
+            # Fall back to apply_along_axis (slower)
+            except TypeError:
+                data_ = ma.apply_along_axis(func, -1, data_, *args, **kwargs)
             newvarshape = ()
-    elif tmpdata.ndim == 1:
+    elif data_.ndim == 1:
         newvarshape = ()
 
-    newdates = date_array(start_date=start_date,
-                          length=len(tmpdata),
-                          freq=to_freq)
+    newdates = DateArray(np.arange(len(data_))+start_date, freq=to_freq)
 
-    newseries = tmpdata.view(type(series))
+    newseries = data_.view(type(series))
     newseries._varshape = newvarshape
     newseries._dates = newdates
     newseries._update_from(series)
@@ -2260,14 +2249,14 @@ def fill_missing_dates(data, dates=None, freq=None, fill_value=None):
     # Get the steps between consecutive data.
     delta = dflat.get_steps()-1
     gap = delta.nonzero()
-    slcid = np.r_[[0,], np.arange(1,osize)[gap], [osize,]]
+    slcid = np.concatenate(([0,], np.arange(1,osize)[gap], [osize,]))
     oldslc = np.array([slice(i,e)
                        for (i,e) in np.broadcast(slcid[:-1],slcid[1:])])
-    addidx = delta[gap].astype(int_).cumsum()
-    newslc = np.r_[[oldslc[0]],
-                   [slice(i+d,e+d) for (i,e,d) in \
-                           np.broadcast(slcid[1:-1],slcid[2:],addidx)]
-                     ]
+    addidx = delta[gap].astype(int).cumsum()
+    newslc = np.concatenate(([oldslc[0]],
+                             [slice(i+d,e+d) for (i,e,d) in \
+                              np.broadcast(slcid[1:-1],slcid[2:],addidx)]
+                             ))
     #.............................
     # Just a quick check
     vdflat = np.asarray(dflat)
@@ -2280,7 +2269,7 @@ def fill_missing_dates(data, dates=None, freq=None, fill_value=None):
     newshape[0] = nsize
     newdatad = np.empty(newshape, data.dtype)
     #!!!: HERE, newdatam should call make_mask_none(newshape, mdtype) for records
-    newdatam = np.ones(newshape, bool_)
+    newdatam = np.ones(newshape, dtype=ma.make_mask_descr(datad.dtype))
     #....
     if datam is nomask:
         for (new,old) in zip(newslc,oldslc):

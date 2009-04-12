@@ -1994,7 +1994,7 @@ DateObject___str__(DateObject* self)
 
     string_arg = NULL;
     if (freq_group == FR_UND) {
-        retval = PyString_FromFormat("%ld", self->value + 1);
+        retval = PyString_FromFormat("%ld", self->value);
         return retval;}
     else if (freq_group == FR_ANN) { string_arg = Py_BuildValue("(s)", "%Y"); }
     else if (freq_group == FR_QTR) { string_arg = Py_BuildValue("(s)", "%FQ%q"); }

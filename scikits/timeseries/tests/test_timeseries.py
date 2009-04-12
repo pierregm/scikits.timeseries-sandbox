@@ -1108,7 +1108,38 @@ test_dates test suite.
         fseries = fill_missing_dates(series)
         assert_equal(fseries.shape, (5,))
         assert_equal(fseries.mask, [0, 0, 0, 1, 0,])
+    
+    def test_fill_missing_dates_structured_arrays(self):
+        "Test fill_missing_dates on structured arrays"
+        ndtype = [('a', float), ('b', float)]
+        series = ts.time_series([(1, 1), (2, 2), (3, 3),],
+                                dtype=ndtype,
+                                dates=['2001-%02i' % i for i in (1, 2, 6)],
+                                freq='M')
+        test = series.fill_missing_dates()
+        control = ts.time_series([(1, 1), (2, 2), (0, 0),
+                                  (0, 0), (0, 0), (3, 3),],
+                                 mask=[False, False, True, True, True, False],
+                                 dtype=ndtype,
+                                 start_date=ts.Date('M', '2001-01'))
+        assert_equal(test, control)
     #
+    def test_fill_missing_dates_undefined(self):
+        "Test fill_missing_dates on undefined frequencies."
+        ndtype = [('a', float), ('b', float)]
+        series = ts.time_series([(1, 1), (2, 2), (3, 3),],
+                                dtype=ndtype,
+                                dates=[1, 2, 6],
+                                freq='U')
+        test = series.fill_missing_dates()
+        control = ts.time_series([(1, 1), (2, 2), (0, 0),
+                                  (0, 0), (0, 0), (3, 3),],
+                                 mask=[False, False, True, True, True, False],
+                                 dtype=ndtype,
+                                 start_date=ts.Date('U', 1))
+        assert_equal(test, control)
+
+
     def test_pickling(self):
         "Tests pickling/unpickling"
         (series, data, dates) = self.d
@@ -1545,6 +1576,21 @@ class TestGenericMethods(TestCase):
         assert_equal(test, control)
         test = ts.TimeSeries.mean(series, axis=1)
         assert_equal(test, control)
+    #
+    def test_axismethod(self):
+        "Test axis method"
+        series = ts.time_series(np.arange(9).reshape(3, 3),
+                                start_date=ts.now('D'))
+        control = ts.time_series([0, 60, 336], start_date=ts.now('D'))
+        assert_equal(series.product(axis=-1), control)
+        assert_equal(series.product(-1), control)
+        assert_equal(series.prod(axis=-1), control)
+        assert_equal(series.prod(-1), control)
+        #
+        control = ts.time_series([3, 12, 21], start_date=ts.now('D'))
+        assert_equal(series.sum(axis=-1), control)
+        assert_equal(series.sum(-1), control)
+
 
 
 #------------------------------------------------------------------------------
