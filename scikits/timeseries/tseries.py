@@ -66,51 +66,69 @@ __all__ = ['TimeSeries','TimeSeriesCompatibilityError','TimeSeriesError',
            ]
 
 
-def _unmasked_val(marray, x):
+def _unmasked_val(a, kind, axis=None):
     "helper function for first_unmasked_val and last_unmasked_val"
-    try:
-        assert(marray.ndim == 1)
-    except AssertionError:
-        raise ValueError("array must have ndim == 1")
+    if axis is None or a.ndim == 1:
+        a = a.ravel()
+        m = getmask(a)
+        if m is nomask or not np.any(m):
+            if kind == 0:
+                indx = 0
+            else:
+                indx = -1
+        else:
+            indx = np.flatnonzero(~m)[[0, -1]][kind]
+    else:
+        m = ma.getmaskarray(a)
+        indx = ma.array(np.indices(a.shape), mask=np.asarray([m]*a.ndim))
+        if kind == 0:
+            indx = tuple([indx[i].min(axis=axis).filled(0)
+                          for i in range(a.ndim)])
+        else:
+            indx = tuple([indx[i].max(axis=axis).filled(0)
+                          for i in range(a.ndim)])
+    return a[indx]
 
-    idx = ma.extras.flatnotmasked_edges(marray)
-    if idx is None:
-        return masked
-    return marray[idx[x]]
-
-def first_unmasked_val(marray):
+def first_unmasked_val(a, axis=None):
     """
-    Retrieve the first unmasked value in a 1d MaskedArray.
+    Retrieve the first unmasked value along the given axis in a MaskedArray.
 
     Parameters
     ----------
-    marray : {MaskedArray}
-        marray must be 1 dimensional.
+    a : MaskedArray
+        Input MaskedArray (or a subclass of).
+    axis : int, optional
+        Axis along which to perform the operation.
+        If None, applies to a flattened version of the array.
 
     Returns
     -------
     val : {singleton of type marray.dtype}
         first unmasked value in marray. If all values in marray are masked,
         the function returns the numpy.ma.masked constant
-"""
-    return _unmasked_val(marray, 0)
-
-def last_unmasked_val(marray):
     """
-    Retrieve the last unmasked value in a 1d MaskedArray.
+    return _unmasked_val(a, 0, axis=axis)
+
+
+def last_unmasked_val(a, axis=None):
+    """
+    Retrieve the last unmasked value along the given axis in a MaskedArray.
 
     Parameters
     ----------
-    marray : {MaskedArray}
-        marray must be 1 dimensional.
+    a : MaskedArray
+        Input MaskedArray (or a subclass of).
+    axis : int, optional
+        Axis along which to perform the operation.
+        If None, applies to a flattened version of the array.
 
     Returns
     -------
     val : {singleton of type marray.dtype}
-        last unmasked value in marray. If all values in marray are masked,
+        first unmasked value in marray. If all values in marray are masked,
         the function returns the numpy.ma.masked constant
-"""
-    return _unmasked_val(marray, 1)
+    """
+    return _unmasked_val(a, 1, axis=axis)
 
 #### -------------------------------------------------------------------------
 #--- ... TimeSeriesError class ...
@@ -2267,8 +2285,7 @@ def fill_missing_dates(data, dates=None, freq=None, fill_value=None):
     #.............................
     newshape = list(datad.shape)
     newshape[0] = nsize
-    newdatad = np.empty(newshape, data.dtype)
-    #!!!: HERE, newdatam should call make_mask_none(newshape, mdtype) for records
+    newdatad = np.empty(newshape, dtype=data.dtype)
     newdatam = np.ones(newshape, dtype=ma.make_mask_descr(datad.dtype))
     #....
     if datam is nomask:

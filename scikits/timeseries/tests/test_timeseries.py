@@ -1022,7 +1022,8 @@ class TestFunctions(TestCase):
         series = self.d[0]
         ss = split(series)[0]
         assert_array_equal(series, ss)
-    #
+
+
     def test_convert(self):
         """Test convert function
 
@@ -1031,50 +1032,59 @@ date conversion algorithms already tested by asfreq in the
 test_dates test suite.
         """
         June2005M = Date(freq='M', year=2005, month=6)
-        June2005B = Date(freq='b', year=2005, month=6, day=1)
-
         lowFreqSeries = time_series(np.arange(10), start_date=June2005M)
-        highFreqSeries = time_series(np.arange(100), start_date=June2005B)
-        ndseries = time_series(np.arange(124).reshape(62, 2),
-                               start_date=Date(freq='D', string='2005-07-01'))
-
+        # Conversion to same frequency
+        assert_array_equal(lowFreqSeries, lowFreqSeries.convert("M"))
+        # Conversion to higher frequency - position=START
         lowToHigh_start = lowFreqSeries.convert('B', position='START')
-
-        # ensure that position argument is not case sensitive
-        lowToHigh_start_lowercase = lowFreqSeries.convert('B', position='start')
-
-        assert_array_equal(lowToHigh_start, lowToHigh_start_lowercase)
-
         assert_equal(lowToHigh_start.start_date,
                      June2005M.asfreq("B", relation="START"))
         assert_equal(lowToHigh_start.end_date,
                      (June2005M + 9).asfreq("B", relation="END"))
-
         assert_equal(lowToHigh_start.mask[0], False)
         assert_equal(lowToHigh_start.mask[-1], True)
-
+        # Conversion to higher frequencyt - position=END
         lowToHigh_end = lowFreqSeries.convert('B', position='END')
-
         assert_equal(lowToHigh_end.start_date,
                      June2005M.asfreq("B", relation="START"))
         assert_equal(lowToHigh_end.end_date,
                      (June2005M + 9).asfreq("B", relation="END"))
-
         assert_equal(lowToHigh_end.mask[0], True)
         assert_equal(lowToHigh_end.mask[-1], False)
-
-
+        # ensure that position argument is not case sensitive
+        lowToHigh_start_lowercase = lowFreqSeries.convert('B', position='start')
+        assert_array_equal(lowToHigh_start, lowToHigh_start_lowercase)
+        #
+        # Conversion to lower frequency
+        June2005B = Date(freq='b', year=2005, month=6, day=1)
+        highFreqSeries = time_series(np.arange(100), start_date=June2005B)
         highToLow = highFreqSeries.convert('M', func=None)
-
         assert_equal(highToLow.ndim, 2)
         assert_equal(highToLow.shape[1], 23)
         assert_equal(highToLow.start_date, June2005B.asfreq('M'))
         assert_equal(highToLow.end_date, (June2005B + 99).asfreq('M'))
 
-        assert_array_equal(lowFreqSeries, lowFreqSeries.convert("M"))
+    def test_convert_with_func(self):
+        "Test convert w/ function on 1D series"
+        mdata = ts.time_series(np.arange(24),
+                               mask=[1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
+                                     0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                               start_date=ts.Date('M', '2001-01'))
+        test = mdata.convert('A', func=ts.last_unmasked_val)
+        control = ts.time_series([7, 22], start_date=ts.Date('A', '2001'))
+        assert_equal(test, control)
 
+
+    def test_convert_nd_with_func(self):
+        "Test convert w/ function on nD series"
+        ndseries = time_series(np.arange(124).reshape(62, 2),
+                               start_date=Date(freq='D', string='2005-07-01'))
         assert_equal(ndseries.convert('M', sum), [[930, 961], [2852, 2883]])
-    #
+
+
+
+
+
     def test_fill_missing_dates(self):
         """Test fill_missing_dates function"""
         _start = Date(freq='m', year=2005, month=1)
@@ -1427,7 +1437,8 @@ test_dates test suite.
 #------------------------------------------------------------------------------
 
 class TestMisc(TestCase):
-    #
+
+
     def test_ma_ufuncs(self):
         a = time_series([-2, -1, 0, 1, 2], start_date=now('D'))
         z = ma.sqrt(a)
@@ -1435,7 +1446,8 @@ class TestMisc(TestCase):
         assert_equal(z, [1, 1, 0, 1, np.sqrt(2)])
         assert_equal(z.mask, [1, 1, 0, 0, 0])
         assert_equal(z.dates, a.dates)
-    #
+
+
     def test_emptylike(self):
         x = time_series([1, 2, 3, 4, 5], mask=[1, 0, 0, 0, 0],
                         start_date=now('D'))
@@ -1451,7 +1463,8 @@ class TestMisc(TestCase):
         x.mask = nomask
         y = ts.empty_like(x)
         assert_equal(y.mask, nomask)
-    #
+
+
     def test_compatibility_shape(self):
         "Tests shape compatibility."
         data = np.arange(2*3*4*5,)
@@ -1496,17 +1509,17 @@ class TestMisc(TestCase):
         dates = np.empty((2*3,))
         assert_equal(get_varshape(data, dates), (4, 5))
         # 1D
-        series = time_series(np.arange(60), start_date=ts.now('M'))
+        start = ts.now('M')
+        series = time_series(np.arange(60), start_date=start)
         assert_equal(series._varshape, ())
         # 2D (multi 1D series)
-        series = time_series(np.arange(60).reshape(20, 3),
-                             start_date=ts.now('M'))
+        series = time_series(np.arange(60).reshape(20, 3), start_date=start)
         assert_equal(series._varshape, (3,))
         # 3D (2D series)
-        series = time_series(np.arange(60).reshape(5, 4, 3),
-                             start_date=ts.now('M'))
+        series = time_series(np.arange(60).reshape(5, 4, 3), start_date=start)
         assert_equal(series._varshape, (4, 3))
-    #
+
+
     def test_deepcopy(self):
         "Test deepcopy"
         from copy import deepcopy
@@ -1520,6 +1533,44 @@ class TestMisc(TestCase):
         t_.mask[1] = False
         assert_equal(t_.mask, [False, False, False])
         assert_equal(t.mask, [False, True, False])
+
+
+    def test_firstlast_unmasked_vals(self):
+        data = ma.array([[ 0,  1,  2,  3,  4],
+                         [ 5,  6,  7,  8,  9],
+                         [10, 11, 12, 13, 14],
+                         [15, 16, 17, 18, 19],
+                         [20, 21, 22, 23, 24]],
+                        mask=[[0, 0, 1, 0, 0],
+                              [0, 0, 0, 1, 1],
+                              [1, 1, 0, 0, 0],
+                              [0, 0, 0, 0, 0],
+                              [1, 1, 1, 0, 0]],)
+        assert_equal(ts.first_unmasked_val(data, None), 0)
+        assert_equal(ts.last_unmasked_val(data, None), 24)
+        assert_equal(ts.first_unmasked_val(data, 0), [0, 1, 7, 3, 4])
+        assert_equal(ts.last_unmasked_val(data, 0), [15, 16, 17, 23, 24])
+        assert_equal(ts.first_unmasked_val(data, -1), [0, 5, 12, 15, 23])
+        assert_equal(ts.last_unmasked_val(data, -1), [4, 7, 14, 19, 24])
+        #
+        data_ = data.data
+        assert_equal(ts.first_unmasked_val(data_, None), 0)
+        assert_equal(ts.last_unmasked_val(data_, None), 24)
+        assert_equal(ts.first_unmasked_val(data_, 0), [0, 1, 2, 3, 4])
+        assert_equal(ts.last_unmasked_val(data_, 0), [20, 21, 22, 23, 24])
+        assert_equal(ts.first_unmasked_val(data_, -1), [0, 5, 10, 15, 20])
+        assert_equal(ts.last_unmasked_val(data_, -1), [4, 9, 14, 19, 24])
+        #
+        data[-2] = ma.masked
+        assert_equal(ts.first_unmasked_val(data, None), 0)
+        assert_equal(ts.last_unmasked_val(data, None), 24)
+        assert_equal(ts.first_unmasked_val(data, 0), [0, 1, 7, 3, 4])
+        assert_equal(ts.last_unmasked_val(data, 0), [5, 6, 12, 23, 24])
+        assert_equal(ts.first_unmasked_val(data, -1),
+                     ma.array([0, 5, 12, -1, 23], mask=[0, 0, 0, 1, 0]))
+        assert_equal(ts.last_unmasked_val(data, -1),
+                     ma.array([4, 7, 14, -1, 24], mask=[0, 0, 0, 1, 0]))
+
 
 
 #------------------------------------------------------------------------------
