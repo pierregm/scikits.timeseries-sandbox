@@ -1118,7 +1118,7 @@ test_dates test suite.
         fseries = fill_missing_dates(series)
         assert_equal(fseries.shape, (5,))
         assert_equal(fseries.mask, [0, 0, 0, 1, 0,])
-    
+
     def test_fill_missing_dates_structured_arrays(self):
         "Test fill_missing_dates on structured arrays"
         ndtype = [('a', float), ('b', float)]
@@ -1204,24 +1204,24 @@ test_dates test suite.
 
         self.failUnless(tseries._timeseriescompat_multiple(seriesM_10, seriesM_10, seriesM_10))
 
+        exception = False
         try:
             tseries._timeseriescompat_multiple(seriesM_10, seriesD_10)
-            exception = False
-        except:
+        except ts.TimeSeriesCompatibilityError:
             exception = True
         self.failUnless(exception)
 
+        exception = False
         try:
             tseries._timeseriescompat_multiple(seriesD_5, seriesD_10)
-            exception = False
-        except:
+        except ts.TimeSeriesCompatibilityError:
             exception = True
         self.failUnless(exception)
 
+        exception = False
         try:
             tseries._timeseriescompat_multiple(seriesD_5, seriesD_5_apr)
-            exception = False
-        except:
+        except ts.TimeSeriesCompatibilityError:
             exception = True
         self.failUnless(exception)
 

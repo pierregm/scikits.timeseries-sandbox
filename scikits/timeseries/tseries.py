@@ -224,10 +224,18 @@ def _timeseriescompat_multiple(*series):
 
     defsteps = series[0]._dates.get_steps()
 
+    def _check_steps(ser):
+        _defsteps = s._dates.get_steps()
+        _ds_comp = (_defsteps != defsteps)
+        if not hasattr(_ds_comp, "any") or _ds_comp.any():
+            return True
+        else:
+            return False
+
     (freqs, start_dates, steps, shapes) = \
                                 zip(*[(s.freq,
                                        s.start_date,
-                                       (s._dates.get_steps() != defsteps).any(),
+                                       _check_steps(s),
                                        s.shape) for s in series])
     # Check the frequencies ................
     freqset = set(freqs)
@@ -240,19 +248,19 @@ def _timeseriescompat_multiple(*series):
         err_items = tuple(startset)
         raise TimeSeriesCompatibilityError('start_dates',
                                            err_items[0], err_items[1])
+    # Check the shapes .....................
+    shapeset = set(shapes)
+    if len(shapeset) > 1:
+        err_items = tuple(shapeset)
+        raise TimeSeriesCompatibilityError('size',
+                                           "1: %s" % str(err_items[0]),
+                                           "2: %s" % str(err_items[1]))
     # Check the steps ......................
     if max(steps) == True:
         bad_index = [x for (x, val) in enumerate(steps) if val][0]
         raise TimeSeriesCompatibilityError('time_steps',
                                            defsteps,
                                            series[bad_index]._dates.get_steps())
-    # Check the shapes .....................
-    shapeset = set(shapes)
-    if len(shapeset) > 1:
-        err_items = tuple(shapeset)
-        raise TimeSeriesCompatibilityError('size',
-                                           "1: %s" % str(err_items[0].shape),
-                                           "2: %s" % str(err_items[1].shape))
     return True
 
 
@@ -1908,7 +1916,7 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
         if func is None:
             newvarshape = data_.shape[1:]
         else:
-            # Try to use an axis argument 
+            # Try to use an axis argument
             try:
                 data_ = func(data_, axis=-1, *args, **kwargs)
             # Fall back to apply_along_axis (slower)
