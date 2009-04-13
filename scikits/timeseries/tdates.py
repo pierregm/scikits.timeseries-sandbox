@@ -17,27 +17,21 @@ __date__     = '$Date$'
 
 import datetime as dt
 
-import itertools
 import warnings
-import types
 
 import numpy as np
-from numpy import bool_, float_, int_, object_, ndarray
+from numpy import ndarray
 import numpy.core.numerictypes as ntypes
 from numpy.core.numerictypes import generic
-
-import numpy.ma as ma
 
 from parser import DateFromString, DateTimeFromString
 
 import const as _c
 import cseries
-
 # initialize python callbacks for C code
 cseries.set_callback_DateFromString(DateFromString)
 cseries.set_callback_DateTimeFromString(DateTimeFromString)
-
-from cseries import Date, now, check_freq, check_freq_str, get_freq_group,\
+from cseries import Date, now, check_freq, check_freq_str, get_freq_group, \
                     DateCalc_Error, DateCalc_RangeError
 
 __all__ = ['ArithmeticDateError',
@@ -81,7 +75,8 @@ class InsufficientDateError(DateError):
     """
     def __init__(self, msg=None):
         if msg is None:
-            msg = "Insufficient parameters given to create a date at the given frequency"
+            msg = "Insufficient parameters to create a date "\
+                  "at the given frequency."
         DateError.__init__(self, msg)
 
 class FrequencyDateError(DateError):
@@ -121,7 +116,8 @@ def prevbusday(day_end_hour=18, day_end_min=0):
     Notes
     -----
     If it is currently Saturday or Sunday, then the preceding Friday will be
-    returned. If it is later than the specified ``day_end_hour`` and ``day_end_min``,
+    returned.
+    If it is later than the specified ``day_end_hour`` and ``day_end_min``,
     ``now('Business')`` will be returned.
     Otherwise, ``now('Business')-1`` will be returned.
 
@@ -149,8 +145,9 @@ def _check_chronological_order(dates):
     return
 
 
-ufunc_dateOK = ['add','subtract',
-                'equal','not_equal','less','less_equal', 'greater','greater_equal',
+ufunc_dateOK = ['add', 'subtract',
+                'equal', 'not_equal', 'less', 'less_equal',
+                'greater', 'greater_equal',
                 'isnan']
 
 class _datearithmetics(object):
@@ -185,7 +182,7 @@ class _datearithmetics(object):
         freq = instance.freq
         if 'context' not in kwargs:
             kwargs['context'] = 'DateOK'
-        method = getattr(super(DateArray,instance), self.methodname)
+        method = getattr(super(DateArray, instance), self.methodname)
         other_val = other
         if isinstance(other, DateArray):
             if other.freq != freq:
@@ -197,7 +194,7 @@ class _datearithmetics(object):
                                          freq, other.freq)
             other_val = other.value
         elif isinstance(other, ndarray):
-            if other.dtype.kind not in ['i','f']:
+            if other.dtype.kind not in ['i', 'f']:
                 raise ArithmeticDateError
         if self._asdates and not isinstance(other, (DateArray, Date)):
             return instance.__class__(method(other_val, *args),
@@ -232,7 +229,7 @@ class DateArray(ndarray):
         else:
             _freq = check_freq(freq)
         # Get the dates ..........
-        _dates = np.array(dates, copy=copy, dtype=int_, subok=1)
+        _dates = np.array(dates, copy=copy, dtype=int, subok=1)
         if _dates.ndim == 0:
             _dates.shape = (1,)
         _dates = _dates.view(cls)
@@ -268,6 +265,7 @@ class DateArray(ndarray):
         return
 
     def _get_unsorted(self):
+        "Returns the indices of the dates in chronological order"
         chronidx = self._cachedinfo['chronidx']
         if chronidx is None:
             flag = self.is_chronological()
@@ -276,6 +274,7 @@ class DateArray(ndarray):
             return None
         return chronidx
     def _set_unsorted(self, value):
+        "Sets the indices of the dates in chronological order"
         self._cachedinfo.update({'chronidx': value})
     _unsorted = property(fget=_get_unsorted, fset=_set_unsorted)
 
@@ -311,7 +310,7 @@ class DateArray(ndarray):
             if hasattr(r, '_cachedinfo'):
                 _cache = r._cachedinfo
                 # Select the appropriate cached representations
-                _cache.update(dict([(k,_cache[k][indx])
+                _cache.update(dict([(k, _cache[k][indx])
                                     for k in ('toobj', 'tostr', 'toord')
                                     if _cache[k] is not None]))
                 # Reset the ischrono flag if needed
@@ -437,7 +436,7 @@ class DateArray(ndarray):
         return np.asarray(cseries.DA_getDateInfo(np.asarray(self),
                                                  self.freq, info,
                                                  int(self.is_full())),
-                          dtype=int_)
+                          dtype=int)
     __getDateInfo = __getdateinfo__
 
     #.... Conversion methods ....................
@@ -478,7 +477,7 @@ class DateArray(ndarray):
                 diter = (d.value for d in self)
             else:
                 diter = (d.toordinal() for d in self)
-            toord = np.fromiter(diter, dtype=float_)
+            toord = np.fromiter(diter, dtype=float)
             self._cachedinfo['toord'] = toord
         return self._cachedinfo['toord']
     toordinal = toordinals
@@ -566,9 +565,8 @@ class DateArray(ndarray):
             return self
 
         relation = relation.upper()
-
         if relation not in ('START', 'END', 'S', 'E'):
-            errmsg = "invalid specification for 'relation' parameter: %s"
+            errmsg = "Invalid specification for the 'relation' parameter: %s"
             raise ValueError(errmsg % relation)
 
         fromfreq = self.freq
@@ -583,7 +581,6 @@ class DateArray(ndarray):
     Returns the indices corresponding to given dates, as an array.
 
         """
-
         #http://aspn.activestate.com/ASPN/Mail/Message/python-tutor/2302348
         def flatten_sequence(iterable):
             """Flattens a compound of nested iterables."""
@@ -594,7 +591,7 @@ class DateArray(ndarray):
                         yield f
                 else:
                     yield elm
-
+        #
         def flatargs(*args):
             "Flattens the arguments."
             if not hasattr(args, '__iter__'):
@@ -603,7 +600,7 @@ class DateArray(ndarray):
                 return flatten_sequence(args)
 
         ifreq = self.freq
-        c = np.zeros(self.shape, bool_)
+        c = np.zeros(self.shape, dtype=bool)
         for d in flatargs(*dates):
             if d.freq != ifreq:
                 d = d.asfreq(ifreq)
@@ -626,7 +623,7 @@ class DateArray(ndarray):
                 return _val - vals[0]
             else:
                 return np.where(vals == _val)[0][0]
-
+        #
         _dates = DateArray(dates, freq=self.freq)
         if self.is_valid():
             indx = (_dates.view(ndarray) - vals[0])
@@ -638,7 +635,7 @@ class DateArray(ndarray):
             return indx
         vals = vals.tolist()
         indx = np.array([vals.index(d) for d in _dates.view(ndarray)])
-
+        #
         return indx
 
 
@@ -686,11 +683,11 @@ class DateArray(ndarray):
                 if _cached['hasdups'] is None:
                     _cached['hasdups'] = (steps.min() == 0)
             else:
-                _cached['ischrono'] = True
-                _cached['chronidx'] = np.array([], dtype=int)
-                _cached['full'] = True
-                _cached['hasdups'] = False
-                steps = np.array([], dtype=int_)
+                _cached.update(ischrono=True,
+                               chronidx=np.array([], dtype=int),
+                               full=True,
+                               hasdups=False)
+                steps = np.array([], dtype=int)
             _cached['steps'] = steps
         return _cached['steps']
 
@@ -719,7 +716,7 @@ class DateArray(ndarray):
         return self._cachedinfo['hasdups']
 
     def is_valid(self):
-        "Returns whether the instance is valid: no missing nor duplicated dates."
+        "Returns whether the instance is valid: no missing/duplicated dates."
         return  (self.is_full() and not self.has_duplicated_dates())
 
     def isvalid(self):
@@ -788,7 +785,7 @@ def fill_missing_dates(dates, freq=None):
     # Check the frequency ........
     orig_freq = freq
     freq = check_freq(freq)
-    if orig_freq is not None and freq == _c.FR_UND:
+    if (orig_freq is not None) and (freq == _c.FR_UND):
         freqstr = check_freq_str(freq)
         errmsg = "Unable to define a proper date resolution (found %s)."
         raise ValueError(errmsg % freqstr)
@@ -796,17 +793,17 @@ def fill_missing_dates(dates, freq=None):
     if not isinstance(dates, DateArray):
         errmsg = "A DateArray was expected, got %s instead."
         raise ValueError(errmsg % type(dates))
-
+    # Convert the dates to the new frequency (if needed)
     if freq != dates.freq:
         dates = dates.asfreq(freq)
-
+    # Flatten the array
     if dates.ndim != 1:
         dates = dates.ravel()
+    # Skip if there's no need to fill
     if not dates.has_missing_dates():
         return dates
-
     # ...and now, fill it ! ......
-    (tstart, tend) = dates[[0,-1]]
+    (tstart, tend) = dates[[0, -1]]
     return date_array(start_date=tstart, end_date=tend)
 DateArray.fill_missing_dates = fill_missing_dates
 
@@ -819,7 +816,6 @@ nodates = DateArray([])
 def _listparser(dlist, freq=None):
     "Constructs a DateArray from a list."
     dlist = np.array(dlist, copy=False, ndmin=1)
-
     # Case #1: dates as strings .................
     if dlist.dtype.kind in 'SU':
         #...construct a list of dates
@@ -850,6 +846,7 @@ def _listparser(dlist, freq=None):
     result.freq = freq
     return result
 
+
 def date_array(dlist=None, start_date=None, end_date=None, length=None,
                freq=None, autosort=False):
     """
@@ -869,13 +866,12 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
 
         In any of the last four possibilities, the :keyword:`freq` parameter
         must also be given.
-    start_date : {Date}, optional
+    start_date : {var}, optional
         First date of a continuous :class:`DateArray`.
         This parameter is used only if :keyword:`dlist` is None.
         In that case, one of the :keyword:`end_date` or the :keyword:`length`
         parameters must be given.
-        The frequency of the result will be the frequency of this parameter.
-    end_date : {Date}, optional
+    end_date : {var}, optional
         Last date of the output. 
         Use this parameter in combination with :keyword:`start_date` to create
         a continuous :class:`DateArray`.
@@ -890,11 +886,14 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
     -----
     * When the input is a list of dates, the dates are **not** sorted.
       Use ``autosort = True`` to sort the dates by chronological order.
+    * If `start_date` is a :class:`Date` object and `freq` is None,
+      the frequency of the output is ``start_date.freq``.
 
 
     Returns
     -------
     output : :class:`DateArray` object.
+
     """
     freq = check_freq(freq)
     # Case #1: we have a list ...................
@@ -902,19 +901,17 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
         # Already a DateArray....................
         if isinstance(dlist, DateArray):
             if (freq != _c.FR_UND) and (dlist.freq != check_freq(freq)):
+                # Convert to the new frequency
                 dlist = dlist.asfreq()
-                if autosort:
-                    dlist.sort_chronologically()
-                return dlist
             else:
-                # Taking a view will make sure we won't propagate modifications..
+                # Take a view so that we don't propagate modifications....
                 # ... in _cachedinfo.
                 dlist = dlist.view()
-                if autosort:
-                    dlist.sort_chronologically()
-                return dlist
+            if autosort:
+                dlist.sort_chronologically()
+            return dlist
         # Make sure it's a sequence, else that's a start_date
-        if hasattr(dlist,'__len__'):
+        if hasattr(dlist, '__len__') and not isinstance(dlist, basestring):
             dlist = _listparser(dlist, freq=freq)
             if autosort:
                 dlist.sort_chronologically()
@@ -933,18 +930,27 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
             return DateArray([], freq=freq)
         raise InsufficientDateError
     if not isinstance(start_date, Date):
-        dmsg = "Starting date should be a valid Date instance! "
-        dmsg += "(got '%s' instead)" % type(start_date)
-        raise DateError, dmsg
+        try:
+            start_date = Date(freq, start_date)
+        except:
+            dmsg = "Starting date should be a valid Date instance! "
+            dmsg += "(got '%s' instead)" % type(start_date)
+            raise DateError, dmsg
     # Check if we have an end_date
     if end_date is None:
         if length is None:
             length = 1
     else:
-        if not isinstance(end_date, Date):
+        try:
+            end_date = Date(start_date.freq, end_date)
+        except:
             raise DateError, "Ending date should be a valid Date instance!"
+        # Make sure end_date is after start_date
+        if (end_date < start_date):
+            (start_date, end_date) = (end_date, start_date)
         length = int(end_date - start_date) + 1
-    dlist = np.arange(length, dtype=int_)
+    #
+    dlist = np.arange(length, dtype=np.int)
     dlist += start_date.value
     if freq == _c.FR_UND:
         freq = start_date.freq
@@ -965,6 +971,7 @@ class _frommethod(object):
     def __init__(self, methodname):
         self._methodname = methodname
         self.__doc__ = self.getdoc()
+    #
     def getdoc(self):
         "Returns the doc of the function (from the doc of the method)."
         try:
@@ -983,7 +990,9 @@ class _frommethod(object):
         try:
             return method(*args, **params)
         except SystemError:
-            return getattr(np,self._methodname).__call__(caller, *args, **params)
+            method = getattr(np, self._methodname)
+            return method(caller, *args, **params)
+
 #............................
 weekday = _frommethod('weekday')
 week = _frommethod('week')
@@ -1035,7 +1044,7 @@ def convert_to_float(datearray, ofreq):
                         " (got '%s' instead)" % type(datearray))
     errmsg = "Not implemented for the frequencies ('%s', '%s')"
     #
-    freqdict = dict([(f, check_freq(f)) for f in ('A','Q','M','D')])
+    freqdict = dict([(f, check_freq(f)) for f in ('A', 'Q', 'M', 'D')])
     ifreq = datearray.freq
     ofreq = check_freq(ofreq)
     errmsg = "Not implemented for the frequencies ('%s', '%s')" % \

@@ -75,6 +75,19 @@ class TestCreation(TestCase):
         assert_equal(dates, dvals)
 
 
+    def test_from_startend_dates_strings(self):
+        "Test creating from a starting & ending dates as strings"
+        control = DateArray(np.arange(366) + 733042, freq='D')
+        test = date_array('2008-01-01', '2008-12-31', freq='D')
+        assert_equal(test, control)
+        test = date_array(start_date='2008-01-01', end_date='2008-12-31',
+                          freq='D')
+        assert_equal(test, control)
+        test = date_array(start_date='2008-12-31', end_date='2008-01-01',
+                          freq='D')
+        assert_equal(test, control)
+
+
     def test_fromstrings_wmissing(self):
         "Tests creation from list of strings w/ missing dates"
         dlist = ['2007-01-%02i' % i for i in (1,2,4,5,7,8,10,11,13)]
@@ -172,6 +185,7 @@ class TestCreation(TestCase):
         assert(dates.has_missing_dates())
         assert_equal(dates.start_date.value, 2001)
         assert_equal(dates.end_date.value, 2007)
+
 
 
 class TestDateProperties(TestCase):
