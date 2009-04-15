@@ -3,6 +3,7 @@ Core objects
 ************
 
 .. toctree::
+   :maxdepth: 2
 
    core.overview
    core.dates

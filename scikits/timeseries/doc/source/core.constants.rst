@@ -38,7 +38,7 @@ Frequencies representations
 ---------------------------
 
 
-.. htmlonly::
+.. only:: html
 
    +----------------+--------+-----------------------------------------------------------------------+
    | CONSTANT       |  Int   |  String aliases (case insensitive)                                    |

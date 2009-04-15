@@ -143,7 +143,7 @@ The following attributes are read-only, with an integer type.
 
 .. .. tabularcolumns:: |l|l|c|
 
-.. htmlonly::
+.. only:: html
 
    +-----------------------------------+----------------------------------+---------+
    | Name                              | Description                      |  Range  |

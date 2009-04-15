@@ -210,7 +210,7 @@ The following attributes give some information about the dates.
 They are read-only.
 
 
-.. htmlonly::
+.. only:: html
 
    +--------------------------------------+------------------------------------+---------+
    | Name                                 | Description                        |  Range  |
@@ -319,7 +319,9 @@ Information methods
 The following methods give some information about the distribution of dates.
 They do not need any argument.
 
-.. htmlonly::
+
+.. only:: html
+
    ==========================================  =============================================================================================
    .. method:: DateArray.get_steps             Returns the time steps between consecutive dates, in the same unit as the instance frequency.
    .. method:: DateArray.has_missing_dates     Returns whether the instance has missing dates.
@@ -329,7 +331,9 @@ They do not need any argument.
    .. method:: Date.is_chronological           Returns whether the instance is sorted in chronological order.
    ==========================================  =============================================================================================
 
-.. latexonly::
+
+.. only:: latex
+
    .. method:: DateArray.get_steps
       Returns the time steps between consecutive dates, in the same unit as the instance frequency.
    .. method:: DateArray.has_missing_dates

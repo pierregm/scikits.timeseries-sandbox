@@ -2,7 +2,7 @@
  scikits.timeseries
 ###################
 
-.. htmlonly::
+.. only:: html
 
     :Release: |version|
     :Date: |today|
@@ -15,6 +15,7 @@
    installation
    core
    lib
+   examples
    support
 
 .. toctree::
@@ -22,7 +23,7 @@
    
    version
 
-.. htmlonly::
+.. only:: only
 
   * :ref:`genindex`
   * :ref:`search`

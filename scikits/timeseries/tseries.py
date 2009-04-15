@@ -104,8 +104,8 @@ def first_unmasked_val(a, axis=None):
     Returns
     -------
     val : {singleton of type marray.dtype}
-        first unmasked value in marray. If all values in marray are masked,
-        the function returns the numpy.ma.masked constant
+        First unmasked value in a.
+        If all values in a are masked, returns the numpy.ma.masked constant.
     """
     return _unmasked_val(a, 0, axis=axis)
 
@@ -125,8 +125,8 @@ def last_unmasked_val(a, axis=None):
     Returns
     -------
     val : {singleton of type marray.dtype}
-        first unmasked value in marray. If all values in marray are masked,
-        the function returns the numpy.ma.masked constant
+        Last unmasked value in a.
+        If all values in a are masked, returns the numpy.ma.masked constant.
     """
     return _unmasked_val(a, 1, axis=axis)
 

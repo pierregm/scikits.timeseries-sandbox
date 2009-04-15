@@ -76,6 +76,22 @@ Accessing elements with an array of booleans:
       freq  = M)
 
 
+Additional functions
+''''''''''''''''''''
+
+Two functions provide a convenient way to access the first and last valid
+(not masked) elements of a :class:`TimeSeries`:
+
+.. autosummary::
+   :toctree: generated/
+
+   first_unmasked_val
+   last_unmasked_val
+
+
+
+
+
 Setting elements
 ~~~~~~~~~~~~~~~~
 

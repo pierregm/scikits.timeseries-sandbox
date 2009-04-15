@@ -265,7 +265,9 @@ Date information
 
 The following methods access information about the :attr:`dates` attribute:
 
-.. htmlonly::
+
+.. only:: html
+
    ===========================================  ========================================================================================
    .. method:: TimeSeries.get_steps             Returns the time steps between consecutive dates,
                                                 in the same unit as the instance frequency.
@@ -276,7 +278,9 @@ The following methods access information about the :attr:`dates` attribute:
    .. method:: TimeSeries.is_chronological      Returns whether the instance is sorted in chronological order.
    ===========================================  ========================================================================================
 
-.. latexonly::
+
+.. only:: latex
+
    .. method:: TimeSeries.get_steps
       Returns the time steps between consecutive dates,
       in the same unit as the instance frequency.
