@@ -74,7 +74,6 @@ def setup_package():
           maintainer = "Pierre GERARD-MARCHANT",
           maintainer_email = "pierregmcode_AT_gmail_DOT_com",
           url = "http://pytseries.sourceforge.net",
-          license = "BSD",
           classifiers = classifiers,
           platforms = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
           configuration = configuration,
