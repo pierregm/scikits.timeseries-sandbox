@@ -37,11 +37,14 @@ options = {'alt': directives.unchanged,
            'linenos': directives.flag}
 
 template = """
-.. htmlonly::
+.. only:: html
+
    .. image:: %(outdir)s/%(basename)s.png
 %(options)s
 
-.. latexonly::
+
+.. only:: latex or draft
+
    .. image:: %(outdir)s/%(basename)s.pdf
 %(options)s
 
