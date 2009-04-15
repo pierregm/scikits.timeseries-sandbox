@@ -39,13 +39,13 @@ options = {'alt': directives.unchanged,
 template = """
 .. only:: html
 
-   .. image:: %(outdir)s/%(basename)s.png
+   .. image:: /%(outdir)s/%(basename)s.png
 %(options)s
 
 
 .. only:: latex or draft
 
-   .. image:: %(outdir)s/%(basename)s.pdf
+   .. image:: /%(outdir)s/%(basename)s.pdf
 %(options)s
 
 """
@@ -74,10 +74,10 @@ def makefig(fullpath, outdir):
             break
 
     if all_exists:
-        print '    already have %s'%fullpath
+        print '    (already have %s)' % fullpath
         return
 
-    print '    building %s'%fullpath
+    print '    Building %s' % fullpath
     plt.close('all')    # we need to clear between runs
     matplotlib.rcdefaults()
 
@@ -112,23 +112,25 @@ def run(arguments, options, state_machine, lineno):
     # change to doc directory if not already there
     for x in range(len(path_parts) - 1 - doc_idx): os.chdir('..')
 
-    # srcdir = 'source/lib'
     srcdir = 'source'
     outdir = 'build/plots'
 
-    outdir = os.path.abspath(outdir)
-    srcdir = os.path.abspath(srcdir)
+    absoutdir = os.path.abspath(outdir)
 
     # Make sure that outdir exists and is an actual directory
-    if not os.path.isdir(outdir): os.mkdir(outdir)
+    if not os.path.isdir(absoutdir):
+        os.mkdir(absoutdir)
 
     # Build the figure from the script
-    makefig(os.path.join(srcdir, reference), outdir)
+    makefig(os.path.join(os.path.abspath(srcdir), reference), absoutdir)
+
+    # Rename the output directory using the top-level of source as starter
+    outdir = os.path.join('..', outdir)
 
     # Process the options
     if 'include-source' in options:
         del options['include-source']
-        lines = [".. literalinclude:: %(srcdir)s/%(reference)s" % locals()]
+        lines = [".. literalinclude:: /%(reference)s" % locals()]
     else:
         lines = []
 

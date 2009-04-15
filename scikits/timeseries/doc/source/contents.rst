@@ -23,7 +23,7 @@
    
    version
 
-.. only:: only
+.. only:: html
 
   * :ref:`genindex`
   * :ref:`search`
