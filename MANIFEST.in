@@ -1,0 +1,18 @@
+# Base level
+include setup.cfg
+include setup*.py
+include MANIFEST.in
+include *.txt
+# Scikits level
+recursive-include scikits *.py
+recursive-include scikits/timeseries/src *.c
+recursive-include scikits/timeseries/include *.h
+# Doc level
+include scikits/timeseries/doc/Makefile
+include scikits/timeseries/doc/README
+recursive-include scikits/timeseries/doc/source *.rst
+include scikits/timeseries/doc/source/_static
+include scikits/timeseries/doc/source/_templates
+prune scikits/timeseries/doc/source/generated
+prune scikits/timeseries/doc/build
+
