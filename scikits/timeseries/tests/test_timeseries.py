@@ -16,8 +16,7 @@ from numpy.testing import *
 
 import numpy.ma as ma
 from numpy.ma import MaskedArray, masked, nomask
-from numpy.ma.testutils import assert_equal, assert_array_equal, assert_not_equal,\
-                               assert_equal_records, assert_almost_equal
+from numpy.ma.testutils import *
 
 import scikits.timeseries as ts
 
@@ -1270,8 +1269,8 @@ test_dates test suite.
         #
         ser_2 = time_series(data, dates=_dates+3)
         newseries = concatenate((ser_1, ser_2))
-        assert_equal(newseries._data,[0, 1, 2, 3, 4, 2, 3, 4])
-        assert_equal(newseries._mask,[1, 0, 0, 0, 0, 0, 0, 0])
+        assert_equal(newseries._data, [0, 1, 2, 3, 4, 2, 3, 4])
+        assert_equal(newseries._mask, [1, 0, 0, 0, 0, 0, 0, 0])
         #
         newseries = concatenate((ser_1, ser_1[::-1]))
         assert_equal(newseries, ser_1)
@@ -1302,12 +1301,12 @@ test_dates test suite.
         assert_equal(smax.dates, series.dates)
         smax = series.max()
         assert_equal(smax.series, [9])
-        assert_equal(smax.dates,date_array(series.dates[1]))
+        assert_equal(smax.dates, date_array(series.dates[1]))
 
-        ser_m = ts.time_series(range(10), freq='M', start_date=now('M'))
+        ser_m = ts.time_series(range(10), freq='M', start_date='2008-01-01')
         ser_q = ser_m.convert(freq='Q')
         mx = ser_q.max(-1)
-        assert_equal(mx, ma.array([2,5,8,9]))
+        assert_equal(mx, ma.array([2, 5, 8, 9]))
         self.failUnless(isinstance(mx, TimeSeries))
 
     #

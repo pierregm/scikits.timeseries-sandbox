@@ -355,12 +355,11 @@ def mov_average_expw(data, span, tol=1e-6, dtype=None):
         kwargs['dtype'] = dtype
     result = _moving_func(data, MA_mov_average_expw, kwargs)
     mask = getattr(data, '_mask', ma.nomask)
-    result._mask = mask
 
     if mask is not ma.nomask:
         _unmasked = np.logical_not(mask).astype(float_)
         marker = 1.0 - MA_mov_average_expw(array=_unmasked, span=span)['array']
-        result._mask[marker > tol] = True
+        result._mask = np.where(marker > tol, True, mask)
 
     return result
 #.............................................................................
