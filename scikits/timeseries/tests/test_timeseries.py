@@ -972,6 +972,21 @@ class TestFunctions(TestCase):
         assert_equal(dseries.size, 26)
         assert_equal(dseries._mask, np.r_[series.mask[5:], [1]*16])
     #
+    def test_adjustendpoints_withdatestrings(self):
+        "Tests adjust_endpoints w/ string dates"
+        (series, data, dates) = self.d
+        dseries = adjust_endpoints(series, end_date='2007-01-31')
+        assert_equal(dseries.size, 31)
+        assert_equal(dseries._mask, np.r_[series.mask, [1]*16])
+        dseries = adjust_endpoints(series, end_date='2007-01-06')
+        assert_equal(dseries.size, 6)
+        assert_equal(dseries, series[:6])
+        dseries = adjust_endpoints(series,
+                                   start_date='2007-01-06',
+                                   end_date='2007-01-31')
+        assert_equal(dseries.size, 26)
+        assert_equal(dseries._mask, np.r_[series.mask[5:], [1]*16])
+    #
     def test_alignseries(self):
         "Tests align_series & align_with"
         (series, data, dates) = self.d

@@ -1742,7 +1742,7 @@ def adjust_endpoints(a, start_date=None, end_date=None, copy=False):
     # Dates validity checks .,...................
     msg = "%s should be a valid Date object! (got %s instead)"
     if a.dates.size >= 1:
-        (dstart, dend) = a.dates[[0,-1]]
+        (dstart, dend) = a.dates[[0, -1]]
     else:
         (dstart, dend) = (None, None)
     # Skip the empty series case
@@ -1755,7 +1755,9 @@ def adjust_endpoints(a, start_date=None, end_date=None, copy=False):
         start_date = dstart
         start_lag = 0
     else:
-        if not isinstance(start_date, Date):
+        if isinstance(start_date, basestring):
+            start_date = Date(a.freq, string=start_date)
+        elif not isinstance(start_date, Date):
             raise TypeError, msg % ('start_date', type(start_date))
         if dstart is not None:
             start_lag = start_date - dstart
@@ -1766,7 +1768,9 @@ def adjust_endpoints(a, start_date=None, end_date=None, copy=False):
         end_date = dend
         end_lag = 0
     else:
-        if not isinstance(end_date, Date):
+        if isinstance(end_date, basestring):
+            end_date = Date(a.freq, string=end_date)
+        elif not isinstance(end_date, Date):
             raise TypeError, msg % ('end_date', type(end_date))
         if dend is not None:
             end_lag = end_date - dend
