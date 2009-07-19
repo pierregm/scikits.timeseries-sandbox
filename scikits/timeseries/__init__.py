@@ -43,4 +43,5 @@ __all__.extend(tseries.__all__)
 __all__.extend(trecords.__all__)
 
 from numpy.testing import Tester
-test = Tester("scikits.timeseries").test
+#test = Tester("scikits.timeseries").test
+test = Tester().test

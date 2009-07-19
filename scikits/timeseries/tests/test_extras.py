@@ -291,6 +291,20 @@ year, month, A, B
         assert_equal(test, control)
 
 
+    def test_with_converter(self):
+        "Test tsfromtxt w/ an explicit converter"
+        input = StringIO.StringIO("2001-01, 00mm\n2002-01, 10mm\n2003-01, 00mm")
+        conv = converter={1: lambda s:float(s.split('mm')[0])}
+        test = tsfromtxt(input, delimiter=',', converters=conv, datecols=0,
+                         freq='M', dtype=float)
+        control = time_series([0., 10., 0.],
+                              dates=['2001-01', '2002-01', '2003-01'],
+                              freq='M')
+        assert(isinstance(test, TimeSeries))
+        assert_equal(test, control)
+        assert_equal(test.dates, control.dates)
+
+
 
 
 ###############################################################################

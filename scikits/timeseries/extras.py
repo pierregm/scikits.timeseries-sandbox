@@ -245,7 +245,7 @@ def guess_freq(dates):
     return freq
 
 
-def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
+def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
               skiprows=0, converters=None, dateconverter=None,
               missing='', missing_values=None,
               usecols=None, datecols=None,
@@ -360,15 +360,13 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
 
     """
     # Update the date converter .......
-    if converters is not None:
-        if 'dates' in converters:
-            dateconv = converters['dates']
-            del(converters['dates'])
-    else:
-        converters = {}
+    converters = converters or {}
+    dateconv = dateconverter or None
+    if dateconv is None:
         dateconv = lambda s: Date(freq, string=s)
-    if dateconverter:
-        dateconv = dateconverter
+    if 'dates' in converters:
+        dateconv = converters['dates']
+        del(converters['dates'])
     # Update the dtype (if needed) ....
     idtype = None
     if (dtype is not None):
@@ -458,6 +456,8 @@ def tsfromtxt(fname, dtype=None, freq=None, comments='#', delimiter=None,
             output = output.view(dtype)
     else:
         dataidx = [i for i in range(mrec.shape[-1]) if i not in datecols]
+        if len(dataidx) == 1:
+            dataidx = dataidx[0]
         output = time_series(mrec[:,dataidx], dates=dates)
     #
     if asrecarray:
