@@ -17,8 +17,9 @@ from numpy import genfromtxt
 from numpy.ma import masked
 
 import const as _c
-from tdates import Date, date_array
+from tdates import Date, date_array, DateArray
 from tseries import TimeSeries, time_series
+from cseries import DateCalc_Error
 
 #from _preview import genfromtxt
 
@@ -102,7 +103,7 @@ def count_missing(series):
 def convert_to_annual(series):
     """
     Group a series by years, taking leap years into account.
-    
+
     The output has as many rows as distinct years in the original series,
     and as many columns as the length of a leap year in the units corresponding
     to the original frequency (366 for daily frequency, 366*24 for hourly...).
@@ -131,7 +132,7 @@ def convert_to_annual(series):
     aseries : TimeSeries
         A 2D  :class:`~scikits.timeseries.TimeSeries` object with annual ('A')
         frequency.
-    
+
     """
     freq = series._dates.freq
     if freq < _c.FR_DAY:
@@ -193,6 +194,7 @@ def accept_atmost_missing(series, max_missing, strict=False):
         series[missing >= max_missing] = masked
     return series
 
+
 def guess_freq(dates):
     """
     Return an estimate of the frequency from a list of dates.
@@ -210,40 +212,63 @@ def guess_freq(dates):
     -----
     * In practice, the list of dates is first transformed into a list of
       :class:`datetime.datetime` objects.
-    * The estimated frequency can *never* be ``_c.FR_BUS`` (weekdays).
     """
-    # Set to an array of datetimes
-    dates = np.array(date_array(dates, freq='S').tolist())
-    # Sort and take the differences
-    ddif = np.diff(np.sort(dates))
-    incs = np.fromiter((d.seconds for d in ddif), dtype=int)
-    if incs.any():
-        minincs = min(incs)
-        if (minincs > 3599) and not np.all(incs % 3600 > 0):
+    if isinstance(dates, DateArray):
+        dates = dates.copy()
+
+    try:
+        dates = date_array(dates, freq='S', autosort=True)
+    except c_dates.DateCalc_Error:
+        # contains dates prior to 1979, assume lower frequency
+        dates = date_array(dates, freq='D', autosort=True)
+
+    ddif = np.diff(dates)
+    mind = np.min(ddif)
+
+    if dates.freq == _c.FR_SEC and mind < 86400:
+
+        # hourly, minutely, or secondly frequency
+        if (mind > 3599) and not np.all(ddif % 3600 > 0):
             freq = _c.FR_HR
-        elif minincs < 59:
+        elif mind < 59:
             freq = _c.FR_SEC
         else:
             freq = _c.FR_MIN
         return freq
-    incs = np.fromiter(((d.days % 365) for d in ddif), dtype=int)
-    (mindays, maxdays) = (min(incs), max(incs))
-    if mindays > 360:
-        freq = _c.FR_ANN
-    elif (mindays > 88):
+
+    # daily or lower frequency
+    if dates.freq == _c.FR_SEC:
+        dates = dates.asfreq('D')
+        ddif = np.diff(dates)
+        mind = np.min(ddif)
+
+    if mind > 360:
+        return _c.FR_ANN
+
+    if mind > 88:
         qincs = [89, 90, 91, 92, 273, 274, 275, 276, 277]
-        if np.all([i in qincs for i in (incs % 365)]):
+        if np.all([i in qincs for i in (ddif % 365)]):
             freq = _c.FR_QTR
         else:
             freq = _c.FR_MTH
-    elif (mindays > 27):
-        freq = _c.FR_MTH
-    elif (mindays % 7 == 0) and np.all((incs % 7) == 0):
-        freq = _c.FR_WK
-    else:
-        freq = _c.FR_DAY
-    return freq
+        return freq
 
+    if (mind > 27):
+        return _c.FR_MTH
+
+    dow = dates.day_of_week
+    if (mind % 7 == 0) and np.all((ddif % 7) == 0):
+
+        mdow = np.min(dow)
+        freq = _c.FR_WKSUN + ((mdow + 1) % 7)
+        return freq
+    else:
+        if np.any((dow == 5) | (dow == 6)):
+            freq = _c.FR_DAY
+        else:
+            # no weekends, assume business frequency
+            freq = _c.FR_BUS
+        return freq
 
 def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
               skiprows=0, converters=None, dateconverter=None,
@@ -275,7 +300,7 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
     dtype : data-type, optional
         Data type of the resulting array.
         If it is a structured data-type, the resulting array is 1-dimensional,
-        and each row is interpreted as an element of the array. In this case, 
+        and each row is interpreted as an element of the array. In this case,
         the number of columns used must match the number of fields in the dtype
         and the names of each field are set by the corresponding name of the dtype.
         If None, the dtypes will be determined by the contents of each
@@ -294,7 +319,7 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
         provide a default value for missing data:
         ``converters = {3: lambda s: float(s or 0)}``.
     dateconverter : {function}, optional
-        Function to convert the date information to a :class:`Date` object. 
+        Function to convert the date information to a :class:`Date` object.
         This function requires as many parameters as number of ``datecols``.
         This parameter is mandatory if ``dtype=None``.
     missing : {string}, optional
@@ -316,19 +341,19 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
         If ``None``, the names of the ``dtype`` fields will be used, if any.
     excludelist : {sequence}, optional
         A list of names to exclude. This list is appended to the default list
-        ``['return','file','print']``. 
+        ``['return','file','print']``.
         Excluded names are appended an underscore: for example, ``file`` would
         become ``file_``.
     deletechars : {string}, optional
         A string combining invalid characters that must be deleted from the names.
     case_sensitive : {True, False], optional
-        Whether names are case sensitive. If not, names are transformed to 
+        Whether names are case sensitive. If not, names are transformed to
         upper case.
     unpack : {bool}, optional
         If True, the returned array is transposed, so that arguments may be
         unpacked using ``x, y, z = loadtxt(...)``
     asrecarray : {False, True}, optional
-        Whether to return a TimeSeriesRecords or a series with a structured 
+        Whether to return a TimeSeriesRecords or a series with a structured
         dtype.
 
     Returns
@@ -384,7 +409,7 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
         if dtype.names:
             convdict = {'b': bool, 'i': int, 'l':int, 'u': int,
                         'f': float, 'd': float, 'g': float,
-                        'c': complex, 'D': complex, 
+                        'c': complex, 'D': complex,
                         'S': str, 'U': str, 'a': str}
             dnames = dtype.names
             idx = range(len(datecols)+len(dnames))
@@ -396,10 +421,10 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
         converters.update(update)
         #
     # Update the optional arguments ...
-    kwargs = dict(dtype=dtype, comments=comments, delimiter=delimiter, 
+    kwargs = dict(dtype=dtype, comments=comments, delimiter=delimiter,
                   skiprows=skiprows, converters=converters,
                   missing=missing, missing_values=missing_values,
-                  usecols=usecols, unpack=unpack, names=names, 
+                  usecols=usecols, unpack=unpack, names=names,
                   excludelist=excludelist, deletechars=deletechars,
                   case_sensitive=case_sensitive,
                   usemask=True)

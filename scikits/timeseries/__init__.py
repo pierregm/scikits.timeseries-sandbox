@@ -33,11 +33,12 @@ from tseries import *
 import trecords
 from trecords import *
 _c = const
-from extras import tsfromtxt
+from extras import tsfromtxt, guess_freq
 
 from scikits.timeseries.version import __version__
 
-__all__ = ['_c', 'const', 'tdates','tseries','trecords', 'tsfromtxt']
+__all__ = [
+    '_c', 'const', 'tdates','tseries','trecords', 'tsfromtxt', 'guess_freq']
 __all__.extend(tdates.__all__)
 __all__.extend(tseries.__all__)
 __all__.extend(trecords.__all__)
