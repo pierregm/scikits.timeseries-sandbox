@@ -67,7 +67,6 @@ from matplotlib.dates import DayLocator, MonthLocator, YearLocator, \
                              DateFormatter
 from matplotlib.figure import Figure
 from matplotlib.legend import Legend
-from matplotlib.mlab import meshgrid
 from matplotlib.ticker import Formatter, ScalarFormatter, FuncFormatter, \
                               Locator, FixedLocator
 from matplotlib.transforms import nonsingular
@@ -1205,9 +1204,6 @@ def add_yaxis(fsp=None, position='right', yscale=None, basey=10, subsy=None,):
         except AttributeError:
             basey = 10.
     fsp_alt.set_yscale(yscale, basey=basey, subsy=subsy)
-    # Guess we're good ................
-    fsp_alt.set_xticks('')
-    fsp_alt.set_xticklabels('')
 
     pylab.draw_if_interactive()
     return fsp_alt

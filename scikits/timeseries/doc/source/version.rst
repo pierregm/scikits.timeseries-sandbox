@@ -5,6 +5,18 @@ Version History
 ***************
 
 
+Release 0.91.2 (Aug. 23, 2009)
+==============================
+
+Bug Fixes
+---------
+
+* fixed mov_average_expw so that the mask of the input is not modified
+* adjust_endpoints : allow the input starting and ending dates to be strings
+* enhancements to guess_freq function, more frequencies supported
+* fixes for compatibility with matplotlib 0.99.0
+
+
 Release 0.91.1 (Apr. 15, 2009)
 ==============================
 
