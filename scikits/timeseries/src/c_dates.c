@@ -1422,6 +1422,14 @@ DateObject_init(DateObject *self, PyObject *args, PyObject *kwds) {
         value = NULL;
     }
 
+    if (value && (PyDateTime_Check(value) || PyDate_Check(value))) {
+        if (!datetime) {
+            datetime = value;
+        }
+        value = NULL;
+    } // datetime = (datetime||value), value = NULL
+
+
     if (value) {
         self->value = PyInt_AsLong(value);
     } else {

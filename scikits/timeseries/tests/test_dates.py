@@ -136,6 +136,10 @@ class TestCreation(TestCase):
         _dt = ts.Date(freq='D', datetime=datetime.datetime(2007, 1, 1, 0, 0, 0, 0))
         assert_equal(_dt, _tsdt)
 
+        # try using the 'value' positional arg
+        _dt = ts.Date('D', datetime.datetime(2007, 1, 1, 0, 0, 0, 0))
+        assert_equal(_dt, _tsdt)
+
 
     def test_consistent_value(self):
         "Tests that values don't get mutated when constructing dates from a value"
@@ -1131,7 +1135,7 @@ class TestMethods(TestCase):
         assert_equal(test, [2, 1, 0])
 
     def test_sort_wcached(self):
-        
+
         "Test cache update w/ sorting"
         dates = ts.DateArray([2002, 2000, 2001, 2002], freq='A')
         assert_equal(dates.is_chronological(), False)
@@ -1162,4 +1166,3 @@ class TestMethods(TestCase):
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
     run_module_suite()
-
