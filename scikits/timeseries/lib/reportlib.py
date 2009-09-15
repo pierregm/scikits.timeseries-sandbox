@@ -22,11 +22,15 @@ __all__ = [
     'wrap_always']
 
 class fmt_func_wrapper:
-    """wraps a formatting function such that it handles masked values
+    """
+    wraps a formatting function such that it handles masked values
 
-:IVariables:
-    - `fmt_func` : formatting function.
-    - `mask_rep` : string to use for masked values
+    IVariables
+    ----------
+    fmt_func : {function}
+        formatting function.
+    mask_rep : {str}
+        string to use for masked values
     """
     def __init__ (self, fmt_func, mask_rep):
         if fmt_func is None:
@@ -295,7 +299,8 @@ class Report(object):
                 # default column justification
                 header_justify = ['left' for x in range(len(tseries)+1)]
         else:
-            justify = [None for x in range(len(tseries)+1)]
+            justify = ['none' for x in range(len(tseries)+1)]
+            header_justify = justify
 
         if datefmt is None:
             def datefmt_func(date): return str(date)
@@ -335,7 +340,11 @@ class Report(object):
         _sd = dates[0]
 
         for d in dates:
-            rows.append([datefmt_func(d)]+[fmt_func[i](ser.series[d - _sd]) for i, ser in enumerate(tseries)])
+            rows.append(
+                [datefmt_func(d)] + \
+                [fmt_func[i](ser.series[d - _sd]) \
+                 for i, ser in enumerate(tseries)]
+            )
 
         if footer_func is not None:
             has_footer=True
@@ -363,7 +372,7 @@ class Report(object):
 
         def rowWrapper(row):
             newRows = [wrap_func[i](item).split('\n') for i, item in enumerate(row)]
-            return [[(substr or '') for substr in item] for item in map(None,*newRows)]
+            return [[(substr or '') for substr in item] for item in map(None, *newRows)]
         # break each logical row into one or more physical ones
         logicalRows = [rowWrapper(row) for row in rows]
         numLogicalRows = len(logicalRows)
@@ -405,15 +414,26 @@ class Report(object):
             data_end = numLogicalRows-2
 
         for rowNum, physicalRows in enumerate(logicalRows):
-            for row in physicalRows:
-                if rowNum == 0 and header_separator:
-                    _justify = header_justify
-                else:
-                    _justify = justify
 
-                output.write(prefix \
-                           + delim.join([justify_funcs[str(_justify[colNum]).lower()](str(item),width) for (colNum,item,width) in zip(colNums,row,maxWidths)]) \
-                           + postfix + nls)
+            if rowNum == 0 and header_separator:
+                _justify = header_justify
+            else:
+                _justify = justify
+
+            def apply_justify(colNum, item, width):
+                jfunc_key = str(_justify[colNum]).lower()
+                jfunc = justify_funcs[jfunc_key]
+                return jfunc(str(item), width)
+
+            for row in physicalRows:
+
+                output.write(
+                    prefix + \
+                    delim.join([
+                        apply_justify(cn, item, width) \
+                        for (cn, item, width) in zip(colNums, row, maxWidths)
+                    ]) + \
+                    postfix + nls)
 
             if row_separator and (data_start <= rowNum <= data_end):
                 output.write(row_separator + nls)
