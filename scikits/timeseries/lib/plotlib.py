@@ -1311,7 +1311,7 @@ def tsfigure(num=None, figsize=None, dpi=None, facecolor=None, edgecolor=None,
                    subplotpars=subplotpars, series=series)
     fig = pylab.figure(**figargs)
     return fig
-tsfigure %= _doc_parameters
+tsfigure.__doc__ %= _doc_parameters
 
 
 def add_tsplot(axes, *args, **kwargs):
@@ -1331,7 +1331,7 @@ def add_tsplot(axes, *args, **kwargs):
         else:
             kwargs['series'] = None
     return add_generic_subplot(axes, *args, **kwargs)
-add_tsplot %= _doc_parameters
+add_tsplot.__doc__ %= _doc_parameters
 Figure.add_tsplot = add_tsplot
 
 
