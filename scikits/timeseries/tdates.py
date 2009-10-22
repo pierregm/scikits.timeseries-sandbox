@@ -13,7 +13,7 @@ Classes definition for the support of individual dates and array of dates.
 
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox"
 __revision__ = "$Revision$"
-__date__     = '$Date$'
+__date__ = '$Date$'
 
 import datetime as dt
 
@@ -123,8 +123,8 @@ def prevbusday(day_end_hour=18, day_end_min=0):
 
     """
     tempDate = dt.datetime.now()
-    dateNum = tempDate.hour + float(tempDate.minute)/60
-    checkNum = day_end_hour + float(day_end_min)/60
+    dateNum = tempDate.hour + float(tempDate.minute) / 60
+    checkNum = day_end_hour + float(day_end_min) / 60
     if dateNum < checkNum and tempDate.weekday() < 5:
         return now(_c.FR_BUS) - 1
     else:
@@ -200,7 +200,7 @@ class _datearithmetics(object):
             return instance.__class__(method(other_val, *args),
                                       freq=freq)
         else:
-            return method(other_val, *args)
+            return method(other_val, *args).view(np.ndarray)
 
 
 
@@ -586,7 +586,7 @@ class DateArray(ndarray):
             """Flattens a compound of nested iterables."""
             itm = iter(iterable)
             for elm in itm:
-                if hasattr(elm,'__iter__') and not isinstance(elm, basestring):
+                if hasattr(elm, '__iter__') and not isinstance(elm, basestring):
                     for f in flatten_sequence(elm):
                         yield f
                 else:
@@ -747,7 +747,7 @@ class DateArray(ndarray):
 
     #-----------------------------
 
-    def argsort(self, axis=-1, kind='quicksort', order=None):
+    def argsort(self, axis= -1, kind='quicksort', order=None):
         """
         Returns the indices that would sort the DateArray.
         Refer to `numpy.argsort` for full documentation
@@ -758,7 +758,7 @@ class DateArray(ndarray):
         """
         return self.__array__().argsort(axis=axis, kind=kind, order=order)
 
-    def sort(self, axis=-1, kind='quicksort', order=None):
+    def sort(self, axis= -1, kind='quicksort', order=None):
         "(This docstring should be overwritten)"
         ndarray.sort(self, axis=axis, kind=kind, order=order)
         _cached = self._cachedinfo
@@ -834,7 +834,7 @@ def _listparser(dlist, freq=None):
             if freq in (_c.FR_UND, None):
                 freq = template.freq
         #...as mx.DateTime objects
-        elif hasattr(template,'absdays'):
+        elif hasattr(template, 'absdays'):
             dlist = np.fromiter((Date(freq, datetime=m) for m in dlist),
                                 dtype=int)
         #...as datetime objects
@@ -1018,7 +1018,7 @@ def period_break(dates, period):
         Name of the period to monitor.
     """
     current = getattr(dates, period)
-    previous = getattr(dates-1, period)
+    previous = getattr(dates - 1, period)
     return (current - previous).nonzero()[0]
 
 
@@ -1056,12 +1056,12 @@ def convert_to_float(datearray, ofreq):
     # Quarterly.........
     elif (ifreq >= freqdict['Q']) and (ifreq < freqdict['M']):
         if (ofreq >= freqdict['A']) and (ofreq < freqdict['Q']):
-            output = datearray.years.astype(float) + (datearray.quarters -1.)/4.
+            output = datearray.years.astype(float) + (datearray.quarters - 1.) / 4.
     # Monthly...........
     elif ifreq == freqdict['M']:
         #... to annual
         if (ofreq >= freqdict['A']) and (ofreq < freqdict['Q']):
-            output = datearray.years.astype(float) + (datearray.months - 1)/12.
+            output = datearray.years.astype(float) + (datearray.months - 1) / 12.
         else:
             raise NotImplementedError(errmsg)
     # Daily ............
@@ -1070,7 +1070,7 @@ def convert_to_float(datearray, ofreq):
         if (ofreq >= freqdict['A']) and (ofreq < freqdict['Q']):
             output = datearray.asfreq('A')
             output = output.tovalue().astype(float) + \
-                     (datearray.yeardays-1.) / output.yeardays.astype(float)
+                     (datearray.yeardays - 1.) / output.yeardays.astype(float)
         # ... to quarterly
         elif (ofreq >= freqdict['Q']) and (ofreq < freqdict['M']):
             raise NotImplementedError
@@ -1078,7 +1078,7 @@ def convert_to_float(datearray, ofreq):
         elif ofreq == freqdict['M']:
             output = datearray.asfreq('M')
             output = output.tovalue().astype(float) + \
-                     (datearray.days-1.) / output.days.astype(float)
+                     (datearray.days - 1.) / output.days.astype(float)
         # ... to other
         else:
             raise NotImplementedError(errmsg)

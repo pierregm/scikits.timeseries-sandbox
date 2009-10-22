@@ -215,7 +215,7 @@ class TestTimeSeriesRecords(TestCase):
         os.close(tmp_fd)
 
         mrectxt = tsfromtxt(tmp_fl, delimiter=',', names=tuple('ABCDEFG'),
-                               datecols=0, skiprows=2, asrecarray=True)
+                               datecols=0, skip_header=2, asrecarray=True)
         os.remove(tmp_fl)
         #
         dlist = ['2007-%02i' % i for i in (1, 2, 3, 5)]
