@@ -7,7 +7,7 @@ Extras functions for time series.
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author$)"
 __revision__ = "$Revision$"
-__date__     = '$Date$'
+__date__ = '$Date$'
 
 
 import numpy as np
@@ -65,20 +65,20 @@ def count_missing(series):
     elif series.ndim != 2:
         raise NotImplementedError
     #
-    missing =  series.shape[-1] - series.count(axis=-1)
+    missing = series.shape[-1] - series.count(axis= -1)
     period = series.shape[-1]
     freq = series.freq
-    if (period == 366) and (freq//_c.FR_ANN == 1):
+    if (period == 366) and (freq // _c.FR_ANN == 1):
         # row: years, cols: days
         missing -= ~isleapyear(series.year)
-    elif period == 31 and (freq//_c.FR_MTH == 1):
+    elif period == 31 and (freq // _c.FR_MTH == 1):
         months = series.months
         # row: months, cols: days
-        missing[np.array([m in [4,6,9,11] for m in months])] -= 1
+        missing[np.array([m in [4, 6, 9, 11] for m in months])] -= 1
         isfeb = (months == 2)
         missing[isfeb] -= 2
         missing[isfeb & ~isleapyear(series.year)] -= 1
-    elif period == 92 and (freq//_c.FR_QTR == 1):
+    elif period == 92 and (freq // _c.FR_QTR == 1):
         # row: quarters, cold:days
         months = series.months
         if freq in (_c.FR_QTREJAN, _c.FR_QTRSJAN, _c.FR_QTREAPR, _c.FR_QTRSAPR,
@@ -87,14 +87,14 @@ def count_missing(series):
             missing[isfeb] -= 2
         elif freq in (_c.FR_QTREFEB, _c.FR_QTRSFEB, _c.FR_QTREMAY, _c.FR_QTRSMAY,
                       _c.FR_QTREAUG, _c.FR_QTRSAUG, _c.FR_QTRENOV, _c.FR_QTRSNOV):
-            missing[np.array([m in [2,11] for m in months])] -= 1
+            missing[np.array([m in [2, 11] for m in months])] -= 1
             isfeb = (months == 2)
         elif freq in (_c.FR_QTREMAR, _c.FR_QTRSMAR, _c.FR_QTREJUN, _c.FR_QTRSJUN,
                       _c.FR_QTRESEP, _c.FR_QTRSSEP, _c.FR_QTREDEC, _c.FR_QTRSDEC):
-            missing[np.array([m in [3,6] for m in months])] -= 1
+            missing[np.array([m in [3, 6] for m in months])] -= 1
             isfeb = (months == 3)
         missing[isfeb & ~isleapyear(series.year)] -= 1
-    elif period not in (12,7):
+    elif period not in (12, 7):
         raise NotImplementedError, "Not yet implemented for that frequency..."
     return missing
 
@@ -141,15 +141,15 @@ def convert_to_annual(series):
     if (freq == _c.FR_DAY):
         (idx0228, idx0301) = baseidx
     elif (freq == _c.FR_HR):
-        (idx0228, idx0301) = baseidx*24
+        (idx0228, idx0301) = baseidx * 24
     elif (freq == _c.FR_MIN):
-        (idx0228, idx0301) = baseidx*24*60
+        (idx0228, idx0301) = baseidx * 24 * 60
     elif (freq == _c.FR_SEC):
-        (idx0228, idx0301) = baseidx*24*3600
+        (idx0228, idx0301) = baseidx * 24 * 3600
     aseries = series.convert('A')
     leapcondition = isleapyear(aseries.dates.years)
     leapidx = np.arange(len(aseries), dtype=int)[~leapcondition]
-    aseries[leapidx, idx0301:] = aseries[leapidx, idx0228:idx0228-idx0301]
+    aseries[leapidx, idx0301:] = aseries[leapidx, idx0228:idx0228 - idx0301]
     aseries[leapidx, idx0228:idx0301] = ma.masked
     return aseries
 
@@ -185,7 +185,7 @@ def accept_atmost_missing(series, max_missing, strict=False):
     missing = count_missing(series)
     # Transform an acceptable percentage in a number
     if max_missing < 1:
-        max_missing = np.round(max_missing * series.shape[-1],0)
+        max_missing = np.round(max_missing * series.shape[-1], 0)
     #
     series.unshare_mask()
     if strict:
@@ -270,13 +270,17 @@ def guess_freq(dates):
             freq = _c.FR_BUS
         return freq
 
+
+
+
 def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
-              skiprows=0, converters=None, dateconverter=None,
-              missing='', missing_values=None,
+              skip_header=0, skip_footer=0, skiprows=0,
+              converters=None, dateconverter=None,
+              missing='', missing_values=None, filling_values=None,
               usecols=None, datecols=None,
-              names=None, excludelist=None, deletechars=None,
-              case_sensitive=True, unpack=None, loose=True,
-              asrecarray=False):
+              names=None, excludelist=None, deletechars=None, autostrip=True,
+              case_sensitive=True, defaultfmt="f%i", unpack=None, loose=True,
+              asrecarray=False, invalid_raise=True):
     """
     Load a TimeSeries from a text file.
 
@@ -311,55 +315,72 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
     delimiter : {string}, optional
         The string used to separate values.  By default, any consecutive
         whitespace act as delimiter.
-    skiprows : {int}, optional
-        Numbers of lines to skip at the beginning of the file.
-    converters : {None, dictionary}, optional
-        A dictionary mapping column number to a function that will convert
-        values in the column to a number. Converters can also be used to
-        provide a default value for missing data:
-        ``converters = {3: lambda s: float(s or 0)}``.
+    skip_header : int, optional
+        The numbers of lines to skip at the beginning of the file.
+    skip_footer : int, optional
+        The numbers of lines to skip at the end of the file
+    converters : variable or None, optional
+        The set of functions that convert the data of a column to a value.
+        The converters can also be used to provide a default value
+        for missing data: ``converters = {3: lambda s: float(s or 0)}``.
     dateconverter : {function}, optional
-        Function to convert the date information to a :class:`Date` object.
+        The function to convert the date information to a :class:`Date` object.
         This function requires as many parameters as number of ``datecols``.
         This parameter is mandatory if ``dtype=None``.
-    missing : {string}, optional
-        A string representing a missing value, irrespective of the column where
-        it appears (e.g., `'missing'` or `'unused'`).
-    missing_values : {None, dictionary}, optional
-        A dictionary mapping a column number to a string indicating whether the
-        corresponding field should be masked.
-    usecols : {None, sequence}, optional
-        Which columns to read, with 0 the first column.  For example,
-        ``usecols = (1,4,5)`` extracts the 2nd, 5th and 6th columns only.
+    missing_values : variable or None, optional
+        The set of strings corresponding to missing data.
+    filling_values : variable or None, optional
+        The set of values to be used as default when the data are missing.
+    usecols : sequence or None, optional
+        Which columns to read, with 0 being the first.  For example,
+        ``usecols = (1, 4, 5)`` will extract the 2nd, 5th and 6th columns.
     datecols : {None, int, sequence}, optional
         Which columns store the date information.
-    names : {True, string, sequence}, optional
-        If ``names`` is ``True``, the field names are read from the first
-        valid line after the first ``skiprows`` lines.
-        If it is a sequence or a single-string of comma-separated names,
-        the names are used to define the field names in a structured dtype.
-        If ``None``, the names of the ``dtype`` fields will be used, if any.
-    excludelist : {sequence}, optional
+    names : {None, True, str, sequence}, optional
+        If `names` is True, the field names are read from the first valid line
+        after the first `skiprows` lines.
+        If `names` is a sequence or a single-string of comma-separated names,
+        the names will be used to define the field names in a structured dtype.
+        If `names` is None, the names of the dtype fields will be used, if any.
+    excludelist : sequence, optional
         A list of names to exclude. This list is appended to the default list
-        ``['return','file','print']``.
-        Excluded names are appended an underscore: for example, ``file`` would
-        become ``file_``.
-    deletechars : {string}, optional
-        A string combining invalid characters that must be deleted from the names.
-    case_sensitive : {True, False], optional
-        Whether names are case sensitive. If not, names are transformed to
-        upper case.
-    unpack : {bool}, optional
+        ['return','file','print']. Excluded names are appended an underscore:
+        for example, `file` would become `file_`.
+    deletechars : str, optional
+        A string combining invalid characters that must be deleted from the
+        names.
+    defaultfmt : str, optional
+        A format used to define default field names, such as "f%i" or "f_%02i".
+    autostrip : bool, optional
+        Whether to automatically strip white spaces from the variables.
+    case_sensitive : {True, False, 'upper', 'lower'}, optional
+        If True, field names are case sensitive.
+        If False or 'upper', field names are converted to upper case.
+        If 'lower', field names are converted to lower case.
+    unpack : bool, optional
         If True, the returned array is transposed, so that arguments may be
         unpacked using ``x, y, z = loadtxt(...)``
+    usemask : bool, optional
+        If True, return a masked array.
+        If False, return a regular array.
     asrecarray : {False, True}, optional
         Whether to return a TimeSeriesRecords or a series with a structured
         dtype.
+    invalid_raise : bool, optional
+        If True, an exception is raised if an inconsistency is detected in the
+        number of columns.
+        If False, a warning is emitted and the offending lines are skipped.
+
 
     Returns
     -------
     out : MaskedArray
         Data read from the text file.
+
+    See Also
+    --------
+    numpy.lib.io.genfromtxt
+        Equivalent function for standard arrays
 
     Notes
     -----
@@ -368,23 +389,35 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
     * When the variable are named (either by a flexible dtype or with `names`,
       there must not be any header in the file (else a :exc:`ValueError`
       exception is raised).
+    * If ``names`` is True or a sequence of strings, these names overwrite
+      the fields names of a structured array.
+    * The sequence of names must NOT take the date columns into account.
     * If the datatype is not given explicitly (``dtype=None``),
       a :keyword:`dateconverter` must be given explicitly.
+    * If the ``dtype`` is given explicitly,
+      it must NOT refer to the date columns.
 
     Examples
     --------
     >>> data = "year, month, a, b\\n 2001, 01, 0.0, 10.\\n 2001, 02, 1.1, 11."
     >>> dateconverter = lambda y, m: Date('M', year=int(y), month=int(m))
-    >>> series = tsfromtxt(StringIO.StringIO(data), delimiter=',', names=true,
+    >>> series = tsfromtxt(StringIO.StringIO(data), delimiter=',', names=True,
     ...                    datecols=(0,1), dateconverter=dateconverter,)
     >>> series
     timeseries([(0.0, 10.0) (1.1, 11.0)],
        dtype = [('a', '<f8'), ('b', '<f8')],
        dates = [Jan-2001 Feb-2001],
        freq  = M)
+    >>> series = tsfromtxt(StringIO.StringIO(data), delimiter=",",
+    ...                    datecols=(0, 1), dateconverter=dateconverter,
+    ...                    names="A, B", skip_header=1)
+    timeseries([(0.0, 10.0) (1.1000000000000001, 11.0)],
+       dtype = [('A', '<f8'), ('B', '<f8')],
+       dates = [Jan-2001 Feb-2001],
+       freq  = M)
 
     """
-    # Update the date converter .......
+    # Update the date converter ...........................
     converters = converters or {}
     dateconv = dateconverter or None
     if dateconv is None:
@@ -392,50 +425,91 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
     if 'dates' in converters:
         dateconv = converters['dates']
         del(converters['dates'])
-    # Update the dtype (if needed) ....
-    idtype = None
+
+    # Make sure `datecols` is a sequence ..................
+    if datecols is not None:
+        try:
+            datecols = [_.strip() for _ in datecols.split(",")]
+        except AttributeError:
+            try:
+                datecols = list(datecols)
+            except TypeError:
+                datecols = [datecols, ]
+        # ... and update the converters
+        converters.update((i, str) for i in datecols)
+
+    # Save the initial names and dtypes ...................
+    idtype = dtype
+    if isinstance(names, basestring):
+        names = names.split(",")
+    inames = names
+
+    # Update the dtype (if needed) ........................
     if (dtype is not None):
-        dtype = np.dtype(dtype)
-        idtype = dtype
         # Crash if we can't find the datecols
         if datecols is None:
             raise TypeError("No column selected for the dates!")
-        # Make sure we can iterate on the datecols
-        if isinstance(datecols, (np.int, np.float)):
-            datecols = (datecols,)
-        # Update the converter
-        update = [(_, str) for _ in datecols]
-        # Don't use the ew structure just yet
-        if dtype.names:
+        # Make sure dtype is a valid np.dtype and make a copy
+        dtype = np.lib._iotools.easy_dtype(dtype, names=names)
+        idtype = dtype
+        inames = dtype.names
+        if inames is not None:
+            nbfields = len(inames) + len(datecols)
+            # Create a new dtype description and a set of names
+            dtype = [''] * nbfields
+            names = [''] * nbfields
+            idx = range(nbfields)
+            for i in datecols:
+                if i < 0:
+                    i += nbfields
+                del idx[idx.index(i)]
+                # Set the default dtype for date columns, as np.object
+                # (we can't use string as we don't know the final size)
+                dtype[i] = ('', np.object)
             convdict = {'b': bool, 'i': int, 'l':int, 'u': int,
                         'f': float, 'd': float, 'g': float,
                         'c': complex, 'D': complex,
                         'S': str, 'U': str, 'a': str}
-            dnames = dtype.names
-            idx = range(len(datecols)+len(dnames))
-            for i in datecols:
-                del idx[idx.index(i)]
-            update.extend([(i, convdict[dtype[name].char])
-                           for (i, name) in zip(idx, dnames)])
-            dtype = None
-        converters.update(update)
-        #
+            converter_update = []
+            for (i, name) in zip(idx, inames):
+                field = idtype[name]
+                dtype[i] = (name, field)
+                converter_update.append((i, convdict[field.char]))
+                names[i] = name
+            converters.update(converter_update)
+    elif names not in (True, None):
+        # Store the initial names and create a new list
+        nbnames = len(datecols) + len(inames)
+        names = [''] * nbnames
+        # Find where the names should go in the new list
+        idx = range(nbnames)
+        for (i, k) in enumerate(datecols):
+            if k < 0:
+                k += nbnames
+            del idx[idx.index(k)]
+            names[k] = "_tmp%i" % i
+        for (i, k) in zip(idx, inames):
+            names[i] = k
+    #
     # Update the optional arguments ...
     kwargs = dict(dtype=dtype, comments=comments, delimiter=delimiter,
                   skiprows=skiprows, converters=converters,
+                  skip_header=skip_header, skip_footer=skip_footer,
                   missing=missing, missing_values=missing_values,
+                  filling_values=filling_values,
                   usecols=usecols, unpack=unpack, names=names,
                   excludelist=excludelist, deletechars=deletechars,
-                  case_sensitive=case_sensitive,
+                  case_sensitive=case_sensitive, defaultfmt=defaultfmt,
+                  autostrip=autostrip, loose=loose, invalid_raise=invalid_raise,
                   usemask=True)
     # Get the raw data ................
-    mrec = genfromtxt(fname, **kwargs)
+    mrec = np.genfromtxt(fname, **kwargs)
     if not mrec.shape:
         mrec.shape = -1
     names = mrec.dtype.names
     # Revert to the original dtype.....
     dtype = idtype
-    # Get the date columns ............
+    # Get the date columns ................................
     if datecols is None:
         import re
         datespattern = re.compile("'?_?dates?'?", re.IGNORECASE)
@@ -443,22 +517,28 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
                      if datespattern.search(name)]
         if not datecols:
             raise TypeError("No column selected for the dates!")
-    elif isinstance(datecols, (np.int, np.float)):
-        datecols = (datecols,)
+    else:
+        # We have `datecols` already, make sure the indices are positive
+        # (the nb of fields might still be undefined)
+        nbfields = len(names)
+        for (i, v) in enumerate(datecols):
+            if (v < 0):
+                datecols[i] = v + nbfields
     # Fix the date columns if usecols was given
     if usecols is not None:
         datecols = tuple([list(usecols).index(d) for d in datecols])
     # Get the date info ...............
     if names:
-        dateinfo = [mrec[names[i]] for i in datecols]
+        _dates = [mrec[names[i]] for i in datecols]
     else:
-        dateinfo = [mrec[:,i] for i in datecols]
-    if len(dateinfo) == 1:
-        dateinfo = np.array(dateinfo[0], copy=False, ndmin=1)
-        dates = date_array([dateconv(args) for args in dateinfo],
+        _dates = [mrec[:, i] for i in datecols]
+    # Convert the date columns to a date_array
+    if len(_dates) == 1:
+        _dates = np.array(_dates[0], copy=False, ndmin=1)
+        dates = date_array([dateconv(args) for args in _dates],
                            freq=freq, autosort=False)
     else:
-        dates = date_array([dateconv(*args) for args in zip(*dateinfo)],
+        dates = date_array([dateconv(*args) for args in zip(*_dates)],
                            freq=freq, autosort=False)
     # Resort the array according to the dates
     sortidx = dates.argsort()
@@ -483,9 +563,11 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
         dataidx = [i for i in range(mrec.shape[-1]) if i not in datecols]
         if len(dataidx) == 1:
             dataidx = dataidx[0]
-        output = time_series(mrec[:,dataidx], dates=dates)
+        output = time_series(mrec[:, dataidx], dates=dates)
     #
     if asrecarray:
         from trecords import TimeSeriesRecords
         return output.view(TimeSeriesRecords)
     return output
+
+

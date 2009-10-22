@@ -7,7 +7,7 @@
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author: matthew.brett@gmail.com $)"
 __revision__ = "$Revision: 3836 $"
-__date__     = '$Date: 2008-01-15 08:09:03 -0500 (Tue, 15 Jan 2008) $'
+__date__ = '$Date: 2008-01-15 08:09:03 -0500 (Tue, 15 Jan 2008) $'
 
 import types
 
@@ -36,15 +36,15 @@ class TestTimeSeriesRecords(TestCase):
     def setup(self):
         "Generic setup"
         d = np.arange(5)
-        m = ma.make_mask([1,0,0,1,1])
-        base_d = np.r_[d,d[::-1]].reshape(2,-1).T
+        m = ma.make_mask([1, 0, 0, 1, 1])
+        base_d = np.r_[d, d[::-1]].reshape(2, -1).T
         base_m = np.r_[[m, m[::-1]]].T
         base = ma.array(base_d, mask=base_m)
         mrec = mr.fromarrays(base.T,)
-        dlist = ['2007-%02i' % (i+1) for i in d]
+        dlist = ['2007-%02i' % (i + 1) for i in d]
         dates = date_array(dlist)
-        mts = time_series(mrec,dates)
-        rts = time_records(mrec,dates)
+        mts = time_series(mrec, dates)
+        rts = time_records(mrec, dates)
         self.data = [d, m, mrec, dlist, dates, mts, rts]
 
     def test_get_fields(self):
@@ -91,7 +91,7 @@ class TestTimeSeriesRecords(TestCase):
         assert_equal(rts.f1, time_series(d[::-1], dates=dates, mask=m[::-1]))
         self.failUnless((rts._mask == nr.fromarrays([m, m[::-1]])).all())
         # Was _mask, now is recordmask
-        assert_equal(rts.recordmask, np.r_[[m,m[::-1]]].all(0))
+        assert_equal(rts.recordmask, np.r_[[m, m[::-1]]].all(0))
         assert_equal(rts.f0[1], rts[1].f0)
 
     def test_get_slice(self):
@@ -107,25 +107,25 @@ class TestTimeSeriesRecords(TestCase):
         "Tests setting fields/attributes."
         [d, m, mrec, dlist, dates, mts, rts] = self.data
         rts.f0._data[:] = 5
-        assert_equal(rts['f0']._data, [5,5,5,5,5])
+        assert_equal(rts['f0']._data, [5, 5, 5, 5, 5])
         rts.f0 = 1
-        assert_equal(rts['f0']._data, [1]*5)
-        assert_equal(ma.getmaskarray(rts['f0']), [0]*5)
+        assert_equal(rts['f0']._data, [1] * 5)
+        assert_equal(ma.getmaskarray(rts['f0']), [0] * 5)
         rts.f1 = ma.masked
-        assert_equal(rts.f1.mask, [1]*5)
-        assert_equal(ma.getmaskarray(rts['f1']), [1]*5)
+        assert_equal(rts.f1.mask, [1] * 5)
+        assert_equal(ma.getmaskarray(rts['f1']), [1] * 5)
         rts.mask = ma.masked
-        assert_equal(ma.getmaskarray(rts['f1']), [1]*5)
+        assert_equal(ma.getmaskarray(rts['f1']), [1] * 5)
         assert_equal(rts['f0']._mask, rts['f1']._mask)
         rts.mask = ma.nomask
-        assert_equal(ma.getmaskarray(rts['f1']), [0]*5)
+        assert_equal(ma.getmaskarray(rts['f1']), [0] * 5)
         assert_equal(rts['f0']._mask, rts['f1']._mask)
 
     def test_set_field_mask(self):
         "Tests setting fields/attributes."
         [d, m, mrec, dlist, dates, mts, rts] = self.data
         rts.f0[1] = ma.masked
-        assert_equal(rts.f0._mask, [1,1,0,1,1])
+        assert_equal(rts.f0._mask, [1, 1, 0, 1, 1])
 
     def test_setslices(self):
         "Tests setting slices."
@@ -137,19 +137,19 @@ class TestTimeSeriesRecords(TestCase):
             pass
         else:
             raise TypeError("Should have expected a readable buffer object.")
-        rts[:2] = (5,5)
-        assert_equal(rts.f0._data, [5,5,2,3,4])
-        assert_equal(rts.f1._data, [5,5,2,1,0])
-        assert_equal(rts.f0._mask, [0,0,0,1,1])
-        assert_equal(rts.f1._mask, [0,0,0,0,1])
+        rts[:2] = (5, 5)
+        assert_equal(rts.f0._data, [5, 5, 2, 3, 4])
+        assert_equal(rts.f1._data, [5, 5, 2, 1, 0])
+        assert_equal(rts.f0._mask, [0, 0, 0, 1, 1])
+        assert_equal(rts.f1._mask, [0, 0, 0, 0, 1])
         #
         rts.harden_mask()
         try:
-            rts[-2:] = (5,5)
-            assert_equal(rts.f0._data, [5,5,2,3,4])
-            assert_equal(rts.f1._data, [5,5,2,5,0])
-            assert_equal(rts.f0._mask, [0,0,0,1,1])
-            assert_equal(rts.f1._mask, [0,0,0,0,1])
+            rts[-2:] = (5, 5)
+            assert_equal(rts.f0._data, [5, 5, 2, 3, 4])
+            assert_equal(rts.f1._data, [5, 5, 2, 5, 0])
+            assert_equal(rts.f0._mask, [0, 0, 0, 1, 1])
+            assert_equal(rts.f1._mask, [0, 0, 0, 0, 1])
         except NotImplementedError:
             pass
         except AssertionError:
@@ -164,29 +164,29 @@ class TestTimeSeriesRecords(TestCase):
         self.failUnless(rts._hardmask)
         rts.mask = nomask
         # Was _mask, now is recordmask
-        assert_equal(rts.recordmask, np.r_[[m,m[::-1]]].all(0))
+        assert_equal(rts.recordmask, np.r_[[m, m[::-1]]].all(0))
         rts.soften_mask()
         self.failUnless(not rts._hardmask)
         rts.mask = nomask
         self.failUnless(rts['f1']._mask is nomask)
-        assert_equal(rts['f0']._mask,rts['f1']._mask)
+        assert_equal(rts['f0']._mask, rts['f1']._mask)
 
     def test_addfield(self):
         "Tests addfield"
         [d, m, mrec, dlist, dates, mts, rts] = self.data
-        rts = addfield(rts, ma.array(d+10, mask=m[::-1]))
-        assert_equal(rts.f2, d+10)
+        rts = addfield(rts, ma.array(d + 10, mask=m[::-1]))
+        assert_equal(rts.f2, d + 10)
         assert_equal(rts.f2._mask, m[::-1])
 
     def test_fromrecords(self):
         "Test from recarray."
         [d, m, mrec, dlist, dates, mts, rts] = self.data
-        nrec = nr.fromarrays(np.r_[[d,d[::-1]]])
+        nrec = nr.fromarrays(np.r_[[d, d[::-1]]])
         mrecfr = fromrecords(nrec.tolist(), dates=dates)
         assert_equal(mrecfr.f0, mrec.f0)
         assert_equal(mrecfr.dtype, mrec.dtype)
         #....................
-        altrec = [tuple([d,]+list(r)) for (d,r) in zip(dlist,nrec)]
+        altrec = [tuple([d, ] + list(r)) for (d, r) in zip(dlist, nrec)]
         mrecfr = fromrecords(altrec, names='dates,f0,f1')
         assert_equal(mrecfr.f0, mrec.f0)
         assert_equal(mrecfr.dtype, mrec.dtype)
@@ -210,7 +210,7 @@ class TestTimeSeriesRecords(TestCase):
         import os
         from datetime import datetime
         import tempfile
-        (tmp_fd,tmp_fl) = tempfile.mkstemp()
+        (tmp_fd, tmp_fl) = tempfile.mkstemp()
         os.write(tmp_fd, fcontent)
         os.close(tmp_fd)
 
@@ -218,38 +218,38 @@ class TestTimeSeriesRecords(TestCase):
                                datecols=0, skiprows=2, asrecarray=True)
         os.remove(tmp_fl)
         #
-        dlist = ['2007-%02i' % i for i in (1,2,3,5)]
+        dlist = ['2007-%02i' % i for i in (1, 2, 3, 5)]
         self.failUnless(isinstance(mrectxt, TimeSeriesRecords))
-        assert_equal(mrectxt._dates, date_array(dlist,'M'))
-        assert_equal(mrectxt.dtype.names, ['B','C','D','E','F','G'])
-        assert_equal(mrectxt.G, [1,1,1,1])
-        assert_equal(mrectxt.F._mask, [1,1,1,1])
-        assert_equal(mrectxt.D, [1,2,3.e+5,-1e-10])
+        assert_equal(mrectxt._dates, date_array(dlist, 'M'))
+        assert_equal(mrectxt.dtype.names, ['A', 'B', 'C', 'D', 'E', 'F'])
+        assert_equal(mrectxt.F, [1, 1, 1, 1])
+        assert_equal(mrectxt.E._mask, [1, 1, 1, 1])
+        assert_equal(mrectxt.C, [1, 2, 300000, -1e-10])
     #
     def test_sorted(self):
-        dates = [ts.Date('D',string='2007-01-%02i' % i) for i in (3,2,1)]
-        (a,b) = zip(*[(3.,30), (2.,20), (1.,10),])
-        ndtype = [('a', np.float), ('b',np.int)]
+        dates = [ts.Date('D', string='2007-01-%02i' % i) for i in (3, 2, 1)]
+        (a, b) = zip(*[(3., 30), (2., 20), (1., 10), ])
+        ndtype = [('a', np.float), ('b', np.int)]
         controldates = date_array(dates, freq='D')
         controldates.sort_chronologically()
-        series = time_series(zip(*(a,b)), dates, freq='D',dtype=ndtype)
-        assert_equal(series._data.tolist(), [(1.,10), (2.,20), (3.,30)])
+        series = time_series(zip(*(a, b)), dates, freq='D', dtype=ndtype)
+        assert_equal(series._data.tolist(), [(1., 10), (2., 20), (3., 30)])
         assert_equal(series._dates, controldates)
         #
-        trec = time_records(zip(*(a,b)), dates, freq='D',dtype=ndtype)
-        assert_equal(trec._data.tolist(), [(1.,10), (2.,20), (3.,30)])
+        trec = time_records(zip(*(a, b)), dates, freq='D', dtype=ndtype)
+        assert_equal(trec._data.tolist(), [(1., 10), (2., 20), (3., 30)])
         assert_equal(trec._dates, controldates)
         assert_equal(trec['a'], [1., 2., 3.])
         assert_equal(trec.a, [1., 2., 3.])
         #
-        trec = fromrecords(zip(a,b), dates, names=('a','b'))
-        assert_equal(trec._data.tolist(), [(1.,10), (2.,20), (3.,30)])
+        trec = fromrecords(zip(a, b), dates, names=('a', 'b'))
+        assert_equal(trec._data.tolist(), [(1., 10), (2., 20), (3., 30)])
         assert_equal(trec._dates, controldates)
         assert_equal(trec['a'], [1., 2., 3.])
         assert_equal(trec.a, [1., 2., 3.])
         #
-        trec = fromarrays([a,b], dates, names=('a','b'))
-        assert_equal(trec._data.tolist(), [(1.,10), (2.,20), (3.,30)])
+        trec = fromarrays([a, b], dates, names=('a', 'b'))
+        assert_equal(trec._data.tolist(), [(1., 10), (2., 20), (3., 30)])
         assert_equal(trec._dates, controldates)
         assert_equal(trec['a'], [1., 2., 3.])
         assert_equal(trec.a, [1., 2., 3.])
@@ -265,24 +265,24 @@ class TestTimeSeriesRecords_Functions(TestCase):
     def setup(self):
         a = time_series(np.random.rand(24),
                         start_date=ts.now('M'))
-        b = time_series(np.random.rand(24)*100, dtype=int,
+        b = time_series(np.random.rand(24) * 100, dtype=int,
                         start_date=ts.now('M'),)
 #        c = time_series(["%02i" % _ for _ in np.arange(24)],
 #                         start_date=ts.now('M'))
         c = time_series(np.arange(24),
                          start_date=ts.now('M'))
-        trec = fromarrays([a,b,c], dates=a.dates, names='a,b,c')
-        self.info = (a,b,c,trec)
+        trec = fromarrays([a, b, c], dates=a.dates, names='a,b,c')
+        self.info = (a, b, c, trec)
     #
     def test_convert(self):
         #
-        (a, b, c,trec) = self.info
+        (a, b, c, trec) = self.info
         base = dict(a=a, b=b, c=c)
-        a_trec = trec.convert('A',ma.mean)
+        a_trec = trec.convert('A', ma.mean)
         # Don't convert the dtype by themselves, that won't work...
         # ... as ma.mean will convert ints to floats, eg.
         assert_equal(a_trec.dtype.names, trec.dtype.names)
-        for key in ('a','b','c'):
+        for key in ('a', 'b', 'c'):
             assert_equal(a_trec[key], base[key].convert('A', ma.mean))
 
 
@@ -290,8 +290,8 @@ class TestViewTS(TestCase):
     #
     def setUp(self):
         (a, b) = (np.arange(10), np.random.rand(10))
-        ndtype = [('a',np.float), ('b',np.float)]
-        tarr = ts.time_series(np.array(zip(a,b), dtype=ndtype),
+        ndtype = [('a', np.float), ('b', np.float)]
+        tarr = ts.time_series(np.array(zip(a, b), dtype=ndtype),
                               start_date=ts.now('M'))
         tarr.mask[3] = (False, True)
         self.data = (tarr, a, b)
@@ -308,13 +308,13 @@ class TestViewTS(TestCase):
         ntype = (np.float, 2)
         test = tarr.view(ntype)
         self.failUnless(isinstance(test, TimeSeries))
-        assert_equal(test, np.array(zip(a,b), dtype=np.float))
-        self.failUnless(test[3,1] is ma.masked)
+        assert_equal(test, np.array(zip(a, b), dtype=np.float))
+        self.failUnless(test[3, 1] is ma.masked)
     #
     def test_view_flexible_type(self):
         (tarr, a, b) = self.data
         arr = tarr._series
-        alttype = [('A',np.float), ('B',np.float)]
+        alttype = [('A', np.float), ('B', np.float)]
         test = tarr.view(alttype)
         self.failUnless(isinstance(test, TimeSeries))
         assert_equal_records(test, arr.view(alttype))
