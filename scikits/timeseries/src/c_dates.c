@@ -1901,7 +1901,7 @@ DateObject_strftime(DateObject *self, PyObject *args)
     c_date.tm_mon = tempDate.month - 1;
     c_date.tm_year = tempDate.year - 1900;
     c_date.tm_wday = (tempDate.day_of_week + 1) % 7;
-    c_date.tm_yday = tempDate.day_of_year;
+    c_date.tm_yday = tempDate.day_of_year - 1;
     c_date.tm_isdst = -1;
 
     result_len = strlen(orig_fmt_str) + 50;
