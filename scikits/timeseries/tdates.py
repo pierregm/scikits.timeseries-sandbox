@@ -364,6 +364,28 @@ class DateArray(ndarray):
     __ne__ = _datearithmetics('__ne__', asdates=False)
     #......................................................
 
+    def min(self, *args, **kwargs):
+        """
+    Returns the minimum Date.
+
+    For a description of the input parameters, please refer to numpy.min.
+        """
+        obj = ndarray.min(self, *args, **kwargs)
+        if not obj.shape:
+            return Date(self.freq, obj)
+        return obj
+
+    def max(self, *args, **kwargs):
+        """
+    Returns the maximum Date.
+
+    For a description of the input parameters, please refer to numpy.max.
+        """
+        obj = ndarray.max(self, *args, **kwargs)
+        if not obj.shape:
+            return Date(self.freq, obj)
+        return obj
+
     @property
     def freqstr(self):
         "Returns the frequency string code."
