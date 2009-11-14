@@ -22,12 +22,12 @@ These two classes were liberally adapted from :class:`MaskedArray` class.
 
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox"
 __revision__ = "$Revision$"
-__date__     = '$Date$'
+__date__ = '$Date$'
 
 import sys
 
 import numpy as np
-from numpy import bool_, complex_, float_, int_, object_, dtype,\
+from numpy import bool_, complex_, float_, int_, object_, dtype, \
     ndarray, recarray
 import numpy.core.umath as umath
 from numpy.core.records import fromarrays as recfromarrays
@@ -45,23 +45,23 @@ from tdates import \
 import const as _c
 import cseries
 
-__all__ = ['TimeSeries','TimeSeriesCompatibilityError','TimeSeriesError',
+__all__ = ['TimeSeries', 'TimeSeriesCompatibilityError', 'TimeSeriesError',
            'adjust_endpoints', 'align_series', 'align_with', 'aligned',
            'asrecords',
            'compressed', 'concatenate', 'convert',
-           'day','day_of_year',
+           'day', 'day_of_year',
            'empty_like',
            'fill_missing_dates', 'find_duplicated_dates', 'first_unmasked_val',
            'flatten',
            'hour',
            'last_unmasked_val',
-           'minute','month',
+           'minute', 'month',
            'pct', 'pct_log', 'pct_symmetric',
            'quarter',
            'remove_duplicated_dates',
-           'second','split','stack',
-           'time_series','tofile','tshift','masked','nomask',
-           'week','weekday',
+           'second', 'split', 'stack',
+           'time_series', 'tofile', 'tshift', 'masked', 'nomask',
+           'week', 'weekday',
            'year',
            ]
 
@@ -80,7 +80,7 @@ def _unmasked_val(a, kind, axis=None):
             indx = np.flatnonzero(~m)[[0, -1]][kind]
     else:
         m = ma.getmaskarray(a)
-        indx = ma.array(np.indices(a.shape), mask=np.asarray([m]*a.ndim))
+        indx = ma.array(np.indices(a.shape), mask=np.asarray([m] * a.ndim))
         if kind == 0:
             indx = tuple([indx[i].min(axis=axis).filled(0)
                           for i in range(a.ndim)])
@@ -180,7 +180,7 @@ def _timeseriescompat(a, b, raise_error=True):
     """
     #!!!: We need to use _varshape to simplify the analysis
     # Check the frequency ..............
-    (afreq, bfreq) = (getattr(a,'freq',None), getattr(b, 'freq', None))
+    (afreq, bfreq) = (getattr(a, 'freq', None), getattr(b, 'freq', None))
     if afreq != bfreq:
         if raise_error:
             raise TimeSeriesCompatibilityError('freq', afreq, bfreq)
@@ -200,8 +200,8 @@ def _timeseriescompat(a, b, raise_error=True):
             raise TimeSeriesCompatibilityError('start_date', astart, bstart)
         return False
     # Check the time steps ..............
-    asteps = getattr(a,'_dates',a).get_steps()
-    bsteps = getattr(b,'_dates',b).get_steps()
+    asteps = getattr(a, '_dates', a).get_steps()
+    bsteps = getattr(b, '_dates', b).get_steps()
     step_diff = (asteps != bsteps)
     if (step_diff is True) or \
        (hasattr(step_diff, "any") and step_diff.any()):
@@ -311,7 +311,7 @@ def get_varshape(data, dates):
     except ValueError:
         raise TimeSeriesCompatibilityError(*err_args)
     else:
-        return dshape[k+1:]
+        return dshape[k + 1:]
 
 
 def _getdatalength(data):
@@ -341,19 +341,19 @@ frequencies.
 ##### ------------------------------------------------------------------------
 ##--- ... Time Series ...
 ##### ------------------------------------------------------------------------
-_print_templates = dict(desc = """\
+_print_templates = dict(desc="""\
 timeseries(
  %(data)s,
     dates =
  %(time)s,
     freq  = %(freq)s)
 """,
-                        desc_short = """\
+                        desc_short="""\
 timeseries(%(data)s,
    dates = %(time)s,
    freq  = %(freq)s)
 """,
-                        desc_flx = """\
+                        desc_flx="""\
 timeseries(
  %(data)s,
    dtype = %(dtype)s,
@@ -361,7 +361,7 @@ timeseries(
  %(time)s,
    freq  = %(freq)s)
 """,
-                        desc_flx_short = """\
+                        desc_flx_short="""\
 timeseries(%(data)s,
    dtype = %(dtype)s,
    dates = %(time)s,
@@ -475,7 +475,7 @@ class _tsaxismethod(object):
             axis = params.get('axis', None)
             if axis is None and len(args):
                 axis = args[0]
-            if axis in [-1, _series.ndim-1]:
+            if axis in [-1, _series.ndim - 1]:
                 result = result.view(type(instance))
                 result._dates = _dates
         return result
@@ -526,7 +526,7 @@ class TimeSeries(MaskedArray, object):
         if not subok or not isinstance(_data, TimeSeries):
             _data = _data.view(cls)
         if _data is masked:
-            assert(np.size(dates)==1)
+            assert(np.size(dates) == 1)
             return _data.view(cls)
         # Check that the dates and data are compatible in shape.
         _data._varshape = get_varshape(_data, dates)
@@ -536,7 +536,7 @@ class TimeSeries(MaskedArray, object):
             _data.sort_chronologically()
         return _data
 
-    def __array_finalize__(self,obj):
+    def __array_finalize__(self, obj):
         self._varshape = getattr(obj, '_varshape', ())
         MaskedArray.__array_finalize__(self, obj)
 
@@ -677,11 +677,11 @@ class TimeSeries(MaskedArray, object):
                 output = _data.__getitem__(indx)
                 sindx = dindx = indx
         # Don't find the date if it's not needed......
-        if not getattr(output,'ndim', False):
+        if not getattr(output, 'ndim', False):
             # A record ................
             if isinstance(output, np.void):
                 mask = _mask[sindx]
-                if mask.view((bool,len(mask.dtype))).any():
+                if mask.view((bool, len(mask.dtype))).any():
                     output = masked_array(output, mask=mask)
                 else:
                     return output
@@ -743,7 +743,7 @@ class TimeSeries(MaskedArray, object):
                 MaskedArray.__setitem__(self, indx, value)
 
     def __setattr__(self, attr, value):
-        if attr in ['_dates','dates']:
+        if attr in ['_dates', 'dates']:
             return self.__setdates__(value)
         elif attr == 'shape':
             if self._varshape:
@@ -764,7 +764,7 @@ class TimeSeries(MaskedArray, object):
                       "DateArray object (got %s instead)" % type(value)
             raise TypeError(err_msg)
         # Skip if dates is nodates (or empty)\
-        if value is nodates or not getattr(value,'size',0):
+        if value is nodates or not getattr(value, 'size', 0):
             return super(TimeSeries, self).__setattr__('_dates', value)
         # Make sure it has the proper size
         tsize = getattr(value, 'size', 1)
@@ -834,7 +834,7 @@ class TimeSeries(MaskedArray, object):
                 flatseries[:] = flatseries[idx]
             else:
                 inishape = self.shape
-                _series.shape = tuple([-1,]+list(self._varshape))
+                _series.shape = tuple([-1, ] + list(self._varshape))
                 _series[:] = _series[idx]
                 _series.shape = inishape
             # Sort the dates and reset the cache
@@ -894,9 +894,9 @@ class TimeSeries(MaskedArray, object):
 
     copy = _tsarraymethod('copy', ondates=True)
     compress = _tsarraymethod('compress', ondates=True)
-    cumsum = _tsarraymethod('cumsum',ondates=False)
-    cumprod = _tsarraymethod('cumprod',ondates=False)
-    anom = _tsarraymethod('anom',ondates=False)
+    cumsum = _tsarraymethod('cumsum', ondates=False)
+    cumprod = _tsarraymethod('cumprod', ondates=False)
+    anom = _tsarraymethod('anom', ondates=False)
 
     sum = _tsaxismethod('sum')
     prod = _tsaxismethod('prod')
@@ -951,7 +951,7 @@ class TimeSeries(MaskedArray, object):
         """
         _varshape = self._varshape
         if _varshape:
-            newshape = tuple([-1] + [np.prod(_varshape),])
+            newshape = tuple([-1] + [np.prod(_varshape), ])
             result = MaskedArray.reshape(self, *newshape)
         else:
             result = MaskedArray.ravel(self)
@@ -985,7 +985,7 @@ class TimeSeries(MaskedArray, object):
     The `._dates` part is reshaped, but the order is NOT ensured.
 
         """
-        kwargs.update(order=kwargs.get('order','C'))
+        kwargs.update(order=kwargs.get('order', 'C'))
         if self._varshape:
             try:
                 bkdtype = (self.dtype, self._varshape)
@@ -1183,7 +1183,7 @@ class TimeSeries(MaskedArray, object):
             result._dates = self._dates.transpose(*axes)
         else:
             errmsg = "Operation not permitted on multi-variable series"
-            if (len(axes)==0) or axes[0] != 0:
+            if (len(axes) == 0) or axes[0] != 0:
                 raise TimeSeriesError, errmsg
             else:
                 result = MaskedArray.transpose(self, *axes)
@@ -1343,11 +1343,11 @@ time series to a new one being created"""
 ##--- ... Additional methods ...
 ##### --------------------------------------------------------------------------
 
-def _extrema(self, method, axis=None,fill_value=None):
+def _extrema(self, method, axis=None, fill_value=None):
     "Private function used by max/min"
     (_series, _dates) = (self._series, self._dates)
     func = getattr(_series, method)
-    idx = func(axis,fill_value)
+    idx = func(axis, fill_value)
 
     # 1D series .......................
     if (_dates.size == _series.size):
@@ -1362,9 +1362,9 @@ def _extrema(self, method, axis=None,fill_value=None):
             result = time_series(_series[idces], dates=_dates[idces[0]])
         else:
             _shape = _series.shape
-            _dates = np.repeat(_dates,np.prod(_shape[1:])).reshape(_shape)
-            _s = ma.choose(idx, np.rollaxis(_series,axis,0))
-            _d = ma.choose(idx, np.rollaxis(_dates,axis,0))
+            _dates = np.repeat(_dates, np.prod(_shape[1:])).reshape(_shape)
+            _s = ma.choose(idx, np.rollaxis(_series, axis, 0))
+            _d = ma.choose(idx, np.rollaxis(_dates, axis, 0))
             result = time_series(_s, dates=_d, freq=_dates.freq)
         return result
 
@@ -1381,10 +1381,10 @@ def _max(self, axis=None, fill_value=None):
         Value used to fill in the masked values.
         If None, use the the output of maximum_fill_value().
     """
-    return _extrema(self,'argmax',axis,fill_value)
+    return _extrema(self, 'argmax', axis, fill_value)
 TimeSeries.max = _max
 
-def _min(self,axis=None,fill_value=None):
+def _min(self, axis=None, fill_value=None):
     """Return the minimum of self along the given axis.
     Masked values are filled with fill_value.
 
@@ -1397,7 +1397,7 @@ def _min(self,axis=None,fill_value=None):
         Value used to fill in the masked values.
         If None, use the the output of minimum_fill_value().
     """
-    return _extrema(self, 'argmin',axis,fill_value)
+    return _extrema(self, 'argmin', axis, fill_value)
 TimeSeries.min = _min
 
 
@@ -1451,7 +1451,7 @@ class _frommethod(object):
         try:
             return method(*args, **params)
         except SystemError:
-            return getattr(np,self.__name__).__call__(caller, *args, **params)
+            return getattr(np, self.__name__).__call__(caller, *args, **params)
 #............................
 weekday = _frommethod('weekday')
 day_of_year = _frommethod('day_of_year')
@@ -1510,23 +1510,23 @@ def tofile(series, fileobject, format=None,
         raise ImportError("scipy is required for the tofile function/method")
 
     (_dates, _data) = (series._dates, series._series)
-    optpars = dict(separator=separator,linesep=linesep,precision=precision,
-                   suppress_small=suppress_small,keep_open=keep_open)
+    optpars = dict(separator=separator, linesep=linesep, precision=precision,
+                   suppress_small=suppress_small, keep_open=keep_open)
     if _dates.size == _data.size:
         # 1D version
-        tmpfiller = ma.empty((_dates.size,2), dtype=np.object_)
+        tmpfiller = ma.empty((_dates.size, 2), dtype=np.object_)
         _data = _data.reshape(-1)
-        tmpfiller[:,1:] = ma.atleast_2d(_data).T
+        tmpfiller[:, 1:] = ma.atleast_2d(_data).T
     else:
         sshape = list(_data.shape)
         sshape[-1] += 1
         tmpfiller = ma.empty(sshape, dtype=np.object_)
-        tmpfiller[:,1:] = _data
+        tmpfiller[:, 1:] = _data
     #
     if format is None:
-        tmpfiller[:,0] = _dates.ravel().tostring()
+        tmpfiller[:, 0] = _dates.ravel().tostring()
     else:
-        tmpfiller[:,0] = [_.strftime(format) for _ in _dates.ravel()]
+        tmpfiller[:, 0] = [_.strftime(format) for _ in _dates.ravel()]
     return scipy.io.write_array(fileobject, tmpfiller, **optpars)
 
 
@@ -1728,7 +1728,7 @@ def adjust_endpoints(a, start_date=None, end_date=None, copy=False):
     """
     # Series validity tests .....................
     if not isinstance(a, TimeSeries):
-        raise TypeError,"Argument should be a valid TimeSeries object!"
+        raise TypeError, "Argument should be a valid TimeSeries object!"
     if a.freq == 'U':
         errmsg = "Cannot adjust a series with 'Undefined' frequency."
         raise TimeSeriesError(errmsg,)
@@ -1844,12 +1844,12 @@ def align_series(*series, **kwargs):
     start_date = kwargs.pop('start_date',
                             min([x.start_date for x in filled_series
                                      if x.start_date is not None]))
-    if isinstance(start_date,str):
+    if isinstance(start_date, str):
         start_date = Date(common_freq, string=start_date)
     end_date = kwargs.pop('end_date',
                           max([x.end_date for x in filled_series
                                    if x.end_date is not None]))
-    if isinstance(end_date,str):
+    if isinstance(end_date, str):
         end_date = Date(common_freq, string=end_date)
 
     return [adjust_endpoints(x, start_date, end_date) for x in filled_series]
@@ -1866,7 +1866,7 @@ def align_with(*series):
     """
     if len(series) < 2:
         return series
-    dates = series[0]._dates[[0,-1]]
+    dates = series[0]._dates[[0, -1]]
     if len(series) == 2:
         return adjust_endpoints(series[-1], dates[0], dates[-1])
     return [adjust_endpoints(x, dates[0], dates[-1]) for x in series[1:]]
@@ -1894,7 +1894,7 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
 
     # Check the position parameter..........
     position = position.upper()
-    if position not in ('END','START'):
+    if position not in ('END', 'START'):
         err_msg = "Invalid value for position argument: (%s). "\
                   "Should be in ['END','START']," % str(position)
         raise ValueError(err_msg)
@@ -1922,7 +1922,7 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
         else:
             # Try to use an axis argument
             try:
-                data_ = func(data_, axis=-1, *args, **kwargs)
+                data_ = func(data_, axis= -1, *args, **kwargs)
             # Fall back to apply_along_axis (slower)
             except TypeError:
                 data_ = ma.apply_along_axis(func, -1, data_, *args, **kwargs)
@@ -1930,7 +1930,7 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
     elif data_.ndim == 1:
         newvarshape = ()
 
-    newdates = DateArray(np.arange(len(data_))+start_date, freq=to_freq)
+    newdates = DateArray(np.arange(len(data_)) + start_date, freq=to_freq)
 
     newseries = data_.view(type(series))
     newseries._varshape = newvarshape
@@ -2004,16 +2004,16 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
     if series.ndim == 1:
         obj = _convert1d(series, freq, func, position, *args, **kwargs)
     elif series.ndim == 2:
-        base = _convert1d(series[:,0], freq, func, position, *args, **kwargs)
-        obj = ma.column_stack([_convert1d(m,freq,func,position,
+        base = _convert1d(series[:, 0], freq, func, position, *args, **kwargs)
+        obj = ma.column_stack([_convert1d(m, freq, func, position,
                                           *args, **kwargs)._series
                                for m in series.split()]).view(type(series))
         obj._dates = base._dates
         if func is None:
             shp = obj.shape
             ncols = base.shape[-1]
-            obj.shape = (shp[0], shp[-1]//ncols, ncols)
-            obj = np.swapaxes(obj,1,2)
+            obj.shape = (shp[0], shp[-1] // ncols, ncols)
+            obj = np.swapaxes(obj, 1, 2)
 
     return obj
 TimeSeries.convert = convert
@@ -2077,7 +2077,7 @@ def _get_type_num_double(dtype):
     (eg. int -> float in pct function).
     Adapted from function of the same name in the C source code.
     """
-    if dtype.num  < np.dtype('f').num:
+    if dtype.num < np.dtype('f').num:
         return np.dtype('d')
     return dtype
 
@@ -2128,7 +2128,7 @@ def pct(series, nper=1):
 
     """
     def pct_func(series, nper):
-        return series[nper:]/series[:-nper] - 1
+        return series[nper:] / series[:-nper] - 1
     return _pct_generic(series, nper, pct_func)
 TimeSeries.pct = pct
 
@@ -2165,7 +2165,7 @@ def pct_log(series, nper=1):
 
     """
     def pct_func(series, nper):
-        return ma.log(series[nper:]/series[:-nper])
+        return ma.log(series[nper:] / series[:-nper])
     return _pct_generic(series, nper, pct_func)
 TimeSeries.pct_log = pct_log
 
@@ -2233,7 +2233,7 @@ def fill_missing_dates(data, dates=None, freq=None, fill_value=None):
     freq = check_freq(freq)
     if orig_freq is not None and freq == _c.FR_UND:
         freqstr = check_freq_str(freq)
-        raise ValueError,\
+        raise ValueError, \
               "Unable to define a proper date resolution (found %s)." % freqstr
     # Check the dates .............
     if dates is None:
@@ -2272,28 +2272,28 @@ def fill_missing_dates(data, dates=None, freq=None, fill_value=None):
             err_msg = "fill_missing_dates is not yet implemented for nD series!"
             raise NotImplementedError(err_msg)
     # ...and now, fill it ! ......
-    (tstart, tend) = dflat[[0,-1]]
+    (tstart, tend) = dflat[[0, -1]]
     newdates = date_array(start_date=tstart, end_date=tend)
     (osize, nsize) = (dflat.size, newdates.size)
     #.............................
     # Get the steps between consecutive data.
-    delta = dflat.get_steps()-1
+    delta = dflat.get_steps() - 1
     gap = delta.nonzero()
-    slcid = np.concatenate(([0,], np.arange(1,osize)[gap], [osize,]))
-    oldslc = np.array([slice(i,e)
-                       for (i,e) in np.broadcast(slcid[:-1],slcid[1:])])
+    slcid = np.concatenate(([0, ], np.arange(1, osize)[gap], [osize, ]))
+    oldslc = np.array([slice(i, e)
+                       for (i, e) in np.broadcast(slcid[:-1], slcid[1:])])
     addidx = delta[gap].astype(int).cumsum()
     newslc = np.concatenate(([oldslc[0]],
-                             [slice(i+d,e+d) for (i,e,d) in \
-                              np.broadcast(slcid[1:-1],slcid[2:],addidx)]
+                             [slice(i + d, e + d) for (i, e, d) in \
+                              np.broadcast(slcid[1:-1], slcid[2:], addidx)]
                              ))
     #.............................
     # Just a quick check
     vdflat = np.asarray(dflat)
     vnewdates = np.asarray(newdates)
-    for (osl,nsl) in zip(oldslc,newslc):
-        assert np.equal(vdflat[osl],vnewdates[nsl]).all(),\
-            "Slicing mishap ! Please check %s (old) and %s (new)" % (osl,nsl)
+    for (osl, nsl) in zip(oldslc, newslc):
+        assert np.equal(vdflat[osl], vnewdates[nsl]).all(), \
+            "Slicing mishap ! Please check %s (old) and %s (new)" % (osl, nsl)
     #.............................
     newshape = list(datad.shape)
     newshape[0] = nsize
@@ -2301,11 +2301,11 @@ def fill_missing_dates(data, dates=None, freq=None, fill_value=None):
     newdatam = np.ones(newshape, dtype=ma.make_mask_descr(datad.dtype))
     #....
     if datam is nomask:
-        for (new,old) in zip(newslc,oldslc):
+        for (new, old) in zip(newslc, oldslc):
             newdatad[new] = datad[old]
             newdatam[new] = False
     else:
-        for (new,old) in zip(newslc,oldslc):
+        for (new, old) in zip(newslc, oldslc):
             newdatad[new] = datad[old]
             newdatam[new] = datam[old]
     if fill_value is None:
@@ -2339,10 +2339,10 @@ def find_duplicated_dates(series):
     """
     dates = getattr(series, '_dates', series)
     steps = dates.get_steps()
-    duplicated_dates = tuple(set(dates[steps==0]))
+    duplicated_dates = tuple(set(dates[steps == 0]))
     indices = {}
     for d in duplicated_dates:
-        indices[d] = (dates==d).nonzero()
+        indices[d] = (dates == d).nonzero()
     return indices
 
 
@@ -2360,7 +2360,7 @@ def remove_duplicated_dates(series):
         Time series to process
     """
     dates = getattr(series, '_dates', series)
-    steps = np.concatenate(([1,], dates.get_steps()))
+    steps = np.concatenate(([1, ], dates.get_steps()))
     if not dates.is_chronological():
         series = series.copy()
         series.sort_chronologically()
@@ -2421,8 +2421,8 @@ def concatenate(series, axis=0, remove_duplicates=True, fill_missing=False):
     # Get the common frequency, raise an error if incompatibility
     common_f = _compare_frequencies(*series)
     # Concatenate the order of series
-    sidx = np.concatenate([np.repeat(i,len(s))
-                          for (i,s) in enumerate(series)], axis=axis)
+    sidx = np.concatenate([np.repeat(i, len(s))
+                           for (i, s) in enumerate(series)], axis=axis)
     # Concatenate the dates and data
     ndates = np.concatenate([s._dates for s in series], axis=axis)
     ndata = ma.concatenate([s._series for s in series], axis=axis)
@@ -2437,9 +2437,10 @@ def concatenate(series, axis=0, remove_duplicates=True, fill_missing=False):
         result = time_series(ndata, dates=ndates)
     else:
         # Find the original dates
-        orig = np.concatenate([[True],(np.diff(ndates) != 0)])
-        result = time_series(ndata.compress(orig),
-                             dates=ndates.compress(orig),freq=common_f)
+        orig = np.concatenate([[True], (np.diff(ndates) != 0)])
+        result = time_series(ndata.compress(orig, axis=axis),
+                             dates=ndates.compress(orig, axis=axis),
+                             freq=common_f)
     if fill_missing:
         result = fill_missing_dates(result)
     return result
