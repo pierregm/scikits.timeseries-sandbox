@@ -740,7 +740,7 @@ class TestTimeSeriesMethods(TestCase):
         return
 
 
-    def test_toflex_1D(self):
+    def test_torecords_1D(self):
         "Test conversion to records on 1D series"
         series = ts.time_series([1, 2, 3],
                                 start_date=ts.Date('M', '2001-01-01'),
@@ -749,10 +749,10 @@ class TestTimeSeriesMethods(TestCase):
         control = np.array([(24001, 1, False),
                             (24002, 2, True),
                             (24003, 3, False)], dtype=ndtype)
-        test = series.toflex()
+        test = series.torecords()
         assert_equal(test, control)
 
-    def test_toflex_2D(self):
+    def test_torecords_2D(self):
         "Test torecords on 2D series"
         series = ts.time_series([[1, 1], [2, 2], [3, 3]],
                                 start_date=ts.Date('M', '2001-01-01'),
@@ -766,7 +766,7 @@ class TestTimeSeriesMethods(TestCase):
         test = series.torecords()
         assert_equal_records(test, control)
 
-    def test_toflex_structured(self):
+    def test_torecords_structured(self):
         "Test torecords on structured array"
         series = ts.time_series([(1, 1), (2, 2), (3, 3)],
                                 start_date=ts.Date('M', '2001-01-01'),

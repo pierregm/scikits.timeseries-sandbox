@@ -25,6 +25,7 @@ __revision__ = "$Revision$"
 __date__ = '$Date$'
 
 import sys
+import warnings
 
 import numpy as np
 from numpy import bool_, complex_, float_, int_, object_, dtype, \
@@ -1125,10 +1126,6 @@ class TimeSeries(MaskedArray, object):
         """Returns whether there are duplicated dates in the series."""
         return self._dates.has_duplicated_dates()
 
-    def has_duplicated_dates(self):
-        """Returns whether there are duplicated dates in the series."""
-        return self._dates.has_duplicated_dates()
-
     def get_steps(self):
         """
     Returns the time steps between consecutive dates, in the same unit as
@@ -1230,7 +1227,7 @@ class TimeSeries(MaskedArray, object):
         else:
             return self.series.tolist()
 
-    def toflex(series):
+    def torecords(self):
         """
     Transforms a TimeSeries into a structured array with three fields:.
 
@@ -1248,16 +1245,16 @@ class TimeSeries(MaskedArray, object):
         The returned record shape matches the shape of the instance.
 
         """
-        if not series._varshape:
+        _varshape = self._varshape
+        if not _varshape:
             desctype = [('_dates', int),
-                        ('_data', series.dtype),
-                        ('_mask', series.mask.dtype)]
+                        ('_data', self.dtype),
+                        ('_mask', self.mask.dtype)]
         else:
-            _varshape = series._varshape
             desctype = [('_dates', int),
-                        ('_data', (series.dtype, _varshape)),
-                        ('_mask', (series.mask.dtype, _varshape))]
-        flat = series.ravel()
+                        ('_data', (self.dtype, _varshape)),
+                        ('_mask', (self.mask.dtype, _varshape))]
+        flat = self.ravel()
         _dates = np.asarray(flat._dates)
         if flat.size > 0:
             result = np.empty(len(_dates), dtype=desctype)
@@ -1267,7 +1264,6 @@ class TimeSeries(MaskedArray, object):
             return result
         else:
             return np.array([[], [], []], dtype=desctype,)
-    torecords = toflex
 
 
     #......................................................
