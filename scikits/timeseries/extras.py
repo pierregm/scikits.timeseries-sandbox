@@ -12,8 +12,6 @@ __date__ = '$Date$'
 
 import numpy as np
 import numpy.ma as ma
-
-from numpy import genfromtxt
 from numpy.ma import masked
 
 import const as _c
@@ -21,7 +19,7 @@ from tdates import Date, date_array, DateArray
 from tseries import TimeSeries, time_series
 from cseries import DateCalc_Error
 
-#from _preview import genfromtxt
+from _preview import genfromtxt, easy_dtype
 
 __all__ = ['accept_atmost_missing',
            'convert_to_annual', 'count_missing',
@@ -450,7 +448,7 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
         if datecols is None:
             raise TypeError("No column selected for the dates!")
         # Make sure dtype is a valid np.dtype and make a copy
-        dtype = np.lib._iotools.easy_dtype(dtype, names=names)
+        dtype = easy_dtype(dtype, names=names)
         idtype = dtype
         inames = dtype.names
         if inames is not None:
@@ -503,7 +501,7 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
                   autostrip=autostrip, loose=loose, invalid_raise=invalid_raise,
                   usemask=True)
     # Get the raw data ................
-    mrec = np.genfromtxt(fname, **kwargs)
+    mrec = genfromtxt(fname, **kwargs)
     if not mrec.shape:
         mrec.shape = -1
     names = mrec.dtype.names
@@ -569,5 +567,3 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
         from trecords import TimeSeriesRecords
         return output.view(TimeSeriesRecords)
     return output
-
-

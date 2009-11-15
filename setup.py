@@ -3,7 +3,7 @@ setuptools must be installed first. If you do not have setuptools installed
 please download and install it from http://pypi.python.org/pypi/setuptools
 """
 
-version = '0.91.2'
+version = '0.91.3'
 
 classifiers = ['Development Status :: 4 - Beta',
                'Intended Audience :: Science/Research',

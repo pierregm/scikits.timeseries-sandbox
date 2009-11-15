@@ -1265,7 +1265,8 @@ class TimeSeries(MaskedArray, object):
         else:
             return np.array([[], [], []], dtype=desctype,)
 
-
+    # for backwards compatibility
+    toflex = torecords
     #......................................................
     # Pickling
     def __getstate__(self):

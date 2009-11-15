@@ -1,16 +1,5 @@
-"""A special directive for including a matplotlib plot.
-
-Given a path to a .py file, it includes the source code inline, then:
-
-- On HTML, will include a .png with a link to a high-res .png.
-
-- On LaTeX, will include a .pdf
-
-This directive supports all of the options of the `image` directive,
-except for `target` (since plot will add its own target).
-
-Additionally, if the :include-source: option is provided, the literal
-source will be included inline, as well as a link to the source.
+"""
+time series plotting directives
 """
 
 import sys, os, glob, shutil, code, imp
@@ -19,13 +8,8 @@ from docutils.parsers.rst import directives
 import matplotlib
 import matplotlib.pyplot as plt
 
-try:
-    # docutils 0.4
-    from docutils.parsers.rst.directives.images import align
-except ImportError:
-    # docutils 0.5
-    from docutils.parsers.rst.directives.images import Image
-    align = Image.align
+from docutils.parsers.rst.directives.images import Image
+align = Image.align
 
 options = {'alt': directives.unchanged,
            'height': directives.length_or_unitless,
@@ -143,32 +127,32 @@ def run(arguments, options, state_machine, lineno):
     return []
 
 
-try:
-    from docutils.parsers.rst import Directive
-except ImportError:
-    from docutils.parsers.rst.directives import _directives
+from docutils.parsers.rst import Directive
+class plot_directive(Directive):
+    """
+    A special directive for including a matplotlib plot.
 
-    def plot_directive(name, arguments, options, content, lineno,
-                       content_offset, block_text, state, state_machine):
-        return run(arguments, options, state_machine, lineno)
-    plot_directive.__doc__ = __doc__
-    plot_directive.arguments = (1, 0, 1)
-    plot_directive.options = options
+    Given a path to a .py file, it includes the source code inline, then:
 
-    _directives['plot'] = plot_directive
-else:
-    class plot_directive(Directive):
-        required_arguments = 1
-        optional_arguments = 0
-        final_argument_whitespace = True
-        option_spec = options
-        def run(self):
-            return run(self.arguments, self.options,
-                       self.state_machine, self.lineno)
-    plot_directive.__doc__ = __doc__
+    - On HTML, will include a .png with a link to a high-res .png.
 
-    directives.register_directive('plot', plot_directive)
+    - On LaTeX, will include a .pdf
 
+    This directive supports all of the options of the `image` directive,
+    except for `target` (since plot will add its own target).
+
+    Additionally, if the :include-source: option is provided, the literal
+    source will be included inline, as well as a link to the source.
+    """
+    required_arguments = 1
+    optional_arguments = 0
+    final_argument_whitespace = True
+    option_spec = options
+    def run(self):
+        return run(self.arguments, self.options,
+                   self.state_machine, self.lineno)
+
+directives.register_directive('plot', plot_directive)
 
 def setup(app):
     #

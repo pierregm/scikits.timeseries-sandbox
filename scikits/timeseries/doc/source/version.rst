@@ -4,6 +4,19 @@
 Version History
 ***************
 
+Release 0.91.3 (Nov. 15, 2009)
+==============================
+
+Bug Fixes
+---------
+
+* general improvements for tsfromtxt
+* accept datetime objects for 'value' positional arg in Date class
+* fixes for compatibility with matplotlib 0.99.1
+* fix problem with '%j' directive in strftime method
+* fix problem with concatenate and 2-d series
+* fixed crash in reportlib.Report class when fixed_width=False and a header_row
+  were specified at same time
 
 Release 0.91.2 (Aug. 23, 2009)
 ==============================
