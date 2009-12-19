@@ -1283,7 +1283,7 @@ class TimeSeries(MaskedArray, object):
                  getmaskarray(self).tostring(),
                  self._fill_value,
                  self._dates.shape,
-                 np.asarray(self._dates).tostring(),
+                 self._dates.__array__().tostring(),
                  self.freq,
                  self._optinfo,
                  )
@@ -1304,7 +1304,7 @@ class TimeSeries(MaskedArray, object):
         (ver, shp, typ, isf, raw, msk, flv, dsh, dtm, frq, infodict) = state
         MaskedArray.__setstate__(self, (ver, shp, typ, isf, raw, msk, flv))
         _dates = self._dates
-        _dates.__setstate__((dsh, dtype(int_), isf, dtm))
+        _dates.__setstate__((ver, dsh, dtype(int_), isf, dtm, frq))
         _dates.freq = frq
         _dates._cachedinfo.update(dict(full=None, hasdups=None, steps=None,
                                        toobj=None, toord=None, tostr=None))

@@ -1181,6 +1181,15 @@ class TestMethods(TestCase):
         assert(isinstance(test, DateArray))
 
 
+def test_pickling():
+    "Tests pickling DateArrays"
+    import cPickle
+    base = date_array(start_date=ts.now('D'), length=7)
+    target = cPickle.loads(cPickle.dumps(base))
+    assert_equal(base.freq, target.freq)
+    assert_equal(base, target)
+
+
 ###############################################################################
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
