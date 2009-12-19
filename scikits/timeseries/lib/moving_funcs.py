@@ -148,13 +148,18 @@ def _moving_func(data, cfunc, kwargs):
 
 #...............................................................................
 def _mov_sum(data, span, dtype=None, type_num_double=False):
-    """ helper function for calculating moving sum. Resulting dtype can be
-determined in one of two ways. See C-code for more details."""
+    """
+    Helper function for calculating moving sum.
+    Resulting dtype can be determined in one of two ways.
+    See C-code for more details.
+    """
     kwargs = {'span':span, 'type_num_double':type_num_double}
     if dtype is not None:
         kwargs['dtype'] = dtype
     return _moving_func(data, MA_mov_sum, kwargs)
-#...............................................................................
+
+
+
 def mov_sum(data, span, dtype=None):
     """
     Calculates the moving sum of a series.
@@ -166,10 +171,12 @@ def mov_sum(data, span, dtype=None):
     %(dtype)s
 
     %(movfuncresults)s
-    """
+    """ % _doc_parameters
 
     return _mov_sum(data, span, dtype=dtype)
-#...............................................................................
+
+
+
 def mov_median(data, span, dtype=None):
     """
     Calculates the moving median of a series.
@@ -181,14 +188,16 @@ def mov_median(data, span, dtype=None):
     %(dtype)s
 
     %(movfuncresults)s
-    """
+    """ % _doc_parameters
 
     kwargs = {'span':span}
     if dtype is not None:
         kwargs['dtype'] = dtype
 
     return _moving_func(data, MA_mov_median, kwargs)
-#...............................................................................
+
+
+
 def mov_min(data, span, dtype=None):
     """
     Calculates the moving minimum of a series.
@@ -200,14 +209,16 @@ def mov_min(data, span, dtype=None):
     %(dtype)s
 
     %(movfuncresults)s
-    """
+    """ % _doc_parameters
 
     kwargs = {'span':span}
     if dtype is not None:
         kwargs['dtype'] = dtype
 
     return _moving_func(data, MA_mov_min, kwargs)
-#...............................................................................
+
+
+
 def mov_max(data, span, dtype=None):
     """
     Calculates the moving max of a series.
@@ -219,14 +230,16 @@ def mov_max(data, span, dtype=None):
     %(dtype)s
 
     %(movfuncresults)s
-    """
+    """ % _doc_parameters
 
     kwargs = {'span':span}
     if dtype is not None:
         kwargs['dtype'] = dtype
 
     return _moving_func(data, MA_mov_max, kwargs)
-#...............................................................................
+
+
+
 def mov_average(data, span, dtype=None):
     """Calculates the moving average of a series.
 
@@ -237,10 +250,12 @@ def mov_average(data, span, dtype=None):
     %(dtype)s
 
     %(movfuncresults)s
-    """
+    """ % _doc_parameters
     return _mov_sum(data, span, dtype=dtype, type_num_double=True)/span
 mov_mean = mov_average
-#...............................................................................
+
+
+
 def mov_var(data, span, dtype=None, ddof=0):
     """
     Calculates the moving variance of a 1-D array.
@@ -253,9 +268,11 @@ def mov_var(data, span, dtype=None, ddof=0):
     %(ddof)s
 
     %(movfuncresults)s
-    """
+    """ % _doc_parameters
     return _mov_cov(data, data, span, ddof, dtype=dtype)
-#...............................................................................
+
+
+
 def mov_std(data, span, dtype=None, ddof=0):
     """
     Calculates the moving standard deviation of a 1-D array.
@@ -268,9 +285,11 @@ def mov_std(data, span, dtype=None, ddof=0):
     %(ddof)s
 
     %(movfuncresults)s
-"""
+    """ % _doc_parameters
     return sqrt(mov_var(data, span, dtype=dtype, ddof=ddof))
-#...............................................................................
+
+
+
 def _mov_cov(x, y, span, ddof, dtype=None):
     # helper function
     denom = span - ddof
@@ -284,6 +303,7 @@ def _mov_cov(x, y, span, ddof, dtype=None):
 
     return sum_prod/denom - (sum_x * sum_y) / (span*denom)
 
+
 def mov_cov(x, y, span, bias=0, dtype=None):
     """
     Calculates the moving covariance of two 1-D arrays.
@@ -296,10 +316,12 @@ def mov_cov(x, y, span, bias=0, dtype=None):
     %(dtype)s
 
     %(movfuncresults)s
-    """
+    """ % _doc_parameters
 
-    if bias==0: ddof = 1
-    else:       ddof = 0
+    if bias==0:
+        ddof = 1
+    else:
+        ddof = 0
 
     return _mov_cov(x, y, span, ddof, dtype=dtype)
 #...............................................................................
@@ -315,7 +337,7 @@ def mov_corr(x, y, span, dtype=None):
     %(dtype)s
 
     %(movfuncresults)s
-    """
+    """ % _doc_parameters
 
     sum_x = _mov_sum(x, span, dtype=dtype, type_num_double=True)
     sum_y = _mov_sum(y, span, dtype=dtype, type_num_double=True)
@@ -330,7 +352,9 @@ def mov_corr(x, y, span, dtype=None):
     _stddev_y = sqrt(sum_prod/span - (sum_y ** 2) / (span ** 2))
 
     return _covar / (_stddev_x * _stddev_y)
-#...............................................................................
+
+
+
 def mov_average_expw(data, span, tol=1e-6, dtype=None):
     """
     Calculates the exponentially weighted moving average of a series.
@@ -349,7 +373,8 @@ def mov_average_expw(data, span, tol=1e-6, dtype=None):
     %(dtype)s
 
     %(movfuncexpwresults)s
-    """
+    """ % _doc_parameters
+
     kwargs = {'span':span}
     if dtype is not None:
         kwargs['dtype'] = dtype
@@ -362,7 +387,9 @@ def mov_average_expw(data, span, tol=1e-6, dtype=None):
         result._mask = np.where(marker > tol, True, mask)
 
     return result
-#.............................................................................
+
+
+
 def cmov_window(data, span, window_type):
     """
     Applies a centered moving window of type ``window_type`` and size ``span``
@@ -411,8 +438,8 @@ def cmov_window(data, span, window_type):
     --------
     Only ``boxcar`` has been thoroughly tested so far...
 
+    """ % _doc_parameters
 
-"""
     from scipy.signal import convolve, get_window
 
     data = marray(data, copy=True, subok=True)
@@ -434,6 +461,8 @@ def cmov_window(data, span, window_type):
     data._mask[:k] = data._mask[-k:] = True
     return data
 
+
+
 def cmov_average(data, span):
     """
     Computes the centered moving average of size ``span`` on the data.
@@ -449,12 +478,8 @@ def cmov_average(data, span):
     Noting ``k=span//2``, the ``k`` first and ``k`` last data are always masked.
     If ``data`` has a missing value at position ``i``, then the result has
     missing values in the interval ``[i-k:i+k+1]``.
-"""
+    """ % _doc_parameters
     return cmov_window(data, span, 'boxcar')
 
 cmov_mean = cmov_average
 
-if __doc__ is not None:
-    for mf in __all__:
-        mf_obj = locals()[mf]
-        mf_obj.__doc__ = mf_obj.__doc__ % _doc_parameters

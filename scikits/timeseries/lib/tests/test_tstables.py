@@ -28,33 +28,33 @@ tabulate = tstables.tabulate
 
 
 def common_ma_setup():
-    data2D = ma.array([np.random.rand(25).reshape(5,5),
-                       np.random.rand(25).reshape(5,5),
-                       np.random.rand(25).reshape(5,5),
-                       np.random.rand(25).reshape(5,5),
-                       np.random.rand(25).reshape(5,5),],
-                       mask=[np.random.rand(25).reshape(5,5)>.5,
-                             np.random.rand(25).reshape(5,5)>.5,
-                             np.random.rand(25).reshape(5,5)>.5,
-                             np.random.rand(25).reshape(5,5)>.5,
-                             np.random.rand(25).reshape(5,5)>.5,]
-                      ) 
+    data2D = ma.array([np.random.rand(25).reshape(5, 5),
+                       np.random.rand(25).reshape(5, 5),
+                       np.random.rand(25).reshape(5, 5),
+                       np.random.rand(25).reshape(5, 5),
+                       np.random.rand(25).reshape(5, 5), ],
+                       mask=[np.random.rand(25).reshape(5, 5) > .5,
+                             np.random.rand(25).reshape(5, 5) > .5,
+                             np.random.rand(25).reshape(5, 5) > .5,
+                             np.random.rand(25).reshape(5, 5) > .5,
+                             np.random.rand(25).reshape(5, 5) > .5, ]
+                      )
     data1D = ma.array(np.random.rand(25),
-                      mask=np.random.rand(25)>0.9,
-                      fill_value=-9999)
-    dtype5R = [('a',float),('b',int),('c','|S3')]
+                      mask=np.random.rand(25) > 0.9,
+                      fill_value= -9999)
+    dtype5R = [('a', float), ('b', int), ('c', '|S3')]
     data5N = ma.array(zip(np.random.rand(5),
                           np.arange(5),
                           'ABCDE'),
                       dtype=dtype5R)
     data5R = mr.fromarrays([np.random.rand(5),
                             np.arange(5),
-                            ('A','B','C','D','E')],
+                            ('A', 'B', 'C', 'D', 'E')],
                            dtype=dtype5R)
-    data5R._mask['a'][0]=True
-    data5R._mask['b'][2]=True
-    data5R._mask['c'][-1]=True
-    return dict(data1D=data1D, 
+    data5R._mask['a'][0] = True
+    data5R._mask['b'][2] = True
+    data5R._mask['c'][-1] = True
+    return dict(data1D=data1D,
                 data2D=data2D,
                 data5N=data5N,
                 data5R=data5R)
@@ -79,8 +79,8 @@ class TestTabulate(TestCase):
         "Tests the transformation from a nD series to..."
         data2D = self.data['data2D']
         _data2D = tabulate(data2D)
-        assert_equal(_data2D['_data'], data2D.filled().reshape(len(data2D),-1))
-        assert_equal(_data2D['_mask'], data2D._mask.reshape(len(data2D),-1))
+        assert_equal(_data2D['_data'], data2D.filled().reshape(len(data2D), -1))
+        assert_equal(_data2D['_mask'], data2D._mask.reshape(len(data2D), -1))
     #
     def test_tabulateNV(self):
         "Tests the transformation of named variables to..."
@@ -88,19 +88,19 @@ class TestTabulate(TestCase):
         _data5N = tabulate(data5N)
         zipped5N = [((ma.filled(s['a']), ma.getmaskarray(s['a'])),
                      (ma.filled(s['b']), ma.getmaskarray(s['b'])),
-                     (ma.filled(s['c']), ma.getmaskarray(s['c']))) 
+                     (ma.filled(s['c']), ma.getmaskarray(s['c'])))
                     for s in data5N]
-        ndtype5N = [(fname,[('_data',ftype), ('_mask',bool)])
-                    for (fname,ftype) in data5N.dtype.descr]
+        ndtype5N = [(fname, [('_data', ftype), ('_mask', bool)])
+                    for (fname, ftype) in data5N.dtype.descr]
         data5N = np.array(zipped5N, dtype=ndtype5N)
-        for key in ('a','b','c'):
-            assert_equal_records(data5N[key].view(np.recarray), 
+        for key in ('a', 'b', 'c'):
+            assert_equal_records(data5N[key].view(np.recarray),
                                  _data5N[key].view(np.recarray))
         #
         _data5R = tabulate(self.data['data5N'])
         data5R = np.array(zipped5N, dtype=ndtype5N)
-        for key in ('a','b','c'):
-            assert_equal_records(data5R[key].view(np.recarray), 
+        for key in ('a', 'b', 'c'):
+            assert_equal_records(data5R[key].view(np.recarray),
                                  _data5R[key].view(np.recarray))
 
 
@@ -111,7 +111,7 @@ class TestMaskedTable(TestCase):
         TestCase.__init__(self, *args, **kwds)
         self.data = common_ma_setup()
         self.file = tempfile.mktemp(".hdf5")
-        self.fileh = tables.openFile(self.file,'a')
+        self.fileh = tables.openFile(self.file, 'a')
         self.populate()
     #
     def tearDown(self):
@@ -121,7 +121,7 @@ class TestMaskedTable(TestCase):
     #
     def populate(self):
         h5file = self.fileh
-        for (key,data) in self.data.iteritems():
+        for (key, data) in self.data.iteritems():
             table = h5file.createMaskedTable('/', key, data, "Example")
             h5file.flush()
     #
@@ -129,19 +129,20 @@ class TestMaskedTable(TestCase):
         data1D = self.data['data1D']
         table = self.fileh.root.data1D
         tarray = table.read()
-        
+        #
         assert_equal(tarray.dtype, data1D.dtype)
         assert_equal(tarray.filled(), data1D.filled())
         assert_equal(tarray._mask, data1D._mask)
         assert_equal(tarray.fill_value, data1D.fill_value)
         #
-        tarray = table.read(1,5,2)
+        tarray = table.read(1, 5, 2)
         control = data1D[1:5:2]
         assert_equal(tarray, control)
         #
         tarray = table.read(field='_data')
         assert_equal(tarray, data1D.filled())
-    #
+
+
     def test_read2D(self):
         data2D = self.data['data2D']
         table = self.fileh.root.data2D
@@ -151,27 +152,28 @@ class TestMaskedTable(TestCase):
         assert_equal(tarray.filled(), data2D.filled())
         assert_equal(tarray._mask, data2D._mask)
         #
-        tarray = table.read(1,5,2)
-        control = (data2D.reshape(len(data2D),-1)[1:5:2]).reshape(-1,5,5)
+        tarray = table.read(1, 5, 2)
+        control = (data2D.reshape(len(data2D), -1)[1:5:2]).reshape(-1, 5, 5)
         assert_equal(tarray.mask, control.mask)
         assert_equal(tarray.filled(), control.filled())
         #
         tarray = table.read(field='_data')
         assert_equal(tarray, data2D.filled())
-    #
+
+
     def test_read5N(self):
         data5N = self.data['data5N']
         table = self.fileh.root.data5N
         tarray = table.read()
         assert_equal(tarray.dtype, data5N.dtype)
-        for f in ('a','b','c'):
+        for f in ('a', 'b', 'c'):
             assert_equal(tarray[f], data5N[f])
         assert_equal(tarray._mask, data5N._mask)
         assert_equal(tarray.fill_value, data5N.fill_value)
         #
-        tarray = table.read(1,5,2)
+        tarray = table.read(1, 5, 2)
         initial = data5N[1:5:2]
-        for f in ('a','b','c'):
+        for f in ('a', 'b', 'c'):
             assert_equal(tarray[f], initial[f])
         #
         tarray = table.read(field='a')
@@ -186,35 +188,36 @@ class TestMaskedTable(TestCase):
 
 
 def common_ts_setup():
-    series2D = ts.time_series([np.random.rand(25).reshape(5,5),
-                               np.random.rand(25).reshape(5,5),
-                               np.random.rand(25).reshape(5,5),
-                               np.random.rand(25).reshape(5,5),
-                               np.random.rand(25).reshape(5,5),],
+    series2D = ts.time_series([np.random.rand(25).reshape(5, 5),
+                               np.random.rand(25).reshape(5, 5),
+                               np.random.rand(25).reshape(5, 5),
+                               np.random.rand(25).reshape(5, 5),
+                               np.random.rand(25).reshape(5, 5), ],
                               start_date=ts.now('M'),
-                              mask=[np.random.rand(25).reshape(5,5)>.5,
-                                    np.random.rand(25).reshape(5,5)>.5,
-                                    np.random.rand(25).reshape(5,5)>.5,
-                                    np.random.rand(25).reshape(5,5)>.5,
-                                    np.random.rand(25).reshape(5,5)>.5,]
-                             ) 
+                              mask=[np.random.rand(25).reshape(5, 5) > .5,
+                                    np.random.rand(25).reshape(5, 5) > .5,
+                                    np.random.rand(25).reshape(5, 5) > .5,
+                                    np.random.rand(25).reshape(5, 5) > .5,
+                                    np.random.rand(25).reshape(5, 5) > .5, ]
+                             )
     series1D = ts.time_series(np.random.rand(25),
-                              mask=np.random.rand(25)>0.7,
+                              mask=np.random.rand(25) > 0.7,
                               start_date=ts.now('M'),
-                              fill_value=-999)
-    series5V = ts.time_series(np.random.rand(25).reshape(5,5),
-                              mask=np.random.rand(25).reshape(5,5)>0.7,
+                              fill_value= -999)
+    series5V = ts.time_series(np.random.rand(25).reshape(5, 5),
+                              mask=np.random.rand(25).reshape(5, 5) > 0.7,
                               start_date=ts.now('M'))
     series5N = ts.time_series(zip(np.random.rand(5),
                                   np.random.rand(5),
                                   np.arange(5)),
                               start_date=ts.now('M'),
-                              dtype=[('a',float),('b',float),('c',int)]
+                              dtype=[('a', float), ('b', float), ('c', int)]
                               )
-    return dict(series1D=series1D, 
+    return dict(series1D=series1D,
                 series5V=series5V,
                 series2D=series2D,
                 series5N=series5N)
+
 
 
 class TestTimeSeriesTable(TestCase):
@@ -223,7 +226,7 @@ class TestTimeSeriesTable(TestCase):
         TestCase.__init__(self, *args, **kwds)
         self.data = common_ts_setup()
         self.file = tempfile.mktemp(".hdf5")
-        self.fileh = tables.openFile(self.file,'a')
+        self.fileh = tables.openFile(self.file, 'a')
         self.populate()
     #
     def tearDown(self):
@@ -233,7 +236,7 @@ class TestTimeSeriesTable(TestCase):
     #
     def populate(self):
         h5file = self.fileh
-        for (key,data) in self.data.iteritems():
+        for (key, data) in self.data.iteritems():
             table = h5file.createTimeSeriesTable('/', key, data, "Example")
             h5file.flush()
     #
@@ -247,7 +250,7 @@ class TestTimeSeriesTable(TestCase):
         assert_equal(tarray._dates, series1D._dates)
         assert_equal(tarray.fill_value, series1D.fill_value)
         #
-        tarray = table.read(1,5,2)
+        tarray = table.read(1, 5, 2)
         assert_equal(tarray, series1D[1:5:2])
         #
         tarray = table.read(field='_data')
@@ -265,9 +268,9 @@ class TestTimeSeriesTable(TestCase):
         assert_equal(tarray._mask, series2D._mask)
         assert_equal(tarray.fill_value, series2D.fill_value)
         #
-        tarray = table.read(1,5,2)
+        tarray = table.read(1, 5, 2)
         initial = series2D[1:5:2]
-        assert_equal(tarray, initial._series.reshape(2,5,5))
+        assert_equal(tarray, initial._series.reshape(2, 5, 5))
         assert_equal(tarray._dates, initial._dates)
         #
         tarray = table.read(field='_series')
@@ -278,14 +281,14 @@ class TestTimeSeriesTable(TestCase):
         table = self.fileh.root.series5N
         tarray = table.read()
         assert_equal(tarray.dtype, series5N.dtype)
-        for f in ('a','b','c'):
+        for f in ('a', 'b', 'c'):
             assert_equal(tarray[f], series5N[f])
         assert_equal(tarray._mask, series5N._mask)
         assert_equal(tarray.fill_value, series5N.fill_value)
         #
-        tarray = table.read(1,5,2)
+        tarray = table.read(1, 5, 2)
         initial = series5N[1:5:2]
-        for f in ('a','b','c'):
+        for f in ('a', 'b', 'c'):
             assert_equal(tarray[f], initial[f])
         #
         tarray = table.read(field='a')
@@ -298,19 +301,20 @@ class TestTimeSeriesTable(TestCase):
         assert_equal(tarray._mask, series5V._mask)
 
 
+
 class TestSpecialAttrs(TestCase):
     #
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
-        self.marray = ma.array(np.random.rand(100).reshape(10,10),
-                               mask = (np.random.rand(100).reshape(10,10) > 0.7),
-                               fill_value=-999,
+        self.marray = ma.array(np.random.rand(100).reshape(10, 10),
+                               mask=(np.random.rand(100).reshape(10, 10) > 0.7),
+                               fill_value= -999,
                                hard_mask=True)
         self.marray._optinfo['memo'] = "Some line of text"
         self.tseries = ts.time_series(self.marray,
                                       start_date=ts.now('D'))
         self.file = tempfile.mktemp(".hdf5")
-        self.fileh = tables.openFile(self.file,'a')
+        self.fileh = tables.openFile(self.file, 'a')
         self.populate()
     #
     def tearDown(self):
@@ -340,6 +344,7 @@ class TestSpecialAttrs(TestCase):
         assert_equal(test._hardmask, data._hardmask)
 
 
+
 class TestTableRead(TestCase):
     #
     def __init__(self, *args, **kwds):
@@ -347,13 +352,13 @@ class TestTableRead(TestCase):
         series = ts.time_series(zip(np.random.rand(10),
                                     np.arange(10)),
                                 start_date=ts.now('M'),
-                                dtype=[('a',float),('b',int)])
-        series.mask[0] = (0,1)
-        series.mask[-1] = (1,0)
+                                dtype=[('a', float), ('b', int)])
+        series.mask[0] = (0, 1)
+        series.mask[-1] = (1, 0)
         self.tseries = series
         self.marray = series._series
         self.file = tempfile.mktemp(".hdf5")
-        self.h5file = tables.openFile(self.file,'a')
+        self.h5file = tables.openFile(self.file, 'a')
         self.populate()
     #
     def tearDown(self):
@@ -385,13 +390,13 @@ class TestTableRead(TestCase):
         self.failUnless(isinstance(test, TimeSeries))
         assert_equal(test, series[::2])
         #
-        test = table.readCoordinates([1,2,3])
+        test = table.readCoordinates([1, 2, 3])
         self.failUnless(isinstance(test, TimeSeries))
-        assert_equal(test, series[[1,2,3]])
+        assert_equal(test, series[[1, 2, 3]])
         #
-        test = table.readCoordinates([1,2,3], field='a')
+        test = table.readCoordinates([1, 2, 3], field='a')
         self.failUnless(isinstance(test, TimeSeries))
-        assert_equal(test, series['a'][[1,2,3]])
+        assert_equal(test, series['a'][[1, 2, 3]])
     #
     def test_marray_read(self):
         "Test reading specific elements of a MaskedTable"
@@ -410,42 +415,43 @@ class TestTableRead(TestCase):
         self.failUnless(isinstance(test, MaskedArray))
         assert_equal(test, data[::2])
         #
-        test = table.readCoordinates([1,2,3])
+        test = table.readCoordinates([1, 2, 3])
         self.failUnless(isinstance(test, MaskedArray))
-        assert_equal(test, data[[1,2,3]])
+        assert_equal(test, data[[1, 2, 3]])
         #
-        test = table.readCoordinates([1,2,3], field='a')
+        test = table.readCoordinates([1, 2, 3], field='a')
         self.failUnless(isinstance(test, MaskedArray))
-        assert_equal(test, data['a'][[1,2,3]])
+        assert_equal(test, data['a'][[1, 2, 3]])
     #
     def test_append_maskedarray(self):
         "Test appending to a MaskedTable"
         table = self.h5file.root.marray
         data = self.marray
-        newdata = ma.array(zip(np.random.rand(3), np.arange(3)+10),
-                           mask=[(0,0),(1,0),(0,1)],
+        newdata = ma.array(zip(np.random.rand(3), np.arange(3) + 10),
+                           mask=[(0, 0), (1, 0), (0, 1)],
                            dtype=data.dtype)
         table.append(newdata)
         test = table.read()
         self.failUnless(isinstance(test, MaskedArray))
-        assert_equal_records(test, ma.mr_[data,newdata])
+        assert_equal_records(test, ma.mr_[data, newdata])
     #
     def test_append_timeseries(self):
         "Test appending to a MaskedTable"
         table = self.h5file.root.tseries
         tseries = self.tseries
-        newdata = ts.time_series(zip(np.random.rand(3), np.arange(3)+10),
-                           mask=[(0,0),(1,0),(0,1)],
+        newdata = ts.time_series(zip(np.random.rand(3), np.arange(3) + 10),
+                           mask=[(0, 0), (1, 0), (0, 1)],
                            dtype=tseries.dtype,
-                           start_date=tseries.dates[-1]+1)
+                           start_date=tseries.dates[-1] + 1)
         table.append(newdata)
         test = table.read()
         self.failUnless(isinstance(test, TimeSeries))
-        assert_equal_records(test, ts.concatenate((tseries,newdata)))
-    #
+        assert_equal_records(test, ts.concatenate((tseries, newdata)))
+
 
 ###############################################################################
-#------------------------------------------------------------------------------
+
 if __name__ == "__main__":
     if has_tables:
         run_module_suite()
+

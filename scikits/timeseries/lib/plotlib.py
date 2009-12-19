@@ -1121,7 +1121,7 @@ class TimeSeriesPlot(Subplot, object):
         """
         errmsg = "The use of 'set_datelimits' is deprecated. "\
             "Please use 'set_dlim' instead"
-        warnings.DepreciationWarning(errmsg)
+        warnings.warn(errmsg, DeprecationWarning)
         return self.set_dlim(start_date, end_date)
     #
     set_datelims = set_datelimits

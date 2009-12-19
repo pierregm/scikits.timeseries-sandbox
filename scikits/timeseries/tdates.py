@@ -550,7 +550,7 @@ class DateArray(ndarray):
         # Note: we better cache the result
         if self._cachedinfo['tostr'] is None:
             firststr = str(self[0])
-            if self.size > 0:
+            if self.size:
                 ncharsize = len(firststr)
                 tostr = np.fromiter((str(d) for d in self),
                                     dtype='|S%i' % ncharsize)
@@ -580,7 +580,7 @@ class DateArray(ndarray):
 
         """
         # Note: As we define a new object, we don't need caching
-        if freq is None or freq == _c.FR_UND:
+        if (freq is None) or (freq == _c.FR_UND):
             return self
         tofreq = check_freq(freq)
         if tofreq == self.freq:
@@ -595,8 +595,47 @@ class DateArray(ndarray):
         if fromfreq == _c.FR_UND:
             new = self.__array__()
         else:
-            new = cseries.DA_asfreq(self.__array__(), fromfreq, tofreq, relation[0])
+            new = cseries.DA_asfreq(self.__array__(),
+                                    fromfreq, tofreq, relation[0])
         return DateArray(new, freq=freq)
+
+
+    #......................................................
+    # Pickling
+    def __getstate__(self):
+        """
+    Returns the internal state of the TimeSeries, for pickling purposes.
+        """
+        state = (1,
+                 self.shape,
+                 self.dtype,
+                 self.flags.fnc,
+                 self.view(ndarray).tostring(),
+                 self.freq,
+                 )
+        return state
+    #
+    def __setstate__(self, state):
+        """
+    Restores the internal state of the TimeSeries, for pickling purposes.
+    `state` is typically the output of the ``__getstate__`` output, and is a 5-tuple:
+
+        - class name
+        - a tuple giving the shape of the data
+        - a typecode for the data
+        - a binary string for the data
+        - a binary string for the mask.
+        """
+        (ver, shp, typ, isf, raw, frq) = state
+        ndarray.__setstate__(self, (shp, typ, isf, raw))
+        self.freq = frq
+
+    def __reduce__(self):
+        """Returns a 3-tuple for pickling a DateArray."""
+        return (self.__class__,
+                (self.__array__(), self.freq),
+                self.__getstate__())
+
 
     def find_dates(self, *dates):
         """
@@ -981,6 +1020,8 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
     dates.freq = freq
     dates._cachedinfo.update(ischrono=True, chronidx=np.array([], dtype=int))
     return dates
+
+
 
 #####---------------------------------------------------------------------------
 #---- --- Definition of functions from the corresponding methods ---
