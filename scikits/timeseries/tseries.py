@@ -2205,6 +2205,8 @@ def pct_symmetric(series, nper=1):
     return _pct_generic(series, nper, pct_func)
 TimeSeries.pct_symmetric = pct_symmetric
 
+
+
 def fill_missing_dates(data, dates=None, freq=None, fill_value=None):
     """
     Finds and fills the missing dates in a time series. The data
@@ -2306,7 +2308,7 @@ def fill_missing_dates(data, dates=None, freq=None, fill_value=None):
             newdatad[new] = datad[old]
             newdatam[new] = datam[old]
     if fill_value is None:
-        fill_value = getattr(data, 'fill_value', None)
+        fill_value = getattr(data, '_fill_value', None)
     newdata = ma.masked_array(newdatad, mask=newdatam, fill_value=fill_value)
     _data = newdata.view(datat)
     _data._dates = newdates

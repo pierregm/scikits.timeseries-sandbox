@@ -10,7 +10,7 @@ Individual fields can be accessed as keys or attributes.
 """
 __author__ = "Pierre GF Gerard-Marchant & Matt Knox ($Author$)"
 __revision__ = "$Revision$"
-__date__     = '$Date$'
+__date__ = '$Date$'
 
 
 import sys
@@ -46,8 +46,8 @@ reserved_fields = numpy.ma.mrecords.reserved_fields + ['_dates']
 import warnings
 
 __all__ = [
-'TimeSeriesRecords','time_records',
-'fromarrays','fromrecords','fromtextfile',
+'TimeSeriesRecords', 'time_records',
+'fromarrays', 'fromrecords', 'fromtextfile',
 ]
 
 def _getformats(data):
@@ -119,17 +119,17 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
                                   )
         #
         newdates = _getdates(dates, length=len(_data),
-                             start_date=start_date,freq=freq)
+                             start_date=start_date, freq=freq)
         _data._dates = newdates
         _data._observed = observed
         #
         return _data
 
-    def __array_finalize__(self,obj):
-        self.__dict__.update(_varshape = getattr(obj, '_varshape', ()),
-                             _dates=getattr(obj,'_dates',DateArray([])),
-                             _observed=getattr(obj,'_observed',None),
-                             _optinfo = getattr(obj,'_optinfo',{}))
+    def __array_finalize__(self, obj):
+        self.__dict__.update(_varshape=getattr(obj, '_varshape', ()),
+                             _dates=getattr(obj, '_dates', DateArray([])),
+                             _observed=getattr(obj, '_observed', None),
+                             _optinfo=getattr(obj, '_optinfo', {}))
         MaskedRecords.__array_finalize__(self, obj)
         return
 
@@ -147,19 +147,19 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
 
     def __getattribute__(self, attr):
         getattribute = MaskedRecords.__getattribute__
-        _dict = getattribute(self,'__dict__')
+        _dict = getattribute(self, '__dict__')
         if attr == '_dict':
             return _dict
-        _names = ndarray.__getattribute__(self,'dtype').names
+        _names = ndarray.__getattribute__(self, 'dtype').names
         if attr in (_names or []):
-            obj = getattribute(self,attr).view(TimeSeries)
+            obj = getattribute(self, attr).view(TimeSeries)
             obj._dates = _dict['_dates']
             return obj
-        return getattribute(self,attr)
+        return getattribute(self, attr)
 
 
     def __setattr__(self, attr, value):
-        if attr in ['_dates','dates']:
+        if attr in ['_dates', 'dates']:
             self.__setdates__(value)
         elif attr == 'shape':
             if self._varshape:
@@ -187,7 +187,7 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
 
     def __setslice__(self, i, j, value):
         """Sets the slice described by [i,j] to `value`."""
-        MaskedRecords.__setitem__(self, slice(i,j), value)
+        MaskedRecords.__setitem__(self, slice(i, j), value)
         return
 
     #......................................................
@@ -198,12 +198,12 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
         """
         if self.size > 1:
             mstr = ["(%s)" % ",".join([str(i) for i in s])
-                    for s in zip(*[getattr(self,f)._series
+                    for s in zip(*[getattr(self, f)._series
                                    for f in self.dtype.names])]
             return "[%s]" % ", ".join(mstr)
         else:
             mstr = ["%s" % ",".join([str(i) for i in s])
-                    for s in zip([getattr(self,f)._series
+                    for s in zip([getattr(self, f)._series
                                   for f in self.dtype.names])]
             return "(%s)" % ", ".join(mstr)
 
@@ -215,12 +215,12 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
         _names = self.dtype.names
         _dates = self._dates
         if np.size(_dates) > 2 and self._dates.is_valid():
-            timestr = "[%s ... %s]" % (str(_dates[0]),str(_dates[-1]))
+            timestr = "[%s ... %s]" % (str(_dates[0]), str(_dates[-1]))
         else:
             timestr = str(_dates)
-        fmt = "%%%is : %%s" % (max([len(n) for n in _names])+4,)
-        reprstr = [fmt % (f,getattr(self,f)) for f in self.dtype.names]
-        reprstr.insert(0,'TimeSeriesRecords(')
+        fmt = "%%%is : %%s" % (max([len(n) for n in _names]) + 4,)
+        reprstr = [fmt % (f, getattr(self, f)) for f in self.dtype.names]
+        reprstr.insert(0, 'TimeSeriesRecords(')
         reprstr.extend([fmt % ('dates', timestr),
                         fmt % ('    fill_value', self.fill_value),
                          '               )'])
@@ -269,11 +269,11 @@ class TimeSeriesRecords(TimeSeries, MaskedRecords, object):
         """
         kwargs.update(func=func, position=position)
         field_names = self.dtype.names
-        by_field = [self[f].convert(freq,**kwargs) for f in field_names]
+        by_field = [self[f].convert(freq, **kwargs) for f in field_names]
         output = fromarrays(by_field,
                             dates=by_field[0].dates,
                             names=field_names)
-        output.fill_value = self.fill_value
+        output.fill_value = self._fill_value
         return output
 trecarray = TimeSeriesRecords
 
@@ -339,7 +339,7 @@ def time_records(data, dates=None, start_date=None, freq=None, mask=nomask,
        * specify just a frequency (for TimeSeries of size zero).
 
     """
-    series =  time_series(data, dates=dates, start_date=start_date, freq=freq,
+    series = time_series(data, dates=dates, start_date=start_date, freq=freq,
                           mask=mask, dtype=dtype, copy=copy,
                           fill_value=fill_value, keep_mask=keep_mask,
                           hard_mask=hard_mask)
@@ -395,7 +395,7 @@ def fromarrays(arraylist, dates=None, start_date=None, freq='U',
     _array = mrecfromarrays(arraylist, dtype=dtype, shape=shape, formats=formats,
                             names=names, titles=titles, aligned=aligned,
                             byteorder=byteorder, fill_value=fill_value)
-    _dates = _getdates(dates, length=len(_array), start_date=start_date, 
+    _dates = _getdates(dates, length=len(_array), start_date=start_date,
                        freq=freq)
 #    if _dates._unsorted is not None:
 #        idx = _dates._unsorted
