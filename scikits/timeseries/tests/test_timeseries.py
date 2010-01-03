@@ -1191,7 +1191,15 @@ test_dates test suite.
         assert_equal(test._dates, control._dates)
         assert_equal(test, control)
         assert_equal(test._optinfo, control._optinfo)
-
+    #
+#    def test_pickling_oddity(self):
+#        "Test some pickling oddity (bug #97)"
+#        import cPickle
+#        control = ts.time_series([{'a':1}], start_date=ts.Date('A', 2001))
+#        if tuple(map(int, np.version.version.split('.')[:2])) > (1, 4):
+#            test = cPickle.loads(cPickle.dumps(control))
+#            assert_equal(test, control)
+#            assert_equal(test.dates, control.dates)
 
     def test_empty_timeseries(self):
         "Tests that empty TimeSeries are  handled properly"

@@ -885,7 +885,7 @@ def _listparser(dlist, freq=None):
     # Case #2: dates as numbers .................
     elif dlist.dtype.kind in 'if':
         #...hopefully, they are values
-        pass
+        dlist = dlist.astype(int)
     # Case #3: dates as objects .................
     elif dlist.dtype.kind == 'O':
         template = dlist[0]

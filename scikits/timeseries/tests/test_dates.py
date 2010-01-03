@@ -1190,6 +1190,13 @@ def test_pickling():
     assert_equal(base, target)
 
 
+def test_repr():
+    "Test some oddity about repr (bug #98)"
+    data = [731694.]
+    test_1 = date_array(dlist=[ts.Date('d', _) for _ in data])
+    test_2 = date_array(dlist=data, freq='d')
+    assert_equal(repr(test_1), repr(test_2))
+
 ###############################################################################
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
