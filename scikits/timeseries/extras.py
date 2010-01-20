@@ -394,6 +394,8 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
       a :keyword:`dateconverter` must be given explicitly.
     * If the ``dtype`` is given explicitly,
       it must NOT refer to the date columns.
+    * By default, the types of variables is defined from the values encountered
+      in the file (``dtype=None``). This is *NOT* the default for np.genfromtxt.
 
     Examples
     --------
@@ -476,18 +478,22 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
                 names[i] = name
             converters.update(converter_update)
     elif names not in (True, None):
-        # Store the initial names and create a new list
-        nbnames = len(datecols) + len(inames)
-        names = [''] * nbnames
-        # Find where the names should go in the new list
-        idx = range(nbnames)
-        for (i, k) in enumerate(datecols):
-            if k < 0:
-                k += nbnames
-            del idx[idx.index(k)]
-            names[k] = "_tmp%i" % i
-        for (i, k) in zip(idx, inames):
-            names[i] = k
+        # Make sure that we saved the names as a list
+        inames = list(inames)
+        # Get the list of columns to use
+        if usecols is None:
+            nbcols = len(datecols) + len(inames)
+            names = [''] * nbcols
+            ucols = range(nbcols)
+        else:
+            names = [''] * (max(usecols) + 1)
+            ucols = usecols
+        # Fill the list of names:
+        for i in ucols:
+            if i in datecols:
+                names[i] = "__%i" % i
+            else:
+                names[i] = inames.pop(0)
     #
     # Update the optional arguments ...
     kwargs = dict(dtype=dtype, comments=comments, delimiter=delimiter,

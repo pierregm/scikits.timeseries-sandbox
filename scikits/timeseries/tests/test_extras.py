@@ -342,6 +342,18 @@ year, month, A, B
                          **kwargs)
         assert_equal(test, ctrl)
 
+    def test_explicit_names_with_usecols(self):
+        "Make sure the proper names are given to entries when usecols is not None"
+        a = "AAA,2010,1,1,2,3\nBBB,2010,2,10,20,30"
+        dateconv = lambda y, m: Date('M', year=int(y), month=int(m))
+        kwargs = dict(freq='M', delimiter=',', dateconverter=dateconv,
+                      datecols=(1, 2), usecols=(1, 2, 3, 5), names="A, C")
+        test = tsfromtxt(StringIO.StringIO(a), **kwargs)
+        ctrl = time_series([(1, 3), (10, 30)],
+                           start_date=Date('M', '2010-01'),
+                           dtype=[('A', int), ('C', int)])
+        assert_equal(test, ctrl)
+
 
     def test_with_converter(self):
         "Test tsfromtxt w/ an explicit converter"
@@ -355,6 +367,17 @@ year, month, A, B
         assert(isinstance(test, TimeSeries))
         assert_equal(test, control)
         assert_equal(test.dates, control.dates)
+
+
+    def test_missing_values_no_names(self):
+        "Make sure that floating point missing values are kept if no names"
+        a = "AAA,2010,1,-9\nBBB,2010,2,2"
+        dateconv = lambda y, m: Date('M', year=int(y), month=int(m))
+        kwargs = dict(freq='M', delimiter=',', dateconverter=dateconv,
+                      missing_values= -9,
+                      datecols=(1, 2), usecols=(1, 2, 3), names="A")
+        test = tsfromtxt(StringIO.StringIO(a), **kwargs)
+        assert_equal(test.mask, np.array([(1,), (0,)], dtype=[('A', bool)]))
 
 
 
