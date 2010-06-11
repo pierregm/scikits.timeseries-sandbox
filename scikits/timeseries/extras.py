@@ -357,10 +357,7 @@ def tsfromtxt(fname, dtype=None, freq='U', comments='#', delimiter=None,
         If 'lower', field names are converted to lower case.
     unpack : bool, optional
         If True, the returned array is transposed, so that arguments may be
-        unpacked using ``x, y, z = loadtxt(...)``
-    usemask : bool, optional
-        If True, return a masked array.
-        If False, return a regular array.
+        unpacked using ``x, y, z = loadtxt(...)``.
     asrecarray : {False, True}, optional
         Whether to return a TimeSeriesRecords or a series with a structured
         dtype.
