@@ -10,7 +10,7 @@ __revision__ = "$Revision: 3836 $"
 __date__ = '$Date: 2008-01-15 08:09:03 -0500 (Tue, 15 Jan 2008) $'
 
 import types
-import datetime
+import datetime as dt
 
 import numpy as np
 from numpy.testing import *
@@ -129,15 +129,15 @@ class TestCreation(TestCase):
     def test_from_datetime_objects(self):
         "Test creation from a list of datetime.date or datetime.datetime objects."
         # test from datetime.date object
-        _dt = ts.Date(freq='D', datetime=datetime.date(2007, 1, 1))
+        _dt = ts.Date(freq='D', datetime=dt.date(2007, 1, 1))
         _tsdt = ts.Date(freq='D', year=2007, month=1, day=1)
         assert_equal(_dt, _tsdt)
         # test from datetime.datetime object
-        _dt = ts.Date(freq='D', datetime=datetime.datetime(2007, 1, 1, 0, 0, 0, 0))
+        _dt = ts.Date(freq='D', datetime=dt.datetime(2007, 1, 1, 0, 0, 0, 0))
         assert_equal(_dt, _tsdt)
 
         # try using the 'value' positional arg
-        _dt = ts.Date('D', datetime.datetime(2007, 1, 1, 0, 0, 0, 0))
+        _dt = ts.Date('D', dt.datetime(2007, 1, 1, 0, 0, 0, 0))
         assert_equal(_dt, _tsdt)
 
 
@@ -189,6 +189,81 @@ class TestCreation(TestCase):
         assert(dates.has_missing_dates())
         assert_equal(dates.start_date.value, 2001)
         assert_equal(dates.end_date.value, 2007)
+
+
+    def test_highfreq_after_epoch(self):
+        "Test high-frequency dates after the epoch"
+        d = Date('D', '1970-01-01')
+        test = d.asfreq('H')
+        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 23, 0, 0))
+        test = d.asfreq('H', 'S')
+        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 0, 0, 0))
+        #
+        test = d.asfreq('T')
+        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 23, 59, 0))
+        test = d.asfreq('T', 'S')
+        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 0, 0, 0))
+        #
+        test = d.asfreq('S')
+        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 23, 59, 59))
+        test = d.asfreq('S', 'S')
+        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 0, 0, 0))
+        #
+        d = Date('S', '1970-07-04 12:34:56')
+        test = d.asfreq('T')
+        assert_equal(test.datetime, dt.datetime(1970, 7, 4, 12, 34, 0))
+        test = d.asfreq('H')
+        assert_equal(test.datetime, dt.datetime(1970, 7, 4, 12, 0, 0))
+        test = d.asfreq('T').asfreq('H')
+        assert_equal(test.datetime, dt.datetime(1970, 7, 4, 12, 0, 0))
+
+    def test_highfreq_before_eopch(self):
+        "Test high-frequency dates before the epoch"
+        d = Date('D', '1969-12-31')
+        test = d.asfreq('H')
+        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 23, 0, 0))
+        test = d.asfreq('T')
+        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 23, 59, 0))
+        test = d.asfreq('S')
+        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 23, 59, 59))
+        #
+        test = d.asfreq('H', 'S')
+        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 0, 0, 0))
+        test = d.asfreq('T', 'S')
+        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 0, 0, 0))
+        test = d.asfreq('S', 'S')
+        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 0, 0, 0))
+        #
+        d = Date('S', '1969-07-20 12:34:56')
+        test = d.asfreq('T')
+        assert_equal(test.datetime, dt.datetime(1969, 7, 20, 12, 34, 0))
+        test = test.asfreq('H')
+        assert_equal(test.datetime, dt.datetime(1969, 7, 20, 12, 0, 0))
+        test = d.asfreq('H')
+        assert_equal(test.datetime, dt.datetime(1969, 7, 20, 12, 0, 0))
+        #
+        d = Date('A', '1950')
+        test = d.asfreq('H', 'E')
+        assert_equal(test.datetime, dt.datetime(1950, 12, 31, 23, 0, 0))
+        test = d.asfreq('T', 'E')
+        assert_equal(test.datetime, dt.datetime(1950, 12, 31, 23, 59, 0))
+        test = d.asfreq('S', 'E')
+        assert_equal(test.datetime, dt.datetime(1950, 12, 31, 23, 59, 59))
+        test = d.asfreq('H', 'S')
+        assert_equal(test.datetime, dt.datetime(1950, 1, 1, 0, 0, 0))
+        test = d.asfreq('T', 'S')
+        assert_equal(test.datetime, dt.datetime(1950, 1, 1, 0, 0, 0))
+        test = d.asfreq('S', 'S')
+        assert_equal(test.datetime, dt.datetime(1950, 1, 1, 0, 0, 0))
+        #
+        d = Date('A', '1900')
+        test = d.asfreq('S', 'E')
+        assert_equal(test.datetime, dt.datetime(1900, 12, 31, 23, 59, 59))
+        test = d.asfreq('S', 'S')
+        assert_equal(test.datetime, dt.datetime(1900, 1, 1, 0, 0, 0))
+
+
+
 
 
 
