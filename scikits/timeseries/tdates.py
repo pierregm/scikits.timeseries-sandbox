@@ -236,8 +236,8 @@ class DateArray(ndarray):
         if _dates.ndim == 0:
             _dates.shape = (1,)
         _dates = _dates.view(cls)
-        _dates.freq = _freq
-        _dates.period = _period
+        _dates._freq = _freq
+        _dates._period = _period
         #
         _cached = _dates._cachedinfo
         if _cached['ischrono'] is None:
@@ -263,8 +263,8 @@ class DateArray(ndarray):
             raise ArithmeticDateError, "(function %s)" % context[0].__name__
 
     def __array_finalize__(self, obj):
-        self.freq = getattr(obj, 'freq', _c.FR_UND)
-        self.period = getattr(obj, 'period', 1)
+        self._freq = getattr(obj, '_freq', _c.FR_UND)
+        self._period = getattr(obj, '_period', 1)
         self._reset_cachedinfo()
         self._cachedinfo.update(getattr(obj, '_cachedinfo', {}))
         return
@@ -304,13 +304,13 @@ class DateArray(ndarray):
         r = ndarray.__getitem__(self, indx)
         # Case 1. A simple integer
         if isinstance(r, (generic, int)):
-            return Date(self.freq, value=r)
+            return Date(self._freq, value=r)
         elif not getattr(r, 'ndim', 1):
             # need to check if it has a ndim attribute for situations
             # like when the datearray is the data for a maskedarray
             # or some other subclass of ndarray with wierd getitem
             # behaviour
-            return Date(self.freq, value=r.item())
+            return Date(self._freq, value=r.item())
         else:
             if hasattr(r, '_cachedinfo'):
                 _cache = r._cachedinfo
@@ -347,7 +347,7 @@ class DateArray(ndarray):
     Used to check whether a single date (or equivalent integer value) is
     contained in the DateArray.
         """
-        if isinstance(date, Date) and date.freq != self.freq:
+        if isinstance(date, Date) and date.freq != self._freq:
             raise ValueError(
                 "expected date of frequency '%s' but got date of frequency "\
                 "'%s'" % (self.freqstr, date.freqstr))
@@ -377,7 +377,7 @@ class DateArray(ndarray):
         """
         obj = ndarray.min(self, *args, **kwargs)
         if not obj.shape:
-            return Date(self.freq, obj)
+            return Date(self._freq, obj)
         return obj
 
     def max(self, *args, **kwargs):
@@ -388,13 +388,18 @@ class DateArray(ndarray):
         """
         obj = ndarray.max(self, *args, **kwargs)
         if not obj.shape:
-            return Date(self.freq, obj)
+            return Date(self._freq, obj)
         return obj
 
     @property
     def freqstr(self):
         "Returns the frequency string code."
-        return check_freq_str(self.freq)
+        return check_freq_str(self._freq)
+
+    @property
+    def period(self):
+        "Returns the interval between consecutive dates"
+        return self._period
 
     @property
     def year(self):
@@ -500,7 +505,7 @@ class DateArray(ndarray):
         # TODO: Why do we need floats ?
         # Note: we better try to cache the result
         if self._cachedinfo['toord'] is None:
-            if self.freq == _c.FR_UND:
+            if self._freq == _c.FR_UND:
                 diter = (d.value for d in self)
             else:
                 diter = (d.toordinal() for d in self)
@@ -588,7 +593,7 @@ class DateArray(ndarray):
         if (freq is None) or (freq == _c.FR_UND):
             return self
         tofreq = check_freq(freq)
-        if tofreq == self.freq:
+        if tofreq == self._freq:
             return self
 
         relation = relation.upper()
@@ -596,7 +601,7 @@ class DateArray(ndarray):
             errmsg = "Invalid specification for the 'relation' parameter: %s"
             raise ValueError(errmsg % relation)
 
-        fromfreq = self.freq
+        fromfreq = self._freq
         if fromfreq == _c.FR_UND:
             new = self.__array__()
         else:
@@ -604,6 +609,11 @@ class DateArray(ndarray):
                                     fromfreq, tofreq, relation[0])
         return DateArray(new, freq=freq)
 
+    def _get_freq(self):
+        return self._freq
+    def _set_freq(self, freq):
+        return self.asfreq(*freq)
+    freq = property(fget=_get_freq, fset=_set_freq, doc="Frequency")
 
     #......................................................
     # Pickling
@@ -616,7 +626,7 @@ class DateArray(ndarray):
                  self.dtype,
                  self.flags.fnc,
                  self.view(ndarray).tostring(),
-                 self.freq,
+                 self._freq,
                  )
         return state
     #
@@ -633,7 +643,7 @@ class DateArray(ndarray):
         """
         (ver, shp, typ, isf, raw, frq) = state
         ndarray.__setstate__(self, (shp, typ, isf, raw))
-        self.freq = frq
+        self._freq = frq
 
     def __reduce__(self):
         """Returns a 3-tuple for pickling a DateArray."""
@@ -665,10 +675,10 @@ class DateArray(ndarray):
             else:
                 return flatten_sequence(args)
 
-        ifreq = self.freq
+        ifreq = self._freq
         c = np.zeros(self.shape, dtype=bool)
         for d in flatargs(*dates):
-            if d.freq != ifreq:
+            if d._freq != ifreq:
                 d = d.asfreq(ifreq)
             c += (self == d.value)
         c = c.nonzero()
@@ -680,26 +690,30 @@ class DateArray(ndarray):
         """
    Returns the index corresponding to one given date, as an integer.
         """
-        vals = self.view(ndarray)
+        values = self.__array__()
+        # Transform a string into a Date
+        if isinstance(dates, basestring):
+            dates = Date(self._freq, dates)
+        # Just one date ?
         if isinstance(dates, Date):
             _val = dates.value
-            if _val not in vals:
+            if _val not in values:
                 raise IndexError("Date '%s' is out of bounds" % dates)
             if self.is_valid():
-                return _val - vals[0]
+                return _val - values[0]
             else:
-                return np.where(vals == _val)[0][0]
+                return np.where(values == _val)[0][0]
         #
         _dates = DateArray(dates, freq=self.freq)
         if self.is_valid():
-            indx = (_dates.view(ndarray) - vals[0])
+            indx = (_dates.view(ndarray) - values[0])
             err_cond = (indx < 0) | (indx > self.size)
             if err_cond.any():
                 err_indx = np.compress(err_cond, _dates)[0]
                 err_msg = "Date '%s' is out of bounds '%s' <= date <= '%s'"
                 raise IndexError(err_msg % (err_indx, self[0], self[-1]))
             return indx
-        vals = vals.tolist()
+        vals = values.tolist()
         indx = np.array([vals.index(d) for d in _dates.view(ndarray)])
         #
         return indx
@@ -1025,7 +1039,7 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
         freq = start_date.freq
     # Transform the dates and set the cache
     dates = dlist.view(DateArray)
-    dates.freq = freq
+    dates._freq = freq
     dates._period = period
     dates._cachedinfo.update(ischrono=True, hasdups=False, full=True,
                              chronidx=np.array([], dtype=int))
