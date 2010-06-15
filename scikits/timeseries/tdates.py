@@ -612,7 +612,11 @@ class DateArray(ndarray):
     def _get_freq(self):
         return self._freq
     def _set_freq(self, freq):
-        return self.asfreq(*freq)
+        if isinstance(freq, (int, float)):
+            self.flat = self.asfreq(freq).flat
+        else:
+            self.flat = self.asfreq(*freq).flat
+        self._freq = freq
     freq = property(fget=_get_freq, fset=_set_freq, doc="Frequency")
 
     #......................................................
@@ -700,13 +704,13 @@ class DateArray(ndarray):
             if _val not in values:
                 raise IndexError("Date '%s' is out of bounds" % dates)
             if self.is_valid():
-                return _val - values[0]
+                return (_val - values[0]) / self._period
             else:
                 return np.where(values == _val)[0][0]
         #
-        _dates = DateArray(dates, freq=self.freq)
+        _dates = date_array(dates, freq=self.freq).__array__()
         if self.is_valid():
-            indx = (_dates.view(ndarray) - values[0])
+            indx = (_dates - values[0]) / self._period
             err_cond = (indx < 0) | (indx > self.size)
             if err_cond.any():
                 err_indx = np.compress(err_cond, _dates)[0]
@@ -714,7 +718,7 @@ class DateArray(ndarray):
                 raise IndexError(err_msg % (err_indx, self[0], self[-1]))
             return indx
         vals = values.tolist()
-        indx = np.array([vals.index(d) for d in _dates.view(ndarray)])
+        indx = np.array([vals.index(d) for d in _dates])
         #
         return indx
 
@@ -922,7 +926,7 @@ def _listparser(dlist, freq=None):
                                 dtype=int)
     #
     result = dlist.view(DateArray)
-    result.freq = freq
+    result._freq = freq
     return result
 
 
