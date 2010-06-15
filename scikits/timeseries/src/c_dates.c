@@ -525,11 +525,11 @@ static long asfreq_DtoD(long fromDate, char relation, asfreq_info *af_info) {
 };
 
 static long asfreq_DtoHIGHFREQ(long fromDate, char relation, long periodsPerDay) {
-//    DEBUGPRINTF("asfreq_DtoH: fromDate: %i\n", fromDate);
+//    DEBUGPRINTF("asfreq_DtoH: fromDate: %ld\n", fromDate);
     if (relation == 'S') {
-        return (fromDate - HIGHFREQ_ORIG)*(periodsPerDay) + 1;
+        return (fromDate - HIGHFREQ_ORIG)*(periodsPerDay);
     } else {
-        return (fromDate - HIGHFREQ_ORIG + 1)*(periodsPerDay);
+        return (fromDate - HIGHFREQ_ORIG + 1)*(periodsPerDay) - 1;
     };
 
 }
@@ -541,14 +541,18 @@ static long asfreq_DtoT(long fromDate, char relation, asfreq_info *af_info)
 static long asfreq_DtoS(long fromDate, char relation, asfreq_info *af_info)
     { return asfreq_DtoHIGHFREQ(fromDate, relation, 24*60*60); }
 
+
+static long asfreq_HIGHFREQtoD(long fromDate, char relation, long periodsPerDay){
+    if (fromDate < 0){
+        return (fromDate + 1)/periodsPerDay + HIGHFREQ_ORIG - 1;
+    } else {
+        return fromDate/periodsPerDay + HIGHFREQ_ORIG;
+    };
+};
 //************ FROM SECONDLY ***************
 
 static long asfreq_StoD(long fromDate, char relation, asfreq_info *af_info) {
-    if (fromDate <= 0){
-        return fromDate/(60*60*24) + HIGHFREQ_ORIG - 1;
-    } else {
-        return (fromDate - 1)/(60*60*24) + HIGHFREQ_ORIG;
-    };
+    return asfreq_HIGHFREQtoD(fromDate, relation, 24*60*60);
 };
 
 static long asfreq_StoA(long fromDate, char relation, asfreq_info *af_info) {
@@ -570,17 +574,17 @@ static long asfreq_StoB_forConvert(long fromDate, char relation, asfreq_info *af
     return asfreq_DtoB_forConvert(asfreq_StoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO);
     };
 static long asfreq_StoT(long fromDate, char relation, asfreq_info *af_info) {
-    if (fromDate <= 0){
-        return fromDate/60;
+    if (fromDate < 0){
+        return (fromDate + 1)/60 - 1;
     } else {
-        return (fromDate - 1)/60 + 1;
+        return fromDate/60;
     };
 };
 static long asfreq_StoH(long fromDate, char relation, asfreq_info *af_info) {
-    if (fromDate <= 0){
-        return fromDate/(60*60);
+    if (fromDate < 0){
+        return (fromDate + 1)/(60*60) - 1;
     } else {
-        return (fromDate - 1)/(60*60) + 1;
+        return fromDate/(60*60);
     };
 };
 
@@ -589,11 +593,7 @@ static long asfreq_StoH(long fromDate, char relation, asfreq_info *af_info) {
 //************ FROM MINUTELY ***************
 
 static long asfreq_TtoD(long fromDate, char relation, asfreq_info *af_info){
-    if (fromDate <= 0) {
-        return fromDate/(60*24) + HIGHFREQ_ORIG - 1;
-    } else {
-        return (fromDate - 1)/(60*24) + HIGHFREQ_ORIG;
-    };
+    return asfreq_HIGHFREQtoD(fromDate, relation, 24*60);
 };
 
 static long asfreq_TtoA(long fromDate, char relation, asfreq_info *af_info) {
@@ -615,17 +615,17 @@ static long asfreq_TtoB_forConvert(long fromDate, char relation, asfreq_info *af
     return asfreq_DtoB_forConvert(asfreq_TtoD(fromDate, relation, &NULL_AF_INFO), relation, &NULL_AF_INFO);
     };
 static long asfreq_TtoH(long fromDate, char relation, asfreq_info *af_info) {
-    if (fromDate <= 0) {
-        return fromDate/60;
+    if (fromDate < 0) {
+        return (fromDate + 1)/60 - 1;
     } else {
-        return (fromDate - 1)/60 + 1;
+        return fromDate/60;
     };
 };
 static long asfreq_TtoS(long fromDate, char relation, asfreq_info *af_info) {
     if (relation == 'S') {
-        return fromDate*60 - 59;
-    } else {
         return fromDate*60;
+    } else {
+        return (fromDate + 1)*60 - 1;
     }
 };
 
@@ -633,11 +633,7 @@ static long asfreq_TtoS(long fromDate, char relation, asfreq_info *af_info) {
 //************ FROM HOURLY ***************
 
 static long asfreq_HtoD(long fromDate, char relation, asfreq_info *af_info) {
-    if (fromDate <= 0){
-        return fromDate/24 + HIGHFREQ_ORIG - 1;
-    } else{
-        return (fromDate - 1)/24 + HIGHFREQ_ORIG;
-    };
+    return asfreq_HIGHFREQtoD(fromDate, relation, 24);
 };
 static long asfreq_HtoA(long fromDate, char relation, asfreq_info *af_info) {
     return asfreq_DtoA(asfreq_HtoD(fromDate, relation, &NULL_AF_INFO), relation, af_info);
@@ -664,9 +660,9 @@ static long asfreq_HtoT(long fromDate, char relation, asfreq_info *af_info) {
     };
 static long asfreq_HtoS(long fromDate, char relation, asfreq_info *af_info) {
     if (relation == 'S') {
-        return fromDate*60*60 - 60*60 + 1;
-    } else {
         return fromDate*60*60;
+    } else {
+        return (fromDate + 1)*60*60 - 1;
     };
 };
 
@@ -1115,8 +1111,8 @@ static double getAbsTime(int freq, long dailyDate, long originalDate) {
             return 24*60*60 - 1;
     }
     startOfDay = asfreq_DtoHIGHFREQ(dailyDate, 'S', periodsPerDay);
-//    DEBUGPRINTF("getAbsTime:startOfDay: %i\n", startOfDay);
-//    DEBUGPRINTF("getAbsTime:originaldate: %i\n", originalDate);
+//    DEBUGPRINTF("getAbsTime:startOfDay: %ld\n", startOfDay);
+//    DEBUGPRINTF("getAbsTime:originaldate: %ld\n", originalDate);
     return (24*60*60)*((double)(originalDate - startOfDay))/((double)periodsPerDay);
 }
 
@@ -1580,7 +1576,6 @@ DateObject_init(DateObject *self, PyObject *args, PyObject *kwds) {
                     INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
                 }
             }
-
         }
 
         if (self->freq == FR_SEC) {
@@ -1588,19 +1583,19 @@ DateObject_init(DateObject *self, PyObject *args, PyObject *kwds) {
             absdays = absdate_from_ymd(year, month, day);
             delta = (absdays - HIGHFREQ_ORIG);
 //            self->value = (int)(delta*86400 + hour*3600 + minute*60 + second + 1);
-            self->value = (long)(delta*86400 + hour*3600 + minute*60 + second + 1);
+            self->value = (long)(delta*86400 + hour*3600 + minute*60 + second);
         } else if (self->freq == FR_MIN) {
             long absdays, delta;
             absdays = absdate_from_ymd(year, month, day);
             delta = (absdays - HIGHFREQ_ORIG);
 //            self->value = (int)(delta*1440 + hour*60 + minute + 1);
-            self->value = (long)(delta*1440 + hour*60 + minute + 1);
+            self->value = (long)(delta*1440 + hour*60 + minute);
         } else if (self->freq == FR_HR) {
             long absdays, delta;
             if((absdays = absdate_from_ymd(year, month, day)) == INT_ERR_CODE) return -1;
             delta = (absdays - HIGHFREQ_ORIG);
 //            self->value = (int)(delta*24 + hour + 1);
-            self->value = (long)(delta*24 + hour + 1);
+            self->value = (long)(delta*24 + hour);
         } else if (self->freq == FR_DAY) {
 //            if((self->value = (int)absdate_from_ymd(year, month, day)) == INT_ERR_CODE) return -1;
             if((self->value = (long)absdate_from_ymd(year, month, day)) == INT_ERR_CODE) return -1;
@@ -1634,11 +1629,8 @@ DateObject_init(DateObject *self, PyObject *args, PyObject *kwds) {
         } else if (freq_group == FR_ANN) {
             self->value = year;
         }
-
     }
-
     if (free_dt) { Py_DECREF(datetime); }
-
     return 0;
 }
 
@@ -1648,8 +1640,6 @@ static PyMemberDef DateObject_members[] = {
      "frequency"},
     {"value", T_INT, offsetof(DateObject, value), 0,
      "integer representation of the Date"},
-//    {"value", T_LONG, offsetof(DateObject, value), 0,
-//     "integer representation of the Date"},
     {NULL}  /* Sentinel */
 };
 
@@ -1684,6 +1674,45 @@ DateObject_toordinal(DateObject* self)
 //        return PyLong_FromLong(toDaily(self->value, 'E', &af_info));
     }
 };
+
+
+
+static char check_relation(char *relation_raw){
+    char *relation_uc;
+    char relation;
+    int invalid_relation=0;
+    if(relation_raw) {
+        if (strlen(relation_raw) > 0) {
+            if((relation_uc = str_uppercase(relation_raw)) == NULL) { return PyErr_NoMemory();}
+            // 'BEFORE' and 'AFTER' values for this parameter are deprecated
+            if (strcmp(relation_uc, "END") == 0 ||
+                strcmp(relation_uc, "E") == 0 ||
+                strcmp(relation_uc, "START") == 0 ||
+                strcmp(relation_uc, "S") == 0 ||
+                strcmp(relation_uc, "BEFORE") == 0 ||
+                strcmp(relation_uc, "B") == 0 ||
+                strcmp(relation_uc, "AFTER") == 0 ||
+                strcmp(relation_uc, "A") == 0) {
+                if(relation_uc[0] == 'E' || relation_uc[0] == 'A') {
+                    relation = 'E';
+                } else {
+                    relation = 'S';
+                }
+            } else { invalid_relation=1; }
+            free(relation_uc);
+        } else {
+            invalid_relation=1;
+        }
+        if (invalid_relation) {
+            PyErr_SetString(PyExc_ValueError,"Invalid relation specification");
+            return NULL;
+        }
+    } else {
+        relation = 'E';
+    }
+    return relation;
+}
+
 
 static char DateObject_asfreq_doc[] =
 "   asfreq(freq, relation='END')\n"
@@ -1720,17 +1749,16 @@ static char DateObject_asfreq_doc[] =
 "         <D: 31-Dec-2007>\n"
 "\n";
 
+
 static PyObject *
 DateObject_asfreq(DateObject *self, PyObject *args, PyObject *kwds)
 {
-
     PyObject *freq=NULL;
     char *relation_raw=NULL;
     char *relation_uc;
     char relation;
     int invalid_relation=0;
     int toFreq;
-//    int result_val;
     long result_val;
     DateObject *result = DateObject_New();
 
@@ -1742,38 +1770,33 @@ DateObject_asfreq(DateObject *self, PyObject *args, PyObject *kwds)
     if (! PyArg_ParseTupleAndKeywords(args, kwds, "O|s", kwlist,
                                       &freq, &relation_raw)) return NULL;
 
-    if(relation_raw) {
-        if (strlen(relation_raw) > 0) {
-            if((relation_uc = str_uppercase(relation_raw)) == NULL)
-            {return PyErr_NoMemory();}
-
-            // 'BEFORE' and 'AFTER' values for this parameter are deprecated
-            if (strcmp(relation_uc, "END") == 0 ||
-                strcmp(relation_uc, "E") == 0 ||
-                strcmp(relation_uc, "START") == 0 ||
-                strcmp(relation_uc, "S") == 0 ||
-                strcmp(relation_uc, "BEFORE") == 0 ||
-                strcmp(relation_uc, "B") == 0 ||
-                strcmp(relation_uc, "AFTER") == 0 ||
-                strcmp(relation_uc, "A") == 0) {
-                 if(relation_uc[0] == 'E' || relation_uc[0] == 'A') { relation = 'E'; }
-                 else { relation = 'S'; }
-
-            } else { invalid_relation=1; }
-
-            free(relation_uc);
-
-        } else {
-            invalid_relation=1;
-        }
-
-        if (invalid_relation) {
-            PyErr_SetString(PyExc_ValueError,"Invalid relation specification");
-            return NULL;
-        }
-    } else {
-        relation = 'E';
-    }
+    relation = check_relation(relation_raw);
+//    if(relation_raw) {
+//        if (strlen(relation_raw) > 0) {
+//            if((relation_uc = str_uppercase(relation_raw)) == NULL) { return PyErr_NoMemory();}
+//            // 'BEFORE' and 'AFTER' values for this parameter are deprecated
+//            if (strcmp(relation_uc, "END") == 0 ||
+//                strcmp(relation_uc, "E") == 0 ||
+//                strcmp(relation_uc, "START") == 0 ||
+//                strcmp(relation_uc, "S") == 0 ||
+//                strcmp(relation_uc, "BEFORE") == 0 ||
+//                strcmp(relation_uc, "B") == 0 ||
+//                strcmp(relation_uc, "AFTER") == 0 ||
+//                strcmp(relation_uc, "A") == 0) {
+//                 if(relation_uc[0] == 'E' || relation_uc[0] == 'A') { relation = 'E'; }
+//                 else { relation = 'S'; }
+//            } else { invalid_relation=1; }
+//            free(relation_uc);
+//        } else {
+//            invalid_relation=1;
+//        }
+//        if (invalid_relation) {
+//            PyErr_SetString(PyExc_ValueError,"Invalid relation specification");
+//            return NULL;
+//        }
+//    } else {
+//        relation = 'E';
+//    }
 
     if ((toFreq = check_freq(freq)) == INT_ERR_CODE) return NULL;
 
@@ -1796,6 +1819,7 @@ DateObject_asfreq(DateObject *self, PyObject *args, PyObject *kwds)
     return (PyObject*)result;
 
 }
+
 
 static char DateObject_strfmt_doc[] =
 "Deprecated alias for strftime method";
@@ -1969,7 +1993,7 @@ DateObject_strftime(DateObject *self, PyObject *args)
 
     absdate = toDaily(self->value, 'E', &af_info);
     abstime = getAbsTime(self->freq, absdate, self->value);
-//    DEBUGPRINTF("absdate:%i\n", absdate);
+//    DEBUGPRINTF("absdate:%ld\n", absdate);
 //    DEBUGPRINTF("abstime:%f\n", abstime);
 
     if(dInfoCalc_SetFromAbsDateTime(&tempDate, absdate, abstime, GREGORIAN_CALENDAR)) return NULL;

@@ -25,8 +25,101 @@ from scikits.timeseries.tdates import convert_to_float
 
 
 
+class TestDates(TestCase):
+
+    def test_highfreq_after_epoch(self):
+        "Test high-frequency dates after the epoch"
+        d = Date('D', '1970-01-01')
+        test = d.asfreq('H')
+        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 23, 0, 0))
+        test = d.asfreq('H', 'S')
+        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 0, 0, 0))
+        #
+        test = d.asfreq('T')
+        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 23, 59, 0))
+        test = d.asfreq('T', 'S')
+        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 0, 0, 0))
+        #
+        test = d.asfreq('S')
+        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 23, 59, 59))
+        test = d.asfreq('S', 'S')
+        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 0, 0, 0))
+        #
+        d = Date('S', '1970-07-04 12:34:56')
+        test = d.asfreq('T')
+        assert_equal(test.datetime, dt.datetime(1970, 7, 4, 12, 34, 0))
+        test = d.asfreq('H')
+        assert_equal(test.datetime, dt.datetime(1970, 7, 4, 12, 0, 0))
+        test = d.asfreq('T').asfreq('H')
+        assert_equal(test.datetime, dt.datetime(1970, 7, 4, 12, 0, 0))
+
+    def test_highfreq_before_epoch(self):
+        "Test high-frequency dates before the epoch"
+        d = Date('D', '1969-12-31')
+        test = d.asfreq('H')
+        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 23, 0, 0))
+        test = d.asfreq('T')
+        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 23, 59, 0))
+        test = d.asfreq('S')
+        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 23, 59, 59))
+        #
+        test = d.asfreq('H', 'S')
+        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 0, 0, 0))
+        test = d.asfreq('T', 'S')
+        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 0, 0, 0))
+        test = d.asfreq('S', 'S')
+        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 0, 0, 0))
+        #
+        d = Date('S', '1969-07-20 12:34:56')
+        test = d.asfreq('T')
+        assert_equal(test.datetime, dt.datetime(1969, 7, 20, 12, 34, 0))
+        test = test.asfreq('H')
+        assert_equal(test.datetime, dt.datetime(1969, 7, 20, 12, 0, 0))
+        test = d.asfreq('H')
+        assert_equal(test.datetime, dt.datetime(1969, 7, 20, 12, 0, 0))
+        #
+        d = Date('A', '1950')
+        test = d.asfreq('H', 'E')
+        assert_equal(test.datetime, dt.datetime(1950, 12, 31, 23, 0, 0))
+        test = d.asfreq('T', 'E')
+        assert_equal(test.datetime, dt.datetime(1950, 12, 31, 23, 59, 0))
+        test = d.asfreq('S', 'E')
+        assert_equal(test.datetime, dt.datetime(1950, 12, 31, 23, 59, 59))
+        test = d.asfreq('H', 'S')
+        ctrl = dt.datetime(1950, 1, 1, 0, 0, 0)
+        assert_equal(test.datetime, ctrl)
+        test = d.asfreq('T', 'S')
+        assert_equal(test.datetime, ctrl)
+        test = d.asfreq('S', 'S')
+        assert_equal(test.datetime, ctrl)
+
+    def test_seconds_long_before_epoch(self):
+        d = Date('A', '1900')
+        test = d.asfreq('S', 'E')
+        assert_equal(test.datetime, dt.datetime(1900, 12, 31, 23, 59, 59))
+        test = d.asfreq('S', 'S')
+        assert_equal(test.datetime, dt.datetime(1900, 1, 1, 0, 0, 0))
+
+    def test_highfreq_offset_epoch(self):
+        "Test offset epoch"
+        test = Date('D', '1970-01-01')
+        assert_equal(test.asfreq('H', 'S').value, 0)
+        assert_equal(test.asfreq('T', 'S').value, 0)
+        assert_equal(test.asfreq('S', 'S').value, 0)
+
+    def test_seconds_fun_values(self):
+        "Test interesting second-frequency dates"
+        test = Date('S', '2001-09-09 01:46:40')
+        assert_equal(test.value, 1000000000)
+        test = Date('S', '2009-02-13 23:31:30')
+        assert_equal(test.value, 1234567890)
+        test = Date('S', '2038-01-19 03:14:07')
+        assert_equal(test.value, 2147483647)
+
+
+
 class TestCreation(TestCase):
-    "Base test class for MaskedArrays."
+    "Base test class for the creation of DateArrays."
 
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
@@ -83,6 +176,7 @@ class TestCreation(TestCase):
         test = date_array(start_date='2008-01-01', end_date='2008-12-31',
                           freq='D')
         assert_equal(test, control)
+        # Tricky! What if start_date > end_date ?
         test = date_array(start_date='2008-12-31', end_date='2008-01-01',
                           freq='D')
         assert_equal(test, control)
@@ -189,78 +283,6 @@ class TestCreation(TestCase):
         assert(dates.has_missing_dates())
         assert_equal(dates.start_date.value, 2001)
         assert_equal(dates.end_date.value, 2007)
-
-
-    def test_highfreq_after_epoch(self):
-        "Test high-frequency dates after the epoch"
-        d = Date('D', '1970-01-01')
-        test = d.asfreq('H')
-        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 23, 0, 0))
-        test = d.asfreq('H', 'S')
-        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 0, 0, 0))
-        #
-        test = d.asfreq('T')
-        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 23, 59, 0))
-        test = d.asfreq('T', 'S')
-        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 0, 0, 0))
-        #
-        test = d.asfreq('S')
-        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 23, 59, 59))
-        test = d.asfreq('S', 'S')
-        assert_equal(test.datetime, dt.datetime(1970, 1, 1, 0, 0, 0))
-        #
-        d = Date('S', '1970-07-04 12:34:56')
-        test = d.asfreq('T')
-        assert_equal(test.datetime, dt.datetime(1970, 7, 4, 12, 34, 0))
-        test = d.asfreq('H')
-        assert_equal(test.datetime, dt.datetime(1970, 7, 4, 12, 0, 0))
-        test = d.asfreq('T').asfreq('H')
-        assert_equal(test.datetime, dt.datetime(1970, 7, 4, 12, 0, 0))
-
-    def test_highfreq_before_eopch(self):
-        "Test high-frequency dates before the epoch"
-        d = Date('D', '1969-12-31')
-        test = d.asfreq('H')
-        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 23, 0, 0))
-        test = d.asfreq('T')
-        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 23, 59, 0))
-        test = d.asfreq('S')
-        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 23, 59, 59))
-        #
-        test = d.asfreq('H', 'S')
-        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 0, 0, 0))
-        test = d.asfreq('T', 'S')
-        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 0, 0, 0))
-        test = d.asfreq('S', 'S')
-        assert_equal(test.datetime, dt.datetime(1969, 12, 31, 0, 0, 0))
-        #
-        d = Date('S', '1969-07-20 12:34:56')
-        test = d.asfreq('T')
-        assert_equal(test.datetime, dt.datetime(1969, 7, 20, 12, 34, 0))
-        test = test.asfreq('H')
-        assert_equal(test.datetime, dt.datetime(1969, 7, 20, 12, 0, 0))
-        test = d.asfreq('H')
-        assert_equal(test.datetime, dt.datetime(1969, 7, 20, 12, 0, 0))
-        #
-        d = Date('A', '1950')
-        test = d.asfreq('H', 'E')
-        assert_equal(test.datetime, dt.datetime(1950, 12, 31, 23, 0, 0))
-        test = d.asfreq('T', 'E')
-        assert_equal(test.datetime, dt.datetime(1950, 12, 31, 23, 59, 0))
-        test = d.asfreq('S', 'E')
-        assert_equal(test.datetime, dt.datetime(1950, 12, 31, 23, 59, 59))
-        test = d.asfreq('H', 'S')
-        assert_equal(test.datetime, dt.datetime(1950, 1, 1, 0, 0, 0))
-        test = d.asfreq('T', 'S')
-        assert_equal(test.datetime, dt.datetime(1950, 1, 1, 0, 0, 0))
-        test = d.asfreq('S', 'S')
-        assert_equal(test.datetime, dt.datetime(1950, 1, 1, 0, 0, 0))
-        #
-        d = Date('A', '1900')
-        test = d.asfreq('S', 'E')
-        assert_equal(test.datetime, dt.datetime(1900, 12, 31, 23, 59, 59))
-        test = d.asfreq('S', 'S')
-        assert_equal(test.datetime, dt.datetime(1900, 1, 1, 0, 0, 0))
 
 
 
@@ -375,7 +397,7 @@ class TestDateProperties(TestCase):
         assert_equal(t_date.minute, 0)
 
 
-    def test_properties_secondly(self):
+    def test_properties_secondly_after_epoch(self):
         "Test properties on DateArrays with secondly frequency."
         s_date = Date(freq='T', year=2007, month=1, day=1,
                                        hour=0, minute=0, second=0)
@@ -390,6 +412,19 @@ class TestDateProperties(TestCase):
         assert_equal(s_date.minute, 0)
         assert_equal(s_date.second, 0)
 
+    def test_properties_secondly_before_epoch(self):
+        "Test properties on DateArrays with secondly frequency."
+        d = Date(freq="S", year=1969, month=7, day=21,
+                 hour=2, minute=56, second=17)
+        assert_equal(d.year, 1969)
+        assert_equal(d.quarter, 3)
+        assert_equal(d.month, 7)
+        assert_equal(d.day, 21)
+        assert_equal(d.weekday, 0)
+        assert_equal(d.day_of_year, 202)
+        assert_equal(d.hour, 2)
+        assert_equal(d.minute, 56)
+        assert_equal(d.second, 17)
 
 
 def dArrayWrap(date):
@@ -731,18 +766,22 @@ class TestFreqConversion(TestCase):
             date_B_to_M = dWrap(Date(freq='M', year=2007, month=1))
             date_B_to_W = dWrap(Date(freq='W', year=2007, month=1, day=7))
             date_B_to_D = dWrap(Date(freq='D', year=2007, month=1, day=1))
-            date_B_to_H_start = dWrap(Date(freq='H', year=2007, month=1, day=1,
-                                      hour=0))
-            date_B_to_H_end = dWrap(Date(freq='H', year=2007, month=1, day=1,
-                                     hour=23))
-            date_B_to_T_start = dWrap(Date(freq='T', year=2007, month=1, day=1,
-                                      hour=0, minute=0))
-            date_B_to_T_end = dWrap(Date(freq='T', year=2007, month=1, day=1,
-                                     hour=23, minute=59))
-            date_B_to_S_start = dWrap(Date(freq='S', year=2007, month=1, day=1,
-                                      hour=0, minute=0, second=0))
-            date_B_to_S_end = dWrap(Date(freq='S', year=2007, month=1, day=1,
-                                     hour=23, minute=59, second=59))
+            date_B_to_H_start = dWrap(Date(freq='H',
+                                           year=2007, month=1, day=1, hour=0))
+            date_B_to_H_end = dWrap(Date(freq='H',
+                                         year=2007, month=1, day=1, hour=23))
+            date_B_to_T_start = dWrap(Date(freq='T',
+                                           year=2007, month=1, day=1,
+                                           hour=0, minute=0))
+            date_B_to_T_end = dWrap(Date(freq='T',
+                                         year=2007, month=1, day=1,
+                                         hour=23, minute=59))
+            date_B_to_S_start = dWrap(Date(freq='S',
+                                           year=2007, month=1, day=1,
+                                           hour=0, minute=0, second=0))
+            date_B_to_S_end = dWrap(Date(freq='S',
+                                         year=2007, month=1, day=1,
+                                         hour=23, minute=59, second=59))
 
             assert_func(date_B.asfreq('A'), date_B_to_A)
             assert_func(date_B_end_of_year.asfreq('A'), date_B_to_A)
@@ -770,10 +809,14 @@ class TestFreqConversion(TestCase):
 
         for dWrap, assert_func in self.dateWrap:
             date_D = dWrap(Date(freq='D', year=2007, month=1, day=1))
-            date_D_end_of_year = dWrap(Date(freq='D', year=2007, month=12, day=31))
-            date_D_end_of_quarter = dWrap(Date(freq='D', year=2007, month=3, day=31))
-            date_D_end_of_month = dWrap(Date(freq='D', year=2007, month=1, day=31))
-            date_D_end_of_week = dWrap(Date(freq='D', year=2007, month=1, day=7))
+            date_D_end_of_year = dWrap(Date(freq='D',
+                                            year=2007, month=12, day=31))
+            date_D_end_of_quarter = dWrap(Date(freq='D',
+                                               year=2007, month=3, day=31))
+            date_D_end_of_month = dWrap(Date(freq='D',
+                                             year=2007, month=1, day=31))
+            date_D_end_of_week = dWrap(Date(freq='D',
+                                            year=2007, month=1, day=7))
 
             date_D_friday = dWrap(Date(freq='D', year=2007, month=1, day=5))
             date_D_saturday = dWrap(Date(freq='D', year=2007, month=1, day=6))
@@ -789,29 +832,39 @@ class TestFreqConversion(TestCase):
             date_Deoq_to_AJUN = dWrap(Date(freq='A-JUN', year=2007))
             date_Deoq_to_ADEC = dWrap(Date(freq='A-DEC', year=2007))
 
-            date_D_to_QEJAN = dWrap(Date(freq=C.FR_QTREJAN, year=2007, quarter=4))
-            date_D_to_QEJUN = dWrap(Date(freq=C.FR_QTREJUN, year=2007, quarter=3))
-            date_D_to_QEDEC = dWrap(Date(freq=C.FR_QTREDEC, year=2007, quarter=1))
+            date_D_to_QEJAN = dWrap(Date(freq=C.FR_QTREJAN,
+                                         year=2007, quarter=4))
+            date_D_to_QEJUN = dWrap(Date(freq=C.FR_QTREJUN,
+                                         year=2007, quarter=3))
+            date_D_to_QEDEC = dWrap(Date(freq=C.FR_QTREDEC,
+                                         year=2007, quarter=1))
 
-            date_D_to_QSJAN = dWrap(Date(freq=C.FR_QTRSJAN, year=2006, quarter=4))
-            date_D_to_QSJUN = dWrap(Date(freq=C.FR_QTRSJUN, year=2006, quarter=3))
-            date_D_to_QSDEC = dWrap(Date(freq=C.FR_QTRSDEC, year=2007, quarter=1))
+            date_D_to_QSJAN = dWrap(Date(freq=C.FR_QTRSJAN,
+                                         year=2006, quarter=4))
+            date_D_to_QSJUN = dWrap(Date(freq=C.FR_QTRSJUN,
+                                         year=2006, quarter=3))
+            date_D_to_QSDEC = dWrap(Date(freq=C.FR_QTRSDEC,
+                                         year=2007, quarter=1))
 
             date_D_to_M = dWrap(Date(freq='M', year=2007, month=1))
             date_D_to_W = dWrap(Date(freq='W', year=2007, month=1, day=7))
 
-            date_D_to_H_start = dWrap(Date(freq='H', year=2007, month=1, day=1,
-                                      hour=0))
-            date_D_to_H_end = dWrap(Date(freq='H', year=2007, month=1, day=1,
-                                     hour=23))
-            date_D_to_T_start = dWrap(Date(freq='T', year=2007, month=1, day=1,
-                                      hour=0, minute=0))
-            date_D_to_T_end = dWrap(Date(freq='T', year=2007, month=1, day=1,
-                                     hour=23, minute=59))
-            date_D_to_S_start = dWrap(Date(freq='S', year=2007, month=1, day=1,
-                                      hour=0, minute=0, second=0))
-            date_D_to_S_end = dWrap(Date(freq='S', year=2007, month=1, day=1,
-                                     hour=23, minute=59, second=59))
+            date_D_to_H_start = dWrap(Date(freq='H',
+                                           year=2007, month=1, day=1, hour=0))
+            date_D_to_H_end = dWrap(Date(freq='H',
+                                         year=2007, month=1, day=1, hour=23))
+            date_D_to_T_start = dWrap(Date(freq='T',
+                                           year=2007, month=1, day=1,
+                                           hour=0, minute=0))
+            date_D_to_T_end = dWrap(Date(freq='T',
+                                         year=2007, month=1, day=1,
+                                         hour=23, minute=59))
+            date_D_to_S_start = dWrap(Date(freq='S',
+                                           year=2007, month=1, day=1,
+                                           hour=0, minute=0, second=0))
+            date_D_to_S_end = dWrap(Date(freq='S',
+                                         year=2007, month=1, day=1,
+                                         hour=23, minute=59, second=59))
 
             assert_func(date_D.asfreq('A'), date_D_to_A)
 
@@ -852,14 +905,12 @@ class TestFreqConversion(TestCase):
 
         for dWrap, assert_func in self.dateWrap:
             date_H = dWrap(Date(freq='H', year=2007, month=1, day=1, hour=0))
-            date_H_end_of_year = dWrap(Date(freq='H', year=2007, month=12, day=31,
-                                      hour=23))
-            date_H_end_of_quarter = dWrap(Date(freq='H', year=2007, month=3, day=31,
-                                         hour=23))
-            date_H_end_of_month = dWrap(Date(freq='H', year=2007, month=1, day=31,
-                                       hour=23))
-            date_H_end_of_week = dWrap(Date(freq='H', year=2007, month=1, day=7,
-                                      hour=23))
+            date_H_end_of_year = dWrap(Date('H', '2007-12-31 23:00'))
+            date_H_end_of_quarter = dWrap(Date('H', '2007-03-31 23:00'))
+            date_H_end_of_month = dWrap(Date('H', '2007-01-31 23:00'))
+            date_H_end_of_week = dWrap(Date(freq='H',
+                                            year=2007, month=1, day=7,
+                                            hour=23))
             date_H_end_of_day = dWrap(Date(freq='H', year=2007, month=1, day=1,
                                      hour=23))
             date_H_end_of_bus = dWrap(Date(freq='H', year=2007, month=1, day=1,
