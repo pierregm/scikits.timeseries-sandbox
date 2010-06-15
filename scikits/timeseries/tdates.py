@@ -223,18 +223,21 @@ class DateArray(ndarray):
     accesses the array element by element. Therefore, `d` is a :class:`Date` object.
     """
 
-    def __new__(cls, dates=None, freq=None, copy=False):
+    def __new__(cls, dates=None, freq=None, copy=False, period=None):
         # Get the frequency ......
         if freq is None:
             _freq = getattr(dates, 'freq', _c.FR_UND)
         else:
             _freq = check_freq(freq)
+        # Get the period
+        _period = period or 1
         # Get the dates ..........
         _dates = np.array(dates, copy=copy, dtype=int, subok=1)
         if _dates.ndim == 0:
             _dates.shape = (1,)
         _dates = _dates.view(cls)
         _dates.freq = _freq
+        _dates.period = _period
         #
         _cached = _dates._cachedinfo
         if _cached['ischrono'] is None:
@@ -261,6 +264,7 @@ class DateArray(ndarray):
 
     def __array_finalize__(self, obj):
         self.freq = getattr(obj, 'freq', _c.FR_UND)
+        self.period = getattr(obj, 'period', 1)
         self._reset_cachedinfo()
         self._cachedinfo.update(getattr(obj, '_cachedinfo', {}))
         return
@@ -478,7 +482,7 @@ class DateArray(ndarray):
     array([24001, 24002, 24003, 24004, 24005])
 
         """
-        return np.asarray(self)
+        return self.__array__()
     tovalue = values = tovalues
     #
     def toordinals(self):
@@ -740,10 +744,9 @@ class DateArray(ndarray):
                 if not self.is_chronological():
                     val = val[_cached['chronidx']]
                 steps = val[1:] - val[:-1]
-                if _cached['full'] is None:
-                    _cached['full'] = (steps.max() == 1)
-                if _cached['hasdups'] is None:
-                    _cached['hasdups'] = (steps.min() == 0)
+                u = np.unique(steps)
+                _cached['full'] = (u.size < 3) & (u[-1] == self.period)
+                _cached['hasdups'] = (u[0] == 0)
             else:
                 _cached.update(ischrono=True,
                                chronidx=np.array([], dtype=int),
@@ -910,7 +913,7 @@ def _listparser(dlist, freq=None):
 
 
 def date_array(dlist=None, start_date=None, end_date=None, length=None,
-               freq=None, autosort=False):
+               freq=None, period=1, autosort=False):
     """
     Factory function for constructing a :class:`DateArray`.
 
@@ -941,6 +944,10 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
         Length of the output.
         Use this parameter in combination with :keyword:`start_date` to create
         a continuous :class:`DateArray`.
+    period : {int}, optional
+        Period of interest.
+        Use this parameter in combination with :keyword:`start_date` to create
+        a continuous :class:`DateArray` at regular intervals.
     autosort : {True, False}, optional
         Whether the input dates must be sorted in chronological order.
 
@@ -1012,14 +1019,16 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
             (start_date, end_date) = (end_date, start_date)
         length = int(end_date - start_date) + 1
     #
-    dlist = np.arange(length, dtype=np.int)
+    dlist = np.arange(0, length, period, dtype=np.int)
     dlist += start_date.value
     if freq == _c.FR_UND:
         freq = start_date.freq
     # Transform the dates and set the cache
     dates = dlist.view(DateArray)
     dates.freq = freq
-    dates._cachedinfo.update(ischrono=True, chronidx=np.array([], dtype=int))
+    dates._period = period
+    dates._cachedinfo.update(ischrono=True, hasdups=False, full=True,
+                             chronidx=np.array([], dtype=int))
     return dates
 
 
