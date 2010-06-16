@@ -2,10 +2,6 @@
 #include <datetime.h>
 #include <time.h>
 
-//#include <sys/type.h>
-#include <unistd.h>
-#define DEBUGPRINTF(fmt, args...) fprintf(stderr, "+++ " fmt, ## args);
-
 
 int get_freq_group(int freq) { return (freq/1000)*1000; }
 
@@ -2795,7 +2791,7 @@ DateArray_asfreq(PyObject *self, PyObject *args)
         fromDateObj = PyArray_GETITEM(fromDates, iterFrom->dataptr);
         fromDate = PyInt_AsLong(fromDateObj);
 //        fromDate = PyLong_AsLong(fromDateObj);
-        CHECK_ASFREQ(toDate = asfreq_main(fromDate, relation[0], &af_info));
+        ERR_CHECK(toDate = asfreq_main(fromDate, relation[0], &af_info));
         toDateObj = PyInt_FromLong(toDate);
 //        toDateObj = PyLong_FromLong(toDate);
 

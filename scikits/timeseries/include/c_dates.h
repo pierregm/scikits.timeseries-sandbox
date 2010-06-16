@@ -104,8 +104,6 @@ int check_freq(PyObject *);
 void get_asfreq_info(int, int, asfreq_info*);
 long (*get_asfreq_func(int, int, int))(long, char, asfreq_info*);
 
-#define CHECK_ASFREQ(result) if ((result) == INT_ERR_CODE) return NULL
-
 PyObject *DateArray_asfreq(PyObject *, PyObject *);
 PyObject *DateArray_getDateInfo(PyObject *, PyObject *);
 

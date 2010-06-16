@@ -1013,11 +1013,18 @@ class TimeSeries(MaskedArray, object):
     @property
     def freq(self):
         """Returns the corresponding frequency (as an integer)."""
-        return self._dates.freq
+        return self._dates._freq
+    _freq = freq
     @property
     def freqstr(self):
         """Returns the corresponding frequency (as a string)."""
         return self._dates.freqstr
+
+    @property
+    def period(self):
+        "Returns the time interval between two consecutive dates"
+        return self._dates._period
+    _period = period
 
     @property
     def year(self):
@@ -1874,7 +1881,7 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
     "helper function for `convert` function"
     # Check the frequencies ..........................
     to_freq = check_freq(freq)
-    from_freq = series.freq
+    from_freq = series._freq
     # Don't do anything if not needed
     if from_freq == to_freq:
         return series
@@ -1908,8 +1915,8 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
     if (data_.size // series._dates.size) > 1:
         raise TimeSeriesError("convert works with 1D data only !")
 
-    cdictresult = cseries.TS_convert(data_, from_freq, to_freq, position,
-                                     int(start_date), mask_)
+    cdictresult = cseries.TS_convert(data_, from_freq, series._period, to_freq,
+                                     position, int(start_date), mask_)
     start_date = Date(freq=to_freq, value=cdictresult['startindex'])
     data_ = masked_array(cdictresult['values'], mask=cdictresult['mask'])
 

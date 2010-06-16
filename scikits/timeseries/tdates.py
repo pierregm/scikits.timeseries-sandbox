@@ -682,7 +682,7 @@ class DateArray(ndarray):
         ifreq = self._freq
         c = np.zeros(self.shape, dtype=bool)
         for d in flatargs(*dates):
-            if d._freq != ifreq:
+            if d.freq != ifreq:
                 d = d.asfreq(ifreq)
             c += (self == d.value)
         c = c.nonzero()
@@ -1027,6 +1027,8 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
     if end_date is None:
         if length is None:
             length = 1
+        # No ending dates ? Make sure we take the period into account...
+        length = length * period
     else:
         try:
             end_date = Date(start_date.freq, end_date)

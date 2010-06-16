@@ -11,7 +11,8 @@ specific but are needed in various parts of the module. */
 #define INT_ERR_CODE -999
 
 #define MEM_CHECK(item) if (item == NULL) { return PyErr_NoMemory(); }
-#define ERR_CHECK(item) if (item == NULL) { return NULL; }
+#define NULL_CHECK(item) if (item == NULL) { return NULL; }
+#define ERR_CHECK(result) if ((result) == INT_ERR_CODE) return NULL
 
 char *str_uppercase(char *);
 char *str_replace(const char*, const char*, const char*);
@@ -28,3 +29,8 @@ PyObject *set_callback(PyObject*, PyObject**);
 void import_c_lib(PyObject*);
 
 #endif
+
+
+#include <unistd.h>
+#define DEBUGPRINTF(fmt, args...) fprintf(stderr, "\n>>> " fmt, ## args);
+

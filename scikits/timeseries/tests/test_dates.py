@@ -285,7 +285,23 @@ class TestCreation(TestCase):
         assert_equal(dates.end_date.value, 2007)
 
 
-
+    def test_with_period(self):
+        "Test creating a minute date_array w/ different periods"
+        start_date = ts.Date("T", string="2001-01-01 00:00")
+        period = 15
+        # Specifying the length
+        length = 24 * 60 / period
+        d = date_array(start_date=start_date, length=length, period=period)
+        assert_equal(d.size, length)
+        assert(not d.has_missing_dates())
+        assert_equal(d.get_steps(), [period] * (length - 1))
+        # Specifying the end date
+        end_date = ts.Date("T", string="2001-01-01 23:59")
+        d = date_array(start_date, end_date, period=period)
+        assert_equal(d.size, length)
+        # 
+        d = date_array(start_date, end_date, period=90)
+        assert_equal(d.size, 16)
 
 
 
@@ -425,6 +441,26 @@ class TestDateProperties(TestCase):
         assert_equal(d.hour, 2)
         assert_equal(d.minute, 56)
         assert_equal(d.second, 17)
+
+    def test_period(self):
+        "Test that period is a read-only attribute"
+        d = date_array(start_date=Date("D", string="2001-01-01"),
+                       length=15)
+        # Make period a read-only attribute
+        self.failUnlessRaises(AttributeError,
+                              lambda : setattr(d, "period", 3))
+
+    def test_freq(self):
+        "Testing that setting freq calls asfreq"
+        start_date = Date("D", string="2001-01-01")
+        d = date_array(start_date=start_date, length=15)
+        assert_equal(d.freqstr, "D")
+        d.freq = "M"
+        assert_equal(d.freqstr, "M")
+        assert_equal(d.__array__(), [start_date.asfreq("M").value] * 15)
+
+
+
 
 
 def dArrayWrap(date):
@@ -1103,7 +1139,7 @@ class TestFreqConversion(TestCase):
 
 
 class TestMethods(TestCase):
-    "Base test class for MaskedArrays."
+    "Test some methods of DateArrays."
 
     def __init__(self, *args, **kwds):
         TestCase.__init__(self, *args, **kwds)
@@ -1209,23 +1245,6 @@ class TestMethods(TestCase):
         chosen = dates.date_to_index(choices[0:1])
         assert_equal(chosen, [2])
 
-
-    def test_contains(self):
-        dt = ts.now('d')
-        darr = date_array(start_date=dt, length=5)
-        self.failUnless(dt in darr)
-        self.failUnless(dt - 1 not in darr)
-        self.failUnless(dt.value in darr)
-        self.failUnless((dt - 1).value not in darr)
-        #
-        try:
-            ts.now('b') in darr
-        except ValueError:
-            pass
-        else:
-            raise RuntimeError("containment of wrong frequency permitted")
-
-
     def test_date_to_index_invalid(self):
         "Tests date_to_index"
         dates_invalid = date_array(['2007-01-%02i' % i for i in range(1, 11)] + \
@@ -1250,6 +1269,31 @@ class TestMethods(TestCase):
         else:
             raise IndexError("An invalid indexed has been accepted !")
 
+    def test_date_to_index_w_period(self):
+        "Test date_to_index on a date_array w/ period"
+        d = date_array(start_date="2001-01-01 00:00", freq="T", length=24 * 60,
+                       period=15)
+        assert_equal(d.date_to_index("2001-01-01 12:00"), 48)
+        dates = ["2001-01-01 00:00", "2001-01-01 06:00",
+                 "2001-01-01 12:00", "2001-01-01 18:00"]
+        assert_equal(d.date_to_index(dates), [0, 24, 48, 72])
+
+
+    def test_contains(self):
+        dt = ts.now('d')
+        darr = date_array(start_date=dt, length=5)
+        self.failUnless(dt in darr)
+        self.failUnless(dt - 1 not in darr)
+        self.failUnless(dt.value in darr)
+        self.failUnless((dt - 1).value not in darr)
+        #
+        try:
+            ts.now('b') in darr
+        except ValueError:
+            pass
+        else:
+            raise RuntimeError("containment of wrong frequency permitted")
+
 
     def test_argsort(self):
         "Test argsort"
@@ -1261,7 +1305,6 @@ class TestMethods(TestCase):
         assert_equal(test, [2, 1, 0])
 
     def test_sort_wcached(self):
-
         "Test cache update w/ sorting"
         dates = ts.DateArray([2002, 2000, 2001, 2002], freq='A')
         assert_equal(dates.is_chronological(), False)
