@@ -1011,20 +1011,20 @@ class TimeSeries(MaskedArray, object):
 
     #.........................................................................
     @property
-    def freq(self):
+    def unit(self):
         """Returns the corresponding frequency (as an integer)."""
-        return self._dates._freq
-    _freq = freq
+        return self._dates._unit
+    freq = _unit = unit
     @property
     def freqstr(self):
         """Returns the corresponding frequency (as a string)."""
         return self._dates.freqstr
 
     @property
-    def period(self):
+    def timestep(self):
         "Returns the time interval between two consecutive dates"
-        return self._dates._period
-    _period = period
+        return self._dates._timestep
+    _timestep = timestep
 
     @property
     def year(self):
@@ -1881,7 +1881,7 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
     "helper function for `convert` function"
     # Check the frequencies ..........................
     to_freq = check_freq(freq)
-    from_freq = series._freq
+    from_freq = series._unit
     # Don't do anything if not needed
     if from_freq == to_freq:
         return series
@@ -1915,8 +1915,8 @@ def _convert1d(series, freq, func, position, *args, **kwargs):
     if (data_.size // series._dates.size) > 1:
         raise TimeSeriesError("convert works with 1D data only !")
 
-    cdictresult = cseries.TS_convert(data_, from_freq, series._period, to_freq,
-                                     position, int(start_date), mask_)
+    cdictresult = cseries.TS_convert(data_, from_freq, series._timestep,
+                                     to_freq, position, int(start_date), mask_)
     start_date = Date(freq=to_freq, value=cdictresult['startindex'])
     data_ = masked_array(cdictresult['values'], mask=cdictresult['mask'])
 
@@ -2021,6 +2021,88 @@ def convert(series, freq, func=None, position='END', *args, **kwargs):
 
     return obj
 TimeSeries.convert = convert
+
+
+
+def change_timestep(series, newstep, func=None, *args, **kwargs):
+    """
+    Changes the period of the series, but keeping the same frequency.
+    
+    The period is the interval between two consecutive dates.
+    """
+    oldstep = series._timestep
+    # Don't do anything if we're using the same time step.
+    if newstep == oldstep:
+        return series
+    #
+    (idates, iseries) = (series.dates, series.series)
+    (start_date, end_date) = idates[[0, -1]]
+    # Switch to one unit between consecutive dates
+    if newstep == 1:
+        ndates = np.arange(start_date, end_date + 1)
+        nseries = ma.empty(ndates.size, dtype=iseries.dtype)
+        nseries.mask = True
+        idx = (idates - start_date)
+        np.put(nseries, idx, iseries)
+    # Switch to larger time step
+    elif (newstep > oldstep):
+        (width, expandit) = divmod(newstep, oldstep)
+        if not expandit:
+            ndates = idates[::width]
+            ndates._period = newstep
+            nseries = np.reshape(iseries, (-1, width))
+        else:
+            errmsg = "Cannot upscale to a period which is not a multiple "\
+                     "of the initial period"
+            raise NotImplementedError(errmsg)
+#        ndates = np.arange(start_date, end_date, newperiod)
+#        nseries = ts.time_series(np.empty((ndates.size, width + 1),
+#                                          dtype=self.dtype),
+#                                 mask=True, dates=ndates)
+#        nseries_ = nseries._series
+#        series_ = self._series
+#        (previdx, ccol) = (-1, 0)
+#        for i in range(idates.size):
+#            curridx = (idates[i] - start) / newperiod
+#            if (curridx == previdx):
+#                ccol += 1
+#            else:
+#                ccol = 0
+#            print "%i: curridx: %i (previdx: %i): ccol:%i" % (i, curridx, previdx, ccol)
+#            nseries_[curridx, ccol] = series_[i]
+#            previdx = curridx
+#        return nseries
+    elif (newstep < oldstep):
+        (step, expandit) = divmod(oldstep, newstep)
+        if not expandit:
+#                ndates = date_array(start_date, end_date, period=newperiod)
+            ndates = np.arange(start_date, end_date + newstep, newstep)
+            nseries = ma.empty(ndates.size, dtype=series.dtype)
+            nseries.mask = True
+            nseries[::step] = iseries.ravel()
+        else:
+            ndates = date_array(start_date, end_date, period=newstep)
+            data = np.repeat(self._data, oldstep)
+            if self.mask is not nomask:
+                mask = np.repeat(self.mask, oldstep)[::newstep]
+            else:
+                mask = nomask
+            nseries = ma.array(data, mask=mask)
+    #
+    if nseries.ndim == 2:
+        if func is None:
+            return time_series(nseries, dates=ndates)
+        else:
+            # Try to use an axis argument
+            try:
+                nseries = func(nseries, axis= -1, *args, **kwargs)
+            # Fall back to apply_along_axis (slower)
+            except TypeError:
+                nseries = ma.apply_along_axis(func, -1, nseries, *args, **kwargs)
+            return time_series(nseries, dates=ndates)
+    return time_series(nseries, dates=ndates)
+
+TimeSeries.change_timestep = change_timestep
 
 
 

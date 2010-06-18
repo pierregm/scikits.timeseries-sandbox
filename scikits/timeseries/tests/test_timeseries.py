@@ -1032,71 +1032,10 @@ class TestFunctions(TestCase):
         assert_array_equal(d1.data, ms.data[:, 0])
         assert_array_equal(d1.dates, ms.dates)
         assert_array_equal(d2.data, ms.data[:, 1])
-
+        #
         series = self.d[0]
         ss = split(series)[0]
         assert_array_equal(series, ss)
-
-
-    def test_convert(self):
-        """Test convert function
-
-Just check basic functionality. The details of the actual
-date conversion algorithms already tested by asfreq in the
-test_dates test suite.
-        """
-        June2005M = Date(freq='M', year=2005, month=6)
-        lowFreqSeries = time_series(np.arange(10), start_date=June2005M)
-        # Conversion to same frequency
-        assert_array_equal(lowFreqSeries, lowFreqSeries.convert("M"))
-        # Conversion to higher frequency - position=START
-        lowToHigh_start = lowFreqSeries.convert('B', position='START')
-        assert_equal(lowToHigh_start.start_date,
-                     June2005M.asfreq("B", relation="START"))
-        assert_equal(lowToHigh_start.end_date,
-                     (June2005M + 9).asfreq("B", relation="END"))
-        assert_equal(lowToHigh_start.mask[0], False)
-        assert_equal(lowToHigh_start.mask[-1], True)
-        # Conversion to higher frequencyt - position=END
-        lowToHigh_end = lowFreqSeries.convert('B', position='END')
-        assert_equal(lowToHigh_end.start_date,
-                     June2005M.asfreq("B", relation="START"))
-        assert_equal(lowToHigh_end.end_date,
-                     (June2005M + 9).asfreq("B", relation="END"))
-        assert_equal(lowToHigh_end.mask[0], True)
-        assert_equal(lowToHigh_end.mask[-1], False)
-        # ensure that position argument is not case sensitive
-        lowToHigh_start_lowercase = lowFreqSeries.convert('B', position='start')
-        assert_array_equal(lowToHigh_start, lowToHigh_start_lowercase)
-        #
-        # Conversion to lower frequency
-        June2005B = Date(freq='b', year=2005, month=6, day=1)
-        highFreqSeries = time_series(np.arange(100), start_date=June2005B)
-        highToLow = highFreqSeries.convert('M', func=None)
-        assert_equal(highToLow.ndim, 2)
-        assert_equal(highToLow.shape[1], 23)
-        assert_equal(highToLow.start_date, June2005B.asfreq('M'))
-        assert_equal(highToLow.end_date, (June2005B + 99).asfreq('M'))
-
-    def test_convert_with_func(self):
-        "Test convert w/ function on 1D series"
-        mdata = ts.time_series(np.arange(24),
-                               mask=[1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
-                                     0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-                               start_date=ts.Date('M', '2001-01'))
-        test = mdata.convert('A', func=ts.last_unmasked_val)
-        control = ts.time_series([7, 22], start_date=ts.Date('A', '2001'))
-        assert_equal(test, control)
-
-
-    def test_convert_nd_with_func(self):
-        "Test convert w/ function on nD series"
-        ndseries = time_series(np.arange(124).reshape(62, 2),
-                               start_date=Date(freq='D', string='2005-07-01'))
-        assert_equal(ndseries.convert('M', sum), [[930, 961], [2852, 2883]])
-
-
-
 
 
     def test_fill_missing_dates(self):
@@ -1521,6 +1460,147 @@ test_dates test suite.
 
 
 
+
+
+#------------------------------------------------------------------------------
+
+class TestConversions(TestCase):
+
+    def setUp(self):
+        start_date = Date('T', '2001-01-01 00:00')
+        end_date = Date('T', '2001-01-01 23:59')
+        dates = date_array(start_date=start_date, end_date=end_date, timestep=15)
+        s_min = ts.time_series(np.arange(dates.size), dates=dates)
+        s_min['2001-01-01 12:00'] = ma.masked
+        self.s_min = s_min
+
+    def test_convert(self):
+        """Test convert function
+
+Just check basic functionality. The details of the actual
+date conversion algorithms already tested by asfreq in the
+test_dates test suite.
+        """
+        June2005M = Date(freq='M', year=2005, month=6)
+        lowFreqSeries = time_series(np.arange(10), start_date=June2005M)
+        # Conversion to same frequency
+        assert_array_equal(lowFreqSeries, lowFreqSeries.convert("M"))
+        # Conversion to higher frequency - position=START
+        lowToHigh_start = lowFreqSeries.convert('B', position='START')
+        assert_equal(lowToHigh_start.start_date,
+                     June2005M.asfreq("B", relation="START"))
+        assert_equal(lowToHigh_start.end_date,
+                     (June2005M + 9).asfreq("B", relation="END"))
+        assert_equal(lowToHigh_start.mask[0], False)
+        assert_equal(lowToHigh_start.mask[-1], True)
+        # Conversion to higher frequencyt - position=END
+        lowToHigh_end = lowFreqSeries.convert('B', position='END')
+        assert_equal(lowToHigh_end.start_date,
+                     June2005M.asfreq("B", relation="START"))
+        assert_equal(lowToHigh_end.end_date,
+                     (June2005M + 9).asfreq("B", relation="END"))
+        assert_equal(lowToHigh_end.mask[0], True)
+        assert_equal(lowToHigh_end.mask[-1], False)
+        # ensure that position argument is not case sensitive
+        lowToHigh_start_lowercase = lowFreqSeries.convert('B', position='start')
+        assert_array_equal(lowToHigh_start, lowToHigh_start_lowercase)
+        #
+        # Conversion to lower frequency
+        June2005B = Date(freq='b', year=2005, month=6, day=1)
+        highFreqSeries = time_series(np.arange(100), start_date=June2005B)
+        highToLow = highFreqSeries.convert('M', func=None)
+        assert_equal(highToLow.ndim, 2)
+        assert_equal(highToLow.shape[1], 23)
+        assert_equal(highToLow.start_date, June2005B.asfreq('M'))
+        assert_equal(highToLow.end_date, (June2005B + 99).asfreq('M'))
+
+    def test_convert_with_func(self):
+        "Test convert w/ function on 1D series"
+        mdata = time_series(np.arange(24),
+                            mask=[1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
+                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+                            start_date=ts.Date('M', '2001-01'))
+        test = mdata.convert('A', func=ts.last_unmasked_val)
+        control = ts.time_series([7, 22], start_date=ts.Date('A', '2001'))
+        assert_equal(test, control)
+
+    def test_convert_nd_with_func(self):
+        "Test convert w/ function on nD series"
+        ndseries = time_series(np.arange(124).reshape(62, 2),
+                               start_date=Date(freq='D', string='2005-07-01'))
+        assert_equal(ndseries.convert('M', sum), [[930, 961], [2852, 2883]])
+
+    def test_convert_with_timestep(self):
+        "Test convert on series w/ timestep"
+        start_date = Date('T', '2001-01-01 00:00')
+        end_date = Date('T', '2001-01-01 23:59')
+        dates = date_array(start_date=start_date, end_date=end_date, timestep=15)
+        s = time_series(np.arange(dates.size), dates=dates)
+        s['2001-01-01 12:00'] = ma.masked
+        #
+        h = s.convert('H')
+        ctrl = ma.arange(24 * 4)
+        ctrl[48] = 0
+        ctrl.shape = (24, 4)
+        assert_equal(h._series, ctrl)
+        #
+        h = s.convert('D')
+        ctrl.shape = (1, -1)
+        assert_equal(h.series, ctrl)
+        #
+        dates = date_array(start_date=start_date, end_date=end_date, timestep=90)
+        s = time_series(np.arange(dates.size), dates=dates)
+        assert_equal(s.size, 24 * 60 / 90.)
+        h = s.convert('H')
+        ctrl = ma.masked_all(23, dtype=int)
+        np.put(ctrl, 3 * np.arange(16) / 2, s.__array__())
+        assert_equal(ctrl, h._series)
+        assert_equal(ctrl.mask, h._series.mask)
+
+
+    def test_change_timestep_to_one(self):
+        "Test change to a timestep of 1"
+        s_min = self.s_min
+        start_date = s_min.dates[0]
+        #
+        test = s_min.change_timestep(1)
+        ctrl_data = ma.arange(1426, dtype=int)
+        ctrl_data[(ctrl_data.data % 15) != 0] = ma.masked
+        ctrl_data[720] = ma.masked
+        ctrl = time_series(ctrl_data / 15, start_date=start_date)
+        assert_equal(test.dates, ctrl.dates)
+        assert_equal(test, ctrl)
+        assert_equal(test.mask, ctrl.mask)
+        #
+        assert_equal(test['2001-01-01 00:00'], 0)
+        assert_equal(test['2001-01-01 23:45'], s_min[-1])
+        assert(test['2001-01-01 12:00'] is masked)
+
+    def test_change_timestep_multiple(self):
+        "Test changing the timestep to a larger multiple"
+        s_min = self.s_min
+        start_date = s_min.dates[0]
+        end_date = s_min.dates[-1]
+        #
+        test = s_min.change_timestep(45)
+        ctrl = time_series(ma.reshape(s_min._series, (-1, 3)),
+                           dates=date_array(start_date, end_date, timestep=45))
+        assert_equal(test, ctrl)
+        assert_equal(test.dates, ctrl.dates)
+        assert_equal(test.data, ctrl.data)
+        assert_equal(test.mask, ctrl.mask)
+
+    def test_change_timestep_lower(self):
+        "Test changing the timestep to a lower value"
+        s_min = self.s_min
+        #
+        test = s_min.change_timestep(5)
+        idates = s_min.dates
+        ndates = date_array(idates[0], idates[-1], timestep=5)
+        ctrl = ma.masked_all(ndates.size, dtype=int)
+        ctrl[(idates - idates[0]) / 5] = s_min._series
+        assert_equal(test.dates, ndates)
+        assert_equal(test, ctrl)
 
 #------------------------------------------------------------------------------
 

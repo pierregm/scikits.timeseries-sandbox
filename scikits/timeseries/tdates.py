@@ -223,21 +223,24 @@ class DateArray(ndarray):
     accesses the array element by element. Therefore, `d` is a :class:`Date` object.
     """
 
-    def __new__(cls, dates=None, freq=None, copy=False, period=None):
+    def __new__(cls, dates=None, unit=None, freq=None, copy=False, timestep=None):
+        # 
+        if unit is None:
+            unit = freq
         # Get the frequency ......
-        if freq is None:
-            _freq = getattr(dates, 'freq', _c.FR_UND)
+        if unit is None:
+            _unit = getattr(dates, 'unit', _c.FR_UND)
         else:
-            _freq = check_freq(freq)
-        # Get the period
-        _period = period or 1
+            _unit = check_freq(unit)
+        # Get the timestep
+        _timestep = timestep or 1
         # Get the dates ..........
         _dates = np.array(dates, copy=copy, dtype=int, subok=1)
         if _dates.ndim == 0:
             _dates.shape = (1,)
         _dates = _dates.view(cls)
-        _dates._freq = _freq
-        _dates._period = _period
+        _dates._unit = _unit
+        _dates._timestep = _timestep
         #
         _cached = _dates._cachedinfo
         if _cached['ischrono'] is None:
@@ -263,8 +266,8 @@ class DateArray(ndarray):
             raise ArithmeticDateError, "(function %s)" % context[0].__name__
 
     def __array_finalize__(self, obj):
-        self._freq = getattr(obj, '_freq', _c.FR_UND)
-        self._period = getattr(obj, '_period', 1)
+        self._unit = getattr(obj, '_unit', _c.FR_UND)
+        self._timestep = getattr(obj, '_timestep', 1)
         self._reset_cachedinfo()
         self._cachedinfo.update(getattr(obj, '_cachedinfo', {}))
         return
@@ -304,13 +307,13 @@ class DateArray(ndarray):
         r = ndarray.__getitem__(self, indx)
         # Case 1. A simple integer
         if isinstance(r, (generic, int)):
-            return Date(self._freq, value=r)
+            return Date(self._unit, value=r)
         elif not getattr(r, 'ndim', 1):
             # need to check if it has a ndim attribute for situations
             # like when the datearray is the data for a maskedarray
             # or some other subclass of ndarray with wierd getitem
             # behaviour
-            return Date(self._freq, value=r.item())
+            return Date(self._unit, value=r.item())
         else:
             if hasattr(r, '_cachedinfo'):
                 _cache = r._cachedinfo
@@ -347,7 +350,7 @@ class DateArray(ndarray):
     Used to check whether a single date (or equivalent integer value) is
     contained in the DateArray.
         """
-        if isinstance(date, Date) and date.freq != self._freq:
+        if isinstance(date, Date) and date.freq != self._unit:
             raise ValueError(
                 "expected date of frequency '%s' but got date of frequency "\
                 "'%s'" % (self.freqstr, date.freqstr))
@@ -377,7 +380,7 @@ class DateArray(ndarray):
         """
         obj = ndarray.min(self, *args, **kwargs)
         if not obj.shape:
-            return Date(self._freq, obj)
+            return Date(self._unit, obj)
         return obj
 
     def max(self, *args, **kwargs):
@@ -388,18 +391,18 @@ class DateArray(ndarray):
         """
         obj = ndarray.max(self, *args, **kwargs)
         if not obj.shape:
-            return Date(self._freq, obj)
+            return Date(self._unit, obj)
         return obj
 
     @property
     def freqstr(self):
         "Returns the frequency string code."
-        return check_freq_str(self._freq)
+        return check_freq_str(self._unit)
 
     @property
-    def period(self):
+    def timestep(self):
         "Returns the interval between consecutive dates"
-        return self._period
+        return self._timestep
 
     @property
     def year(self):
@@ -505,7 +508,7 @@ class DateArray(ndarray):
         # TODO: Why do we need floats ?
         # Note: we better try to cache the result
         if self._cachedinfo['toord'] is None:
-            if self._freq == _c.FR_UND:
+            if self._unit == _c.FR_UND:
                 diter = (d.value for d in self)
             else:
                 diter = (d.toordinal() for d in self)
@@ -593,7 +596,7 @@ class DateArray(ndarray):
         if (freq is None) or (freq == _c.FR_UND):
             return self
         tofreq = check_freq(freq)
-        if tofreq == self._freq:
+        if tofreq == self._unit:
             return self
 
         relation = relation.upper()
@@ -601,7 +604,7 @@ class DateArray(ndarray):
             errmsg = "Invalid specification for the 'relation' parameter: %s"
             raise ValueError(errmsg % relation)
 
-        fromfreq = self._freq
+        fromfreq = self._unit
         if fromfreq == _c.FR_UND:
             new = self.__array__()
         else:
@@ -609,15 +612,15 @@ class DateArray(ndarray):
                                     fromfreq, tofreq, relation[0])
         return DateArray(new, freq=freq)
 
-    def _get_freq(self):
-        return self._freq
-    def _set_freq(self, freq):
-        if isinstance(freq, (int, float)):
-            self.flat = self.asfreq(freq).flat
+    def _get_unit(self):
+        return self._unit
+    def _set_unit(self, unit):
+        if isinstance(unit, (int, float)):
+            self.flat = self.asfreq(unit).flat
         else:
-            self.flat = self.asfreq(*freq).flat
-        self._freq = freq
-    freq = property(fget=_get_freq, fset=_set_freq, doc="Frequency")
+            self.flat = self.asfreq(*unit).flat
+        self._unit = unit
+    freq = unit = property(fget=_get_unit, fset=_set_unit, doc="Frequency")
 
     #......................................................
     # Pickling
@@ -630,7 +633,7 @@ class DateArray(ndarray):
                  self.dtype,
                  self.flags.fnc,
                  self.view(ndarray).tostring(),
-                 self._freq,
+                 self._unit,
                  )
         return state
     #
@@ -647,7 +650,7 @@ class DateArray(ndarray):
         """
         (ver, shp, typ, isf, raw, frq) = state
         ndarray.__setstate__(self, (shp, typ, isf, raw))
-        self._freq = frq
+        self._unit = frq
 
     def __reduce__(self):
         """Returns a 3-tuple for pickling a DateArray."""
@@ -679,7 +682,7 @@ class DateArray(ndarray):
             else:
                 return flatten_sequence(args)
 
-        ifreq = self._freq
+        ifreq = self._unit
         c = np.zeros(self.shape, dtype=bool)
         for d in flatargs(*dates):
             if d.freq != ifreq:
@@ -697,20 +700,20 @@ class DateArray(ndarray):
         values = self.__array__()
         # Transform a string into a Date
         if isinstance(dates, basestring):
-            dates = Date(self._freq, dates)
+            dates = Date(self._unit, dates)
         # Just one date ?
         if isinstance(dates, Date):
             _val = dates.value
             if _val not in values:
                 raise IndexError("Date '%s' is out of bounds" % dates)
             if self.is_valid():
-                return (_val - values[0]) / self._period
+                return (_val - values[0]) / self._timestep
             else:
                 return np.where(values == _val)[0][0]
         #
         _dates = date_array(dates, freq=self.freq).__array__()
         if self.is_valid():
-            indx = (_dates - values[0]) / self._period
+            indx = (_dates - values[0]) / self._timestep
             err_cond = (indx < 0) | (indx > self.size)
             if err_cond.any():
                 err_indx = np.compress(err_cond, _dates)[0]
@@ -763,7 +766,7 @@ class DateArray(ndarray):
                     val = val[_cached['chronidx']]
                 steps = val[1:] - val[:-1]
                 u = np.unique(steps)
-                _cached['full'] = (u.size < 3) & (u[-1] == self.period)
+                _cached['full'] = (u.size < 3) & (u[-1] == self.timestep)
                 _cached['hasdups'] = (u[0] == 0)
             else:
                 _cached.update(ischrono=True,
@@ -926,12 +929,12 @@ def _listparser(dlist, freq=None):
                                 dtype=int)
     #
     result = dlist.view(DateArray)
-    result._freq = freq
+    result._unit = freq
     return result
 
 
 def date_array(dlist=None, start_date=None, end_date=None, length=None,
-               freq=None, period=1, autosort=False):
+               freq=None, timestep=1, autosort=False):
     """
     Factory function for constructing a :class:`DateArray`.
 
@@ -962,8 +965,8 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
         Length of the output.
         Use this parameter in combination with :keyword:`start_date` to create
         a continuous :class:`DateArray`.
-    period : {int}, optional
-        Period of interest.
+    timestep : {int}, optional
+        timestep of interest.
         Use this parameter in combination with :keyword:`start_date` to create
         a continuous :class:`DateArray` at regular intervals.
     autosort : {True, False}, optional
@@ -1027,8 +1030,8 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
     if end_date is None:
         if length is None:
             length = 1
-        # No ending dates ? Make sure we take the period into account...
-        length = length * period
+        # No ending dates ? Make sure we take the timestep into account...
+        length = length * timestep
     else:
         try:
             end_date = Date(start_date.freq, end_date)
@@ -1039,14 +1042,14 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
             (start_date, end_date) = (end_date, start_date)
         length = int(end_date - start_date) + 1
     #
-    dlist = np.arange(0, length, period, dtype=np.int)
+    dlist = np.arange(0, length, timestep, dtype=np.int)
     dlist += start_date.value
     if freq == _c.FR_UND:
         freq = start_date.freq
     # Transform the dates and set the cache
     dates = dlist.view(DateArray)
-    dates._freq = freq
-    dates._period = period
+    dates._unit = freq
+    dates._timestep = timestep
     dates._cachedinfo.update(ischrono=True, hasdups=False, full=True,
                              chronidx=np.array([], dtype=int))
     return dates

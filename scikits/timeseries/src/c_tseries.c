@@ -5,9 +5,6 @@
     determine the size of the second dimension for the resulting
     converted array */
 static long get_width(int fromFreq, int toFreq) {
-//
-//    int maxBusDaysPerYear, maxBusDaysPerQuarter, maxBusDaysPerMonth;
-//    int maxDaysPerYear, maxDaysPerQuarter, maxDaysPerMonth;
 
     int maxBusDaysPerYear = 262;
     int maxBusDaysPerQuarter = 66;
@@ -146,8 +143,7 @@ TimeSeries_convert(PyObject *self, PyObject *args)
     if((fromFreq = check_freq(fromFreq_arg)) == INT_ERR_CODE) return NULL;
     if((toFreq = check_freq(toFreq_arg)) == INT_ERR_CODE) return NULL;
 
-    if (toFreq == fromFreq)
-    {
+    if (toFreq == fromFreq) {
         PyObject *sidx;
         newArray = (PyArrayObject *)PyArray_Copy(array);
         newMask = (PyArrayObject *)PyArray_Copy(mask);
@@ -196,7 +192,6 @@ TimeSeries_convert(PyObject *self, PyObject *args)
                         "start_date outside allowable range for destination frequency");
         return NULL;
     };
-    DEBUGPRINTF("newStart: %ld (%ld)\n", newStart, newStartTemp);
 
     //convert end index to new frequency
     endIndex = startIndex + (array->dimensions[0] - 1)*period;
@@ -204,18 +199,14 @@ TimeSeries_convert(PyObject *self, PyObject *args)
     if (newEndTemp < 1) {
         ERR_CHECK(newEnd = asfreq_endpoints(endIndex, 'S', &af_info));
     } else { newEnd = newEndTemp; }
-    DEBUGPRINTF("newEnd: %ld (%ld)\n", newEnd, newEndTemp);
 
     newLen = newEnd - newStart + 1;
-    DEBUGPRINTF("new length: %ld", newLen);
     newWidth = get_width(fromFreq, toFreq);
-    DEBUGPRINTF("height before: %ld", newWidth);
     if (newWidth % period > 0){
         newWidth = newWidth / period + 1;
     } else {
         newWidth /= period;
     }
-    DEBUGPRINTF("width corrected: %ld", newWidth);
 
     if (newWidth > 1) {
         long tempval;
@@ -226,7 +217,6 @@ TimeSeries_convert(PyObject *self, PyObject *args)
 
         ERR_CHECK(tempval = asfreq_reverse(newStart, 'S', &af_info_rev));
         currPerLen = startIndex - tempval;
-        DEBUGPRINTF("startidx:%ld - tempval:%ld", startIndex, tempval);
 
         nd = 2;
         dim = PyDimMem_NEW(nd);
@@ -264,16 +254,13 @@ TimeSeries_convert(PyObject *self, PyObject *args)
         newIdx[0] = (npy_intp)(currIndex-newStart);
 
         if (newWidth > 1) {
-
-                if (currIndex != prevIndex)
-                {
-                    //reset period length
-                    currPerLen = 0;
-                    prevIndex = currIndex;
-                }
-
-                newIdx[1] = (npy_intp)currPerLen;
-                currPerLen++;
+            if (currIndex != prevIndex) {
+                //reset period length
+                currPerLen = 0;
+                prevIndex = currIndex;
+            }
+            newIdx[1] = (npy_intp)currPerLen;
+            currPerLen++;
         }
 
         if (newIdx[0] > -1) {

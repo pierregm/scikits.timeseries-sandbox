@@ -285,22 +285,22 @@ class TestCreation(TestCase):
         assert_equal(dates.end_date.value, 2007)
 
 
-    def test_with_period(self):
-        "Test creating a minute date_array w/ different periods"
+    def test_with_timestep(self):
+        "Test creating a minute date_array w/ different timesteps"
         start_date = ts.Date("T", string="2001-01-01 00:00")
-        period = 15
+        timestep = 15
         # Specifying the length
-        length = 24 * 60 / period
-        d = date_array(start_date=start_date, length=length, period=period)
+        length = 24 * 60 / timestep
+        d = date_array(start_date=start_date, length=length, timestep=timestep)
         assert_equal(d.size, length)
         assert(not d.has_missing_dates())
-        assert_equal(d.get_steps(), [period] * (length - 1))
+        assert_equal(d.get_steps(), [timestep] * (length - 1))
         # Specifying the end date
         end_date = ts.Date("T", string="2001-01-01 23:59")
-        d = date_array(start_date, end_date, period=period)
+        d = date_array(start_date, end_date, timestep=timestep)
         assert_equal(d.size, length)
         # 
-        d = date_array(start_date, end_date, period=90)
+        d = date_array(start_date, end_date, timestep=90)
         assert_equal(d.size, 16)
 
 
@@ -442,13 +442,13 @@ class TestDateProperties(TestCase):
         assert_equal(d.minute, 56)
         assert_equal(d.second, 17)
 
-    def test_period(self):
-        "Test that period is a read-only attribute"
+    def test_timestep(self):
+        "Test that timestep is a read-only attribute"
         d = date_array(start_date=Date("D", string="2001-01-01"),
                        length=15)
-        # Make period a read-only attribute
+        # Make timestep a read-only attribute
         self.failUnlessRaises(AttributeError,
-                              lambda : setattr(d, "period", 3))
+                              lambda : setattr(d, "timestep", 3))
 
     def test_freq(self):
         "Testing that setting freq calls asfreq"
@@ -1269,10 +1269,10 @@ class TestMethods(TestCase):
         else:
             raise IndexError("An invalid indexed has been accepted !")
 
-    def test_date_to_index_w_period(self):
-        "Test date_to_index on a date_array w/ period"
+    def test_date_to_index_w_timestep(self):
+        "Test date_to_index on a date_array w/ timestep"
         d = date_array(start_date="2001-01-01 00:00", freq="T", length=24 * 60,
-                       period=15)
+                       timestep=15)
         assert_equal(d.date_to_index("2001-01-01 12:00"), 48)
         dates = ["2001-01-01 00:00", "2001-01-01 06:00",
                  "2001-01-01 12:00", "2001-01-01 18:00"]
