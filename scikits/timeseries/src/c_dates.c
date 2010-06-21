@@ -1125,7 +1125,7 @@ typedef struct {
 static PyTypeObject DateType;
 #define DateObject_Check(op) PyObject_TypeCheck(op, &DateType)
 static PyTypeObject TimeDeltaType;
-#define TimeDeltaObject_Check(op) PyObject_TypeCheck(op, &TimeDeltaType)
+#define TimeDelta_Check(op) PyObject_TypeCheck(op, &TimeDeltaType)
 
 static void
 DateObject_dealloc(DateObject* self) {
@@ -1455,13 +1455,13 @@ TimeDeltaObject_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 /* for use in C code */
 static DateObject *
 DateObject_New(void) {
-    PyObject *dummy;
+    PyObject *dummy=NULL;
     return (DateObject*)DateObject_new(&DateType, dummy, dummy);
 }
 
 static TimeDeltaObject *
 TimeDeltaObject_New(void) {
-    PyObject *dummy;
+    PyObject *dummy=NULL;
     return (TimeDeltaObject*)TimeDeltaObject_new(&TimeDeltaType, dummy, dummy);
 }
 
@@ -1670,12 +1670,10 @@ DateObject_init(DateObject *self, PyObject *args, PyObject *kwds) {
 static int
 TimeDeltaObject_init(TimeDeltaObject *self, PyObject *args, PyObject *kwds) {
 
-    PyObject *unit=NULL, *freq=NULL, *value=NULL, *timedelta=NULL;
+    PyObject *unit=NULL, *freq=NULL, *value=NULL, *delta=NULL;
     PyObject *years=NULL, *months=NULL, *days=NULL, *quarters=NULL;
     PyObject *hours=NULL, *minutes=NULL, *seconds=NULL;
-    char *INSUFFICIENT_MSG = "insufficient parameters to initialize Delta";
 
-    int def_info=INT_ERR_CODE;
     int freq_group;
     int free_dt=0;
 
@@ -1689,7 +1687,7 @@ TimeDeltaObject_init(TimeDeltaObject *self, PyObject *args, PyObject *kwds) {
                                       &unit, &value,
                                       &years, &months, &days, &quarters,
                                       &hours, &minutes, &seconds,
-                                      &timedelta, &freq)) {
+                                      &delta, &freq)) {
         return -1;
     }
 
@@ -1717,10 +1715,10 @@ TimeDeltaObject_init(TimeDeltaObject *self, PyObject *args, PyObject *kwds) {
     self->freq = self->unit;
     freq_group = get_freq_group(self->unit);
 
-    DEBUGPRINTF("Starting w/: %ldY %ldM %ldD %ldS [%i]", self->years, self->months, self->days, self->seconds, freq_group);
+//    DEBUGPRINTF("Starting w/: %ldY %ldM %ldD %ldS [%i]", self->years, self->months, self->days, self->seconds, freq_group);
 
     if (value && PyDelta_Check(value)) {
-        if (!timedelta) timedelta = value;
+        if (!delta) delta = value;
         value = NULL;
     } // datetime = (datetime||value), value = NULL
 
@@ -1748,7 +1746,7 @@ TimeDeltaObject_init(TimeDeltaObject *self, PyObject *args, PyObject *kwds) {
                 break;
             case FR_HR:
                 self->seconds = PyInt_AsLong(value);
-                self->seconds *= 86400;
+                self->seconds *= 3600;
                 break;
             case FR_MIN:
                 self->seconds = PyInt_AsLong(value);
@@ -1762,15 +1760,15 @@ TimeDeltaObject_init(TimeDeltaObject *self, PyObject *args, PyObject *kwds) {
                 break;
         }
     };
-    if (timedelta) {
-        if PyDelta_Check(timedelta) {
-            self->days = (((PyDateTime_Delta *)(timedelta))->days);
-            self->seconds = ((PyDateTime_Delta *)(timedelta))->seconds + \
-                      ((PyDateTime_Delta *)(timedelta))->microseconds/1000000;
-            free_dt = 1;
+    if (delta) {
+        if (PyDelta_Check(delta)){
+            self->days = (((PyDateTime_Delta *)(delta))->days);
+            self->seconds = ((PyDateTime_Delta *)(delta))->seconds + \
+                            ((PyDateTime_Delta *)(delta))->microseconds/1000000;
+//            free_dt = 1;
         } else {
             PyObject *err_msg, *_type;
-            _type = PyObject_Type(timedelta);
+            _type = PyObject_Type(delta);
             err_msg = PyString_FromString("Expected timedelta object, received: ");
             PyString_ConcatAndDel(&err_msg, PyObject_Str(_type));
             PyErr_SetString(PyExc_TypeError, PyString_AsString(err_msg));
@@ -1779,7 +1777,7 @@ TimeDeltaObject_init(TimeDeltaObject *self, PyObject *args, PyObject *kwds) {
             return -1;
         }
     } else {
-        DEBUGPRINTF("Continuing w/: %ldY %ldM %ldD %ldS", self->years, self->months, self->days, self->seconds);
+//        DEBUGPRINTF("Continuing w/: %ldY %ldM %ldD %ldS", self->years, self->months, self->days, self->seconds);
         if (years){
             long extrayears = PyInt_AsLong(years);
             self->years += extrayears;
@@ -1811,7 +1809,7 @@ TimeDeltaObject_init(TimeDeltaObject *self, PyObject *args, PyObject *kwds) {
         };
     };
 
-    if (free_dt) { Py_DECREF(timedelta); }
+    if (free_dt) { Py_DECREF(delta); }
     return 0;
 }
 
@@ -1971,33 +1969,32 @@ DateObject_asfreq(DateObject *self, PyObject *args, PyObject *kwds)
     if (! PyArg_ParseTupleAndKeywords(args, kwds, "O|s", kwlist,
                                       &freq, &relation_raw)) return NULL;
 
-    relation = check_relation(relation_raw);
-//    if(relation_raw) {
-//        if (strlen(relation_raw) > 0) {
-//            if((relation_uc = str_uppercase(relation_raw)) == NULL) { return PyErr_NoMemory();}
-//            // 'BEFORE' and 'AFTER' values for this parameter are deprecated
-//            if (strcmp(relation_uc, "END") == 0 ||
-//                strcmp(relation_uc, "E") == 0 ||
-//                strcmp(relation_uc, "START") == 0 ||
-//                strcmp(relation_uc, "S") == 0 ||
-//                strcmp(relation_uc, "BEFORE") == 0 ||
-//                strcmp(relation_uc, "B") == 0 ||
-//                strcmp(relation_uc, "AFTER") == 0 ||
-//                strcmp(relation_uc, "A") == 0) {
-//                 if(relation_uc[0] == 'E' || relation_uc[0] == 'A') { relation = 'E'; }
-//                 else { relation = 'S'; }
-//            } else { invalid_relation=1; }
-//            free(relation_uc);
-//        } else {
-//            invalid_relation=1;
-//        }
-//        if (invalid_relation) {
-//            PyErr_SetString(PyExc_ValueError,"Invalid relation specification");
-//            return NULL;
-//        }
-//    } else {
-//        relation = 'E';
-//    }
+    if(relation_raw) {
+        if (strlen(relation_raw) > 0) {
+            if((relation_uc = str_uppercase(relation_raw)) == NULL) { return PyErr_NoMemory();}
+            // 'BEFORE' and 'AFTER' values for this parameter are deprecated
+            if (strcmp(relation_uc, "END") == 0 ||
+                strcmp(relation_uc, "E") == 0 ||
+                strcmp(relation_uc, "START") == 0 ||
+                strcmp(relation_uc, "S") == 0 ||
+                strcmp(relation_uc, "BEFORE") == 0 ||
+                strcmp(relation_uc, "B") == 0 ||
+                strcmp(relation_uc, "AFTER") == 0 ||
+                strcmp(relation_uc, "A") == 0) {
+                 if(relation_uc[0] == 'E' || relation_uc[0] == 'A') { relation = 'E'; }
+                 else { relation = 'S'; }
+            } else { invalid_relation=1; }
+            free(relation_uc);
+        } else {
+            invalid_relation=1;
+        }
+        if (invalid_relation) {
+            PyErr_SetString(PyExc_ValueError,"Invalid relation specification");
+            return NULL;
+        }
+    } else {
+        relation = 'E';
+    }
 
     if ((toFreq = check_freq(freq)) == INT_ERR_CODE) return NULL;
 
@@ -2327,11 +2324,17 @@ DateObject___str__(DateObject* self)
     return retval;
 }
 static PyObject *
-TimeDeltaObject___str__(TimeDeltaObject* self)
+timedelta___str__(TimeDeltaObject* self)
 {
-    PyObject  *retval;
-    retval = PyString_FromFormat("%ld", self->value);
-    return retval;
+    PyObject  *py_str;
+    long years=get_timedelta_years(self);
+    long months=get_timedelta_months(self);
+    long days=get_timedelta_days(self);
+    long seconds=get_timedelta_seconds(self);
+
+    py_str = PyString_FromFormat("%ldy, %ldm, %ldd, %lds",
+                                 years, months, days, seconds);
+    return py_str;
 }
 
 
@@ -2346,7 +2349,7 @@ DateObject_freqstr(DateObject *self, void *closure) {
     return main_alias;
 }
 static PyObject *
-TimeDeltaObject_freqstr(TimeDeltaObject *self, void *closure) {
+timedelta_freqstr(TimeDeltaObject *self, void *closure) {
     PyObject *key = PyInt_FromLong(self->unit);
     PyObject *freq_aliases = PyDict_GetItem(freq_dict, key);
     PyObject *main_alias = PyTuple_GET_ITEM(freq_aliases, 0);
@@ -2388,15 +2391,12 @@ DateObject___repr__(DateObject* self)
 }
 
 static PyObject *
-TimeDeltaObject___repr__(TimeDeltaObject* self)
+timedelta___repr__(TimeDeltaObject* self)
 {
     PyObject *py_freqstr, *py_repr;
     char *freqstr;
-    py_freqstr = TimeDeltaObject_freqstr(self, NULL);
+    py_freqstr = timedelta_freqstr(self, NULL);
     freqstr = PyString_AsString(py_freqstr);
-
-    DEBUGPRINTF("V: %ldY %ldM %ldD %ldS\n", self->years, self->months, self->days, self->seconds);
-
 
     if (get_timedelta_seconds(self) != 0){
         py_repr = PyString_FromFormat("%s[%s](%ld, %ld, %ld, %ld)",
@@ -2464,22 +2464,14 @@ DateObject_FromFreqAndValue(int freq, int value) {
 }
 
 static TimeDeltaObject *
-TimeDeltaObject_FromUnitAndValue(int unit, int value) {
+timedelta_fromYMDS(int unit, long years, long months, long days, long seconds)
+{
     TimeDeltaObject *result = TimeDeltaObject_New();
-
-    PyObject *args = PyTuple_New(0);
-    PyObject *kw = PyDict_New();
-    PyObject *py_unit = PyInt_FromLong(unit);
-    PyObject *py_value = PyInt_FromLong(value);
-//    PyObject *py_value = PyLong_FromLong(value);
-    PyDict_SetItemString(kw, "unit", py_unit);
-    PyDict_SetItemString(kw, "value", py_value);
-
-    Py_DECREF(py_unit);
-    Py_DECREF(py_value);
-    TimeDeltaObject_init(result, args, kw);
-    Py_DECREF(args);
-    Py_DECREF(kw);
+    result->unit = unit;
+    result->years = years;
+    result->months = months;
+    result->days = days;
+    result->seconds = seconds;
     return result;
 }
 
@@ -2513,32 +2505,9 @@ DateObject_date_plus_int(PyObject *date, PyObject *pyint) {
 }
 
 
-//static PyObject *
-//DeltaObject_date_plus_int(PyObject *date, PyObject *pyint) {
-//    DeltaObject *dateobj = (DeltaObject*)date;
-//    if (!PyInt_Check(pyint) && !PyObject_HasAttrString(pyint, "__int__")) {
-//        // invalid type for addition
-//        char *err_str, *type_str;
-//        PyObject *type_repr, *obj_type;
-//
-//        obj_type = PyObject_Type(pyint);
-//        type_repr = PyObject_Repr(obj_type);
-//        type_str = PyString_AsString(type_repr);
-//
-//        if ((err_str = PyArray_malloc(255 * sizeof(char))) == NULL) {
-//            return PyErr_NoMemory();
-//        }
-//        sprintf(err_str, "Cannot add Date and %s", type_str);
-//        Py_DECREF(obj_type);
-//        Py_DECREF(type_repr);
-//        PyErr_SetString(PyExc_TypeError, err_str);
-//        free(err_str);
-//        return NULL;
-//    }
-//    return (PyObject*)DeltaObject_FromUnitAndValue(
-//            dateobj->unit, PyInt_AsLong(pyint) + dateobj->value);
-////            dateobj->freq, PyLong_AsLong(pyint) + dateobj->value);
-//}
+
+
+
 
 static PyObject *
 DateObject___add__(PyObject *left, PyObject *right)
@@ -2551,16 +2520,7 @@ DateObject___add__(PyObject *left, PyObject *right)
     } else {
         return DateObject_date_plus_int(right, left);
     }
-}
-//static PyObject *
-//DeltaObject___add__(PyObject *left, PyObject *right)
-//{
-//    if (DeltaObject_Check(left)) {
-//        return DeltaObject_date_plus_int(left, right);
-//    } else {
-//        return DeltaObject_date_plus_int(right, left);
-//    }
-//}
+};
 
 
 static PyObject *
@@ -2589,15 +2549,245 @@ DateObject___subtract__(PyObject *left, PyObject *right)
     }
 }
 
-//static PyObject *
-//DeltaObject___subtract__(PyObject *left, PyObject *right)
-//{
-//    int result;
-//    DeltaObject *dleft;
-//    if (!DeltaObject_Check(left)) {
-//        PyErr_SetString(PyExc_ValueError, "Cannot subtract a Delta from a non-Delta object.");
-//        return NULL;
+static PyObject *
+timedelta_negative(TimeDeltaObject *self){
+    TimeDeltaObject *result = TimeDeltaObject_New();
+    result->unit = self->unit;
+    result->years = -get_timedelta_years(self);
+    result->months = -get_timedelta_months(self);
+    result->days = -get_timedelta_days(self);
+    result->seconds = -get_timedelta_seconds(self);
+    return result;
+}
+
+
+static PyObject *
+timedelta_plus_timedelta(PyObject *tdaobj, PyObject *tdbobj) {
+    TimeDeltaObject *tda = (TimeDeltaObject*)tdaobj;
+    TimeDeltaObject *tdb = (TimeDeltaObject*)tdbobj;
+    long years = get_timedelta_years(tda) + get_timedelta_years(tdb);
+    long months = get_timedelta_months(tda) + get_timedelta_months(tdb);
+    long days = get_timedelta_days(tda) + get_timedelta_days(tdb);
+    long seconds = get_timedelta_seconds(tda) + get_timedelta_seconds(tdb);
+    //
+    return (PyObject*)timedelta_fromYMDS(tda->unit,
+                                         years, months, days, seconds);
+
+};
+
+
+static PyObject *
+timedelta_plus_int(PyObject *timedelta, PyObject *pyint) {
+    TimeDeltaObject *deltaobj = (TimeDeltaObject*)timedelta;
+    if (!PyInt_Check(pyint) && !PyObject_HasAttrString(pyint, "__int__")) {
+        // invalid type for addition
+        char *err_str, *type_str;
+        PyObject *type_repr, *obj_type;
+        obj_type = PyObject_Type(pyint);
+        type_repr = PyObject_Repr(obj_type);
+        type_str = PyString_AsString(type_repr);
+        if ((err_str = PyArray_malloc(255 * sizeof(char))) == NULL) {
+            return PyErr_NoMemory();
+        }
+        sprintf(err_str, "Cannot add TimeDelta and %s", type_str);
+        Py_DECREF(obj_type);
+        Py_DECREF(type_repr);
+        PyErr_SetString(PyExc_TypeError, err_str);
+        free(err_str);
+        return NULL;
+    }
+    int freq_group = get_freq_group(deltaobj->unit);
+    long years=0, months=0, days=0, seconds=0;
+    switch(freq_group){
+        case FR_ANN:
+            years = PyInt_AsLong(pyint);
+            break;
+        case FR_QTR:
+            months = PyInt_AsLong(pyint);
+            months *= 3;
+            break;
+        case FR_MTH:
+            months = PyInt_AsLong(pyint);
+            break;
+        case FR_WK:
+            days = PyInt_AsLong(pyint);
+            days *= 7;
+            break;
+        case FR_BUS:
+            days = PyInt_AsLong(pyint);
+            break;
+        case FR_DAY:
+            days = PyInt_AsLong(pyint);
+            break;
+        case FR_HR:
+            seconds = PyInt_AsLong(pyint);
+            seconds *= 3600;
+            break;
+        case FR_MIN:
+            seconds = PyInt_AsLong(pyint);
+            seconds *= 60;
+            break;
+        case FR_SEC:
+            seconds = PyInt_AsLong(pyint);
+            break;
+        default:
+            days = PyInt_AsLong(pyint);
+            break;
+    }
+    return (PyObject*)timedelta_fromYMDS(deltaobj->unit,
+                                         deltaobj->years+years,
+                                         deltaobj->months+months,
+                                         deltaobj->days+days,
+                                         deltaobj->seconds+seconds);
+};
+
+static PyObject *
+timedelta_plus_delta(PyObject *left, PyObject *right){
+    TimeDeltaObject *oleft = (TimeDeltaObject*)left;
+    PyDateTime_Delta *oright = (PyDateTime_Delta*)right;
+    PyObject *result=NULL;
+    result = (PyObject*)timedelta_fromYMDS(oleft->unit,
+                                         oleft->years,
+                                         oleft->months,
+                                         oleft->days+oright->days,
+                                         oleft->seconds+oright->seconds);
+    return result;
+}
+
+
+static PyObject *
+timedelta_add(PyObject *left, PyObject *right)
+{
+    PyObject *result = Py_NotImplemented;
+
+    if (TimeDelta_Check(left)){
+        if (TimeDelta_Check(right)){
+            result = timedelta_plus_timedelta(left, right);
+        } else if (PyDelta_Check(right)){
+            result = timedelta_plus_delta(left, right);
+        } else if (PyInt_Check(right) || PyLong_Check(right)){
+            result = timedelta_plus_int(left, right);
+        };
+    } else if (PyDelta_Check(left)) {
+        result = timedelta_plus_delta(right, left);
+    } else if (PyInt_Check(left) || PyLong_Check(left)) {
+        result = timedelta_plus_int(right,left);
+    };
+    if (result == Py_NotImplemented)
+        Py_INCREF(result);
+    return result;
+};
+
+static PyObject *
+timedelta_subtract(PyObject *left, PyObject *right)
+{
+    PyObject *result = Py_NotImplemented;
+
+    if (!TimeDelta_Check(left)){
+        PyErr_SetString(PyExc_ValueError, "Cannot subtract a TimeDelta from a non-TimeDelta object.");
+    }
+    if (TimeDelta_Check(right)){
+//        DEBUGPRINTF("W/ TIMEDELTA")
+//        PyObject *minus_right = timedelta_negative(right);
+        PyObject *minus_right = PyNumber_Negative(right);
+        result = timedelta_plus_timedelta(left, minus_right);
+    }
+    else {
+        PyObject *minus_right = PyNumber_Negative(right);
+        if (minus_right) {
+            if (PyDelta_Check(right)){
+                result = timedelta_plus_delta(left, minus_right);
+            } else if (TimeDelta_Check(right)) {
+                result = timedelta_plus_timedelta(left, minus_right);
+            } else {
+            result = timedelta_plus_int(left, minus_right);
+            };
+            Py_DECREF(minus_right);
+        } else
+            result = NULL;
+    }
+    if (result == Py_NotImplemented)
+        Py_INCREF(result);
+    return result;
+}
+
+
+static PyObject *
+timedelta_times_int(PyObject *delta, PyObject *py_int)
+{
+    TimeDeltaObject *deltaobj = (TimeDeltaObject*)delta;
+    TimeDeltaObject *result = TimeDeltaObject_New();
+    long factor = PyInt_AsLong(py_int);
+    result->unit = deltaobj->unit;
+    result->years = get_timedelta_years(deltaobj) * factor;
+    result->months = get_timedelta_months(deltaobj) * factor;
+    result->days = get_timedelta_days(deltaobj) * factor;
+    result->seconds = get_timedelta_seconds(deltaobj) * factor;
+    return result;
+//    int freq_group = get_freq_group(deltaobj->unit);
+//    long years=1, months=1, days=1, seconds=1;
+//    switch(freq_group){
+//        case FR_ANN:
+//            years = PyInt_AsLong(py_int);
+//            break;
+//        case FR_QTR:
+//            months = PyInt_AsLong(py_int);
+//            months *= 3;
+//            break;
+//        case FR_MTH:
+//            months = PyInt_AsLong(py_int);
+//            break;
+//        case FR_WK:
+//            days = PyInt_AsLong(py_int);
+//            days *= 7;
+//            break;
+//        case FR_BUS:
+//            days = PyInt_AsLong(py_int);
+//            break;
+//        case FR_DAY:
+//            days = PyInt_AsLong(py_int);
+//            break;
+//        case FR_HR:
+//            seconds = PyInt_AsLong(py_int);
+//            seconds *= 3600;
+//            break;
+//        case FR_MIN:
+//            seconds = PyInt_AsLong(py_int);
+//            seconds *= 60;
+//            break;
+//        case FR_SEC:
+//            seconds = PyInt_AsLong(py_int);
+//            break;
+//        default:
+//            days = PyInt_AsLong(py_int);
+//            break;
 //    }
+//    return (PyObject*)timedelta_fromYMDS(deltaobj->unit,
+//                                         deltaobj->years*years,
+//                                         deltaobj->months*months,
+//                                         deltaobj->days*days,
+//                                         deltaobj->seconds*seconds);
+};
+
+
+static PyObject *
+timedelta_multiply(PyObject *left, PyObject *right){
+    PyObject *result = Py_NotImplemented;
+
+    if (TimeDelta_Check(left)){
+        if (PyInt_Check(right) || PyLong_Check(right)){
+            result = timedelta_times_int(left, right);
+        }
+    } else if (PyInt_Check(left) || PyLong_Check(left)){
+        result = timedelta_times_int(right, left);
+    }
+    if (result == Py_NotImplemented)
+        Py_INCREF(result);
+    return result;
+}
+
+
+
 //    dleft = (DeltaObject*)left;
 //    if (DeltaObject_Check(right)) {
 //        DeltaObject *dright = (DeltaObject*)right;
@@ -2989,7 +3179,7 @@ static PyGetSetDef TimeDeltaObject_getseters[] = {
 //            "Returns the minute.", NULL},
 //    {"hour", (getter)DeltaObject_hour, (setter)DeltaObject_ReadOnlyErr,
 //            "Returns the hour.", NULL},
-    {"freqstr", (getter)TimeDeltaObject_freqstr, (setter)TimeDeltaObject_ReadOnlyErr,
+    {"freqstr", (getter)timedelta_freqstr, (setter)TimeDeltaObject_ReadOnlyErr,
             "Returns the string representation of frequency.", NULL},
     {"timedelta", (getter)TimeDeltaObject_timedelta, (setter)TimeDeltaObject_ReadOnlyErr,
             "Returns the Delta object converted to standard python timedelta object",
@@ -3026,14 +3216,14 @@ static PyNumberMethods DateObject_as_number = {
     (unaryfunc)0,                        /* nb_hex */
 };
 static PyNumberMethods TimeDeltaObject_as_number = {
-    0,      /* nb_add */
-    0, /* nb_subtract */
-    0,                                    /* nb_multiply */
+    (binaryfunc)timedelta_add,       /* nb_add */
+    (binaryfunc)timedelta_subtract,  /* nb_subtract */
+    (binaryfunc)timedelta_multiply,  /* nb_multiply */
     0,                                    /* nb_divide */
     0,                                    /* nb_remainder */
     0,                                    /* nb_divmod */
     0,                                    /* nb_power */
-    0,                                    /* nb_negative */
+    (unaryfunc)timedelta_negative,       /* nb_negative */
     0,                                    /* nb_positive */
     0,                                    /* nb_absolute */
     0,                                    /* nb_nonzero */
@@ -3139,13 +3329,13 @@ static PyTypeObject TimeDeltaType = {
     0,                                    /* tp_getattr */
     0,                                    /* tp_setattr */
     (cmpfunc)TimeDeltaObject___compare__, /* tp_compare */
-    (reprfunc)TimeDeltaObject___repr__,   /* tp_repr */
+    (reprfunc)timedelta___repr__,   /* tp_repr */
     &TimeDeltaObject_as_number,           /* tp_as_number */
     0,                                    /* tp_as_sequence */
     0,                                    /* tp_as_mapping */
     (hashfunc)TimeDeltaObject___hash__,   /* tp_hash */
     0,                                    /* tp_call*/
-    (reprfunc)TimeDeltaObject___str__,    /* tp_str */
+    (reprfunc)timedelta___str__,    /* tp_str */
     0,                                    /* tp_getattro */
     0,                                    /* tp_setattro */
     0,                                    /* tp_as_buffer */
