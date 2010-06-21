@@ -1443,7 +1443,21 @@ class TestTimeDelta(TestCase):
         except AssertionError:
             assert_equal(get_delta_attr(test), [1, 0, -2, 86400 - 30])
 
-
+    def test_multiply(self):
+        "Test multiplication"
+        delta = TimeDelta('d', 15, months=2)
+        test = delta * 2
+        assert_equal(get_delta_attr(test), [0, 4, 30, 0])
+        test = 2 * delta
+        assert_equal(get_delta_attr(test), [0, 4, 30, 0])
+        # Multiply w/ float : the float is truncated to an integer
+        delta = TimeDelta('d', 15, months=2)
+        test = delta * 3.14159
+        assert_equal(get_delta_attr(test), [0, 6, 45, 0])
+        test = delta * np.pi
+        assert_equal(get_delta_attr(test), [0, 6, 45, 0])
+        # Multiply w/ str
+        self.failUnlessRaises(TypeError, lambda : delta * '?')
 
 
 

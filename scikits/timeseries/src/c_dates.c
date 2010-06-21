@@ -2811,17 +2811,35 @@ timedelta_times_int(PyObject *delta, PyObject *py_int)
 };
 
 
+#define NUM_CHECK(o) (PyInt_Check(o) || PyLong_Check(o) || PyFloat_Check(o))
+
+
 static PyObject *
 timedelta_multiply(PyObject *left, PyObject *right){
     PyObject *result = Py_NotImplemented;
 
+//    char *type_str;
+//    PyObject *type_repr, *obj_type;
+//    obj_type = PyObject_Type(left);
+//    type_repr = PyObject_Repr(obj_type);
+//    type_str = PyString_AsString(type_repr);
+//    DEBUGPRINTF("We have a %s on the left", type_str);
+//    obj_type = PyObject_Type(right);
+//    type_repr = PyObject_Repr(obj_type);
+//    type_str = PyString_AsString(type_repr);
+//    DEBUGPRINTF("We have a %s on the right", type_str);
+//    Py_DECREF(obj_type);
+//    Py_DECREF(type_repr);
+
     if (TimeDelta_Check(left)){
-        if (PyInt_Check(right) || PyLong_Check(right)){
+        if (NUM_CHECK(right)){
+//            DEBUGPRINTF("So we can do it...");
             result = timedelta_times_int(left, right);
         }
-    } else if (PyInt_Check(left) || PyLong_Check(left)){
+    } else if (NUM_CHECK(left)) {
+//        DEBUGPRINTF("So we should be doing it");
         result = timedelta_times_int(right, left);
-    }
+    };
     if (result == Py_NotImplemented)
         Py_INCREF(result);
     return result;
