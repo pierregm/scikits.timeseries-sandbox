@@ -1382,6 +1382,69 @@ class TestTimeDelta(TestCase):
         delta = TimeDelta("T", 5)
         assert_equal(get_delta_attr(delta), [0, 0, 0, 300])
 
+    def test_creation_w_keywords(self):
+        "Test w/ keywords"
+        delta = TimeDelta("D", years=1, months=1, quarters=1, days=1,
+                          hours=1, minutes=1, seconds=1)
+        assert_equal(get_delta_attr(delta), [1, 4, 1, 3661])
+        #
+        "Tests w/ keywords and value"
+        delta = TimeDelta("D", 1, years=1, months=1, quarters=1, days=1,
+                          hours=1, minutes=1, seconds=1)
+        assert_equal(get_delta_attr(delta), [1, 4, 2, 3661])
+    #
+    def test_creation_w_timedelta(self):
+        "Tests w/ timedelta "
+        delta = TimeDelta("D", dt.timedelta(1, 60, 0))
+        assert_equal(get_delta_attr(delta), [0, 0, 1, 60])
+
+
+    def test_timedelta_property(self):
+        "Tests TimeDelta.timedelta"
+        delta = TimeDelta("D", years=1, months=3, days=3,
+                          hours=1, minutes=31, seconds=42)
+        ctrl = dt.timedelta(459, 5502)
+        assert_equal(ctrl, delta.timedelta)
+
+
+    def test_add_w_integers(self):
+        "Test addition w integers"
+        results = dict(A=[2, 0, 0, 0], Q=[0, 6, 0, 0], M=[0, 2, 0, 0],
+                       W=[0, 0, 14, 0], D=[0, 0, 2, 0],
+                       H=[0, 0, 0, 7200], T=[0, 0, 0, 120], S=[0, 0, 0, 2])
+        for (f, r) in results.items():
+            delta = TimeDelta(f, 1)
+            test = delta + 1
+            assert_equal(get_delta_attr(test), r)
+            delta = TimeDelta(f, 3)
+            test = delta - 1
+            assert_equal(get_delta_attr(test), r)
+
+
+    def test_add_w_timedeltas(self):
+        "Test addition w/ TimeDelta"
+        delta = TimeDelta('d', years=1, months=0)
+        test = delta + TimeDelta('d', 1)
+        assert_equal(get_delta_attr(test), [1, 0, 1, 0])
+        test = delta + TimeDelta('y', days=1)
+        assert_equal(get_delta_attr(test), [1, 0, 1, 0])
+        test = delta - TimeDelta('d', 1)
+        assert_equal(get_delta_attr(test), [1, 0, -1, 0])
+
+
+    def test_add_w_dttimedelta(self):
+        "Test addition w/ timedelta"
+        delta = TimeDelta('d', years=1, months=0)
+        test = delta + dt.timedelta(1, 30, 0)
+        assert_equal(get_delta_attr(test), [1, 0, 1, 30])
+        test = delta - dt.timedelta(1, 30, 0)
+        try:
+            assert_equal(get_delta_attr(test), [1, 0, -1, -30])
+        except AssertionError:
+            assert_equal(get_delta_attr(test), [1, 0, -2, 86400 - 30])
+
+
+
 
 
 def test_pickling():
