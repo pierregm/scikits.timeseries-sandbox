@@ -31,14 +31,15 @@ import cseries
 # initialize python callbacks for C code
 cseries.set_callback_DateFromString(DateFromString)
 cseries.set_callback_DateTimeFromString(DateTimeFromString)
-from cseries import Date, now, check_freq, check_freq_str, get_freq_group, \
-                    DateCalc_Error, DateCalc_RangeError
+from cseries import Date, TimeDelta, DateCalc_Error, DateCalc_RangeError, \
+                    now, check_freq, check_freq_str, get_freq_group
 
 __all__ = ['ArithmeticDateError',
            'Date', 'DateArray', 'DateCalc_Error', 'DateCalc_RangeError',
            'DateError',
            'FrequencyDateError',
            'InsufficientDateError',
+           'TimeDelta',
            'check_freq', 'check_freq_str', 'convert_to_float',
            'date_array', 'day', 'day_of_year',
            'get_freq_group',
@@ -572,14 +573,14 @@ class DateArray(ndarray):
             self._cachedinfo['tostr'] = tostr
         return self._cachedinfo['tostr']
     #
-    def asfreq(self, freq=None, relation="END"):
+    def asunit(self, unit=None, relation="END", freq=None):
         """
 
     Converts the dates to another frequency.
 
     Parameters
     ----------
-    freq : {freq_spec}
+    unit : {freq_spec}
         Frequency into which :class:`DateArray` must be converted.
         Accepts any valid frequency specification (string or integer)
     relation : {"END", "START"} (optional)
@@ -592,11 +593,13 @@ class DateArray(ndarray):
         'START' ('END') would result in the first (last) day in the month.
 
         """
+        if unit is None:
+            unit = freq
         # Note: As we define a new object, we don't need caching
-        if (freq is None) or (freq == _c.FR_UND):
+        if (unit is None) or (unit == _c.FR_UND):
             return self
-        tofreq = check_freq(freq)
-        if tofreq == self._unit:
+        tounit = check_freq(unit)
+        if tounit == self._unit:
             return self
 
         relation = relation.upper()
@@ -604,21 +607,22 @@ class DateArray(ndarray):
             errmsg = "Invalid specification for the 'relation' parameter: %s"
             raise ValueError(errmsg % relation)
 
-        fromfreq = self._unit
-        if fromfreq == _c.FR_UND:
+        fromunit = self._unit
+        if fromunit == _c.FR_UND:
             new = self.__array__()
         else:
             new = cseries.DA_asfreq(self.__array__(),
-                                    fromfreq, tofreq, relation[0])
-        return DateArray(new, freq=freq)
+                                    fromunit, tounit, relation[0])
+        return DateArray(new, unit=unit)
+    asfreq = asunit
 
     def _get_unit(self):
         return self._unit
     def _set_unit(self, unit):
         if isinstance(unit, (int, float)):
-            self.flat = self.asfreq(unit).flat
+            self.flat = self.asunit(unit).flat
         else:
-            self.flat = self.asfreq(*unit).flat
+            self.flat = self.asunit(*unit).flat
         self._unit = unit
     freq = unit = property(fget=_get_unit, fset=_set_unit, doc="Frequency")
 

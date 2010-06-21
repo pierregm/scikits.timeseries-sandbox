@@ -182,24 +182,25 @@ TimeSeries_convert(PyObject *self, PyObject *args)
 
     //convert start index to new frequency
     ERR_CHECK(newStartTemp = asfreq_main(startIndex, 'S', &af_info));
-    if (newStartTemp < 1) {
-        ERR_CHECK(newStart = asfreq_endpoints(startIndex, 'E', &af_info));
-    } else {
-        newStart = newStartTemp;
-    };
-    if (newStart < 1) {
-        PyErr_SetString(PyExc_ValueError,
-                        "start_date outside allowable range for destination frequency");
-        return NULL;
-    };
+    newStart = newStartTemp;
+//    if (newStartTemp < 1) {
+//        ERR_CHECK(newStart = asfreq_endpoints(startIndex, 'E', &af_info));
+//    } else {
+//        newStart = newStartTemp;
+//    };
+//    if (newStart < 1) {
+//        PyErr_SetString(PyExc_ValueError,
+//                        "start_date outside allowable range for destination frequency");
+//        return NULL;
+//    };
 
     //convert end index to new frequency
     endIndex = startIndex + (array->dimensions[0] - 1)*period;
     ERR_CHECK(newEndTemp = asfreq_main(endIndex, 'E', &af_info));
-    if (newEndTemp < 1) {
-        ERR_CHECK(newEnd = asfreq_endpoints(endIndex, 'S', &af_info));
-    } else { newEnd = newEndTemp; }
-
+//    if (newEndTemp < 1) {
+//        ERR_CHECK(newEnd = asfreq_endpoints(endIndex, 'S', &af_info));
+//    } else { newEnd = newEndTemp; }
+    newEnd = newEndTemp;
     newLen = newEnd - newStart + 1;
     newWidth = get_width(fromFreq, toFreq);
     if (newWidth % period > 0){

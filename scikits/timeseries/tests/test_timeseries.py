@@ -1514,6 +1514,19 @@ test_dates test suite.
         assert_equal(highToLow.start_date, June2005B.asfreq('M'))
         assert_equal(highToLow.end_date, (June2005B + 99).asfreq('M'))
 
+
+    def test_convert_before_epoch(self):
+        "Test conversion to horary before the epoch..."
+        s = time_series(np.arange(5),
+                        start_date=Date("D", "1969-01-01"))
+        test = s.convert("H")
+        ctrl = time_series(ma.masked_all(24 * 5),
+                           start_date=Date("H", "1969-01-01 00:00"))
+        np.put(ctrl, [23, 47, 71, 95, 119], [0, 1, 2, 3, 4])
+        assert_equal(test.series, ctrl.series)
+        assert_equal(test.dates, ctrl.dates)
+
+
     def test_convert_with_func(self):
         "Test convert w/ function on 1D series"
         mdata = time_series(np.arange(24),
@@ -1601,6 +1614,15 @@ test_dates test suite.
         ctrl[(idates - idates[0]) / 5] = s_min._series
         assert_equal(test.dates, ndates)
         assert_equal(test, ctrl)
+
+    def test_change_timestep_multiple_with_function(self):
+        "Test change_timestep to multiple w/ func"
+        s_min = self.s_min
+        test = s_min.change_timestep(45, func=ma.sum)
+        ctrl_data = ma.arange(s_min.size)
+        ctrl_data[48] = ma.masked
+        ctrl_data.shape = (-1, 3)
+        assert_equal(test._series, ctrl_data.sum(axis= -1))
 
 #------------------------------------------------------------------------------
 
