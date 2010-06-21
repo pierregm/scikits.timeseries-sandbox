@@ -2476,23 +2476,7 @@ static PyObject *
 DateObject_date_plus_int(PyObject *date, PyObject *pyint) {
     DateObject *dateobj = (DateObject*)date;
     if (!PyInt_Check(pyint) && !PyObject_HasAttrString(pyint, "__int__")) {
-        // invalid type for addition
-        char *err_str, *type_str;
-        PyObject *type_repr, *obj_type;
-
-        obj_type = PyObject_Type(pyint);
-        type_repr = PyObject_Repr(obj_type);
-        type_str = PyString_AsString(type_repr);
-
-        if ((err_str = PyArray_malloc(255 * sizeof(char))) == NULL) {
-            return PyErr_NoMemory();
-        }
-        sprintf(err_str, "Cannot add Date and %s", type_str);
-        Py_DECREF(obj_type);
-        Py_DECREF(type_repr);
-        PyErr_SetString(PyExc_TypeError, err_str);
-        free(err_str);
-        return NULL;
+        return Py_NotImplemented;
     }
     return (PyObject*)DateObject_FromFreqAndValue(
             dateobj->freq, PyInt_AsLong(pyint) + dateobj->value);

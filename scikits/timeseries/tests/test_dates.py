@@ -19,7 +19,7 @@ from numpy import ma
 from numpy.ma.testutils import assert_equal, assert_array_equal
 
 import scikits.timeseries as ts
-from scikits.timeseries import const as C, Date, DateArray, now, date_array
+from scikits.timeseries import const as C, Date, DateArray, TimeDelta, now, date_array
 from scikits.timeseries.cseries import freq_dict
 from scikits.timeseries.tdates import convert_to_float
 
@@ -229,7 +229,6 @@ class TestCreation(TestCase):
         # test from datetime.datetime object
         _dt = ts.Date(freq='D', datetime=dt.datetime(2007, 1, 1, 0, 0, 0, 0))
         assert_equal(_dt, _tsdt)
-
         # try using the 'value' positional arg
         _dt = ts.Date('D', dt.datetime(2007, 1, 1, 0, 0, 0, 0))
         assert_equal(_dt, _tsdt)
@@ -936,6 +935,7 @@ class TestFreqConversion(TestCase):
 
             assert_func(date_D.asfreq('D'), date_D)
 
+
     def test_conv_hourly(self):
         "frequency conversion tests: from Hourly Frequency"
 
@@ -1042,6 +1042,7 @@ class TestFreqConversion(TestCase):
 
             assert_func(date_T.asfreq('T'), date_T)
 
+
     def test_conv_secondly(self):
         "frequency conversion tests: from Secondly Frequency"
 
@@ -1095,6 +1096,7 @@ class TestFreqConversion(TestCase):
 
             assert_func(date_S.asfreq('S'), date_S)
 
+
     def test_convert_to_float_daily(self):
         "Test convert_to_float on daily data"
         dbase = ts.date_array(start_date=ts.Date('D', '2007-01-01'),
@@ -1135,6 +1137,8 @@ class TestFreqConversion(TestCase):
         # Q -> A
         test = convert_to_float(qbase, 'A')
         assert_equal(test, 2007 + np.arange(8) / 4.)
+
+
 
 
 
@@ -1269,6 +1273,7 @@ class TestMethods(TestCase):
         else:
             raise IndexError("An invalid indexed has been accepted !")
 
+
     def test_date_to_index_w_timestep(self):
         "Test date_to_index on a date_array w/ timestep"
         d = date_array(start_date="2001-01-01 00:00", freq="T", length=24 * 60,
@@ -1304,6 +1309,7 @@ class TestMethods(TestCase):
         self.failUnless(not isinstance(test, DateArray))
         assert_equal(test, [2, 1, 0])
 
+
     def test_sort_wcached(self):
         "Test cache update w/ sorting"
         dates = ts.DateArray([2002, 2000, 2001, 2002], freq='A')
@@ -1330,6 +1336,7 @@ class TestMethods(TestCase):
         assert_equal(dates.is_chronological(), False)
         assert_equal(dates.has_duplicated_dates(), True)
 
+
     def test_minmax(self):
         "Test min and max on DateArrays"
         start_date = Date("M", "2001-01")
@@ -1348,6 +1355,33 @@ class TestMethods(TestCase):
         test = dates.max(axis=0)
         assert_equal(test, dates[-1])
         assert(isinstance(test, DateArray))
+
+
+
+
+
+def get_delta_attr(delta):
+    return [getattr(delta, _) for _ in ('years', 'months', 'days', 'seconds')]
+
+class TestTimeDelta(TestCase):
+    #
+    def test_creation_w_values_and_units(self):
+        "Test w/ values and units"
+        delta = TimeDelta("Y", 5)
+        assert_equal(get_delta_attr(delta), [5, 0, 0, 0])
+        delta = TimeDelta("Q", 5)
+        assert_equal(get_delta_attr(delta), [0, 15, 0, 0])
+        delta = TimeDelta("M", 5)
+        assert_equal(get_delta_attr(delta), [0, 5, 0, 0])
+        delta = TimeDelta("W", 5)
+        assert_equal(get_delta_attr(delta), [0, 0, 35, 0])
+        delta = TimeDelta("D", 5)
+        assert_equal(get_delta_attr(delta), [0, 0, 5, 0])
+        delta = TimeDelta("H", 5)
+        assert_equal(get_delta_attr(delta), [0, 0, 0, 5 * 3600])
+        delta = TimeDelta("T", 5)
+        assert_equal(get_delta_attr(delta), [0, 0, 0, 300])
+
 
 
 def test_pickling():
