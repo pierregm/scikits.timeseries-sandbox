@@ -467,6 +467,9 @@ class DateArray(ndarray):
         "Returns the corresponding second for each date of the instance."
         return self.__getdateinfo__('S')
     seconds = second
+    @property
+    def ordinals(self):
+        return self.__getdateinfo__('L')
 
     def __getdateinfo__(self, info):
         return np.asarray(cseries.DA_getDateInfo(np.asarray(self),
@@ -572,6 +575,9 @@ class DateArray(ndarray):
                 tostr = firststr
             self._cachedinfo['tostr'] = tostr
         return self._cachedinfo['tostr']
+    #
+    def todays(self):
+        return np.fromiter((d.day for d in self), dtype=int)
     #
     def asunit(self, unit=None, relation="END", freq=None):
         """
