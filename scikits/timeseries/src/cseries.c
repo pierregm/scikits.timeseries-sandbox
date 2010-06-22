@@ -1,4 +1,5 @@
 #include "c_lib.h"
+#include "c_freqs.h"
 #include "c_dates.h"
 #include "c_tseries.h"
 
@@ -36,15 +37,15 @@ static PyMethodDef cseries_methods[] = {
         "   Frequency to convert the Date to. Accepts any valid frequency\n"
         "   specification (string or integer)\n"},
 
-    {"check_freq", (PyCFunction)c_dates_check_freq,
+    {"check_freq", (PyCFunction)c_freqs_check_freq,
      METH_VARARGS,
         "Translates a user specified frequency into the corresponding frequency constant"},
 
-    {"check_freq_str", (PyCFunction)c_dates_check_freq_str,
+    {"check_freq_str", (PyCFunction)c_freqs_check_freq_str,
      METH_VARARGS,
         "Translates a user specified frequency into standard string representation"},
 
-    {"get_freq_group", (PyCFunction)c_dates_get_freq_group,
+    {"get_freq_group", (PyCFunction)c_freqs_get_freq_group,
      METH_VARARGS,
         "translate user specified frequency into frequency group constant"},
 
@@ -67,6 +68,7 @@ initcseries(void)
       return;
 
     import_c_lib(m);
+    import_c_freqs(m);
     import_c_dates(m);
     import_c_tseries(m);
 

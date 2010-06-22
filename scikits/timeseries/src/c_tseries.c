@@ -1,3 +1,4 @@
+#include "c_freqs.h"
 #include "c_dates.h"
 #include "c_tseries.h"
 

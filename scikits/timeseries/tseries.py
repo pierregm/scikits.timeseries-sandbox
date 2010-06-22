@@ -1594,7 +1594,8 @@ TimeSeries.compressed = compressed
 #---- --- TimeSeries constructor ---
 ##### -------------------------------------------------------------------------
 
-def time_series(data, dates=None, start_date=None, length=None, freq=None,
+def time_series(data, dates=None, start_date=None, length=None,
+                unit=None, freq=None, timestep=1,
                 mask=nomask, dtype=None, copy=False, fill_value=None,
                 keep_mask=True, hard_mask=False, autosort=True):
     """
@@ -1637,11 +1638,18 @@ def time_series(data, dates=None, start_date=None, length=None, freq=None,
         if ``dates`` is None and if ``data`` has a length greater or equal to 1.
     length : {integer}, optional
         Length of the dates.
-    freq : {freq_spec}, optional
+    unit : {freq_spec}, optional
         A valid frequency specification, as a string or an integer.
         This parameter is mandatory if ``dates`` is None.
         Otherwise, the frequency of the series is set to the frequency
         of the ``dates`` input.
+    freq : {freq_spec}, optional
+        Alias for ``unit``.
+    timestep : {int}, optional
+        Constant time step between two consecutive dates.
+        By default, ``timestep=1``, which means that there is 1 unit between
+        any two consecutive dates.
+        This parameter is not used if ``dates`` is not None.
 
     Notes
     -----
@@ -1655,6 +1663,12 @@ def time_series(data, dates=None, start_date=None, length=None, freq=None,
         Constructor for the :class:`~numpy.ma.MaskedArray` class.
     scikits.timeseries.date_array
         Constructor for the :class:`DateArray` class.
+
+    Example
+    -------
+    Create a 15-min series for 1 day on Jan., 1st 2001:
+    >>> s = time_series(np.arange(24*4), 
+    ...                 start_date=Date('T','2001-01-01 00:00), timestep=15)
 
     """
     freq = check_freq(freq)

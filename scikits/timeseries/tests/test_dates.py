@@ -1187,19 +1187,25 @@ class TestMethods(TestCase):
         assert_equal(dt1 + np.float32(1), dt2)
         assert_equal(dt1 + np.float64(1), dt2)
         #
-        try:
-            temp = dt1 + "str"
-        except TypeError:
-            pass
-        else:
-            raise RuntimeError("invalid add type passed")
-        #
-        try:
-            temp = dt1 + dt2
-        except TypeError:
-            pass
-        else:
-            raise RuntimeError("invalid add type passed")
+        self.failUnlessRaises(TypeError, lambda: dt1 + '?')
+        self.failUnlessRaises(TypeError, lambda: dt1 + dt2)
+
+    def test_subtract_dttimedelta(self):
+        "Test subtracting a Date and a datetime.date"
+        d = Date("D", "2001-01-01")
+        test = d - dt.date(2000, 12, 31)
+        assert_equal(test, 1)
+        test = d - dt.datetime(2000, 12, 31, 12, 00, 00)
+        assert_equal(test, 1)
+
+    def test_add_dttimedelta(self):
+        "Test adding a Date and a datetime.timedelta"
+        d = Date("D", "2001-01-01")
+        delta = dt.timedelta(30, 86400, 0)
+        test = d + delta
+        assert_equal(test, Date("D", "2001-02-01"))
+
+
 
 
     def test_getsteps(self):
@@ -1458,6 +1464,36 @@ class TestTimeDelta(TestCase):
         assert_equal(get_delta_attr(test), [0, 6, 45, 0])
         # Multiply w/ str
         self.failUnlessRaises(TypeError, lambda : delta * '?')
+
+    def test_addition_w_date(self):
+        "Test adding a Date and a TimeDelta"
+        date = Date("H", "2001-01-01 00:00")
+        test = date + TimeDelta("D", 5)
+        assert_equal(test, Date("H", "2001-01-06 00:00"))
+        test = date + TimeDelta("M", 5)
+        assert_equal(test, Date("H", "2001-06-01 00:00"))
+        test = date + TimeDelta("A", 5)
+        assert_equal(test, Date("H", "2006-01-01 00:00"))
+
+        delta = TimeDelta("H", months=15, hours=24, minutes=60, seconds=3600)
+        test = date + delta
+        assert_equal(test, Date("H", "2002-04-02 02:00"))
+        # Adding a small nb of hours/minutes shouldn't matter on low freq
+        date = Date("D", "2001-01-01")
+        for unit in ("H", "T", "S"):
+            test = date + TimeDelta(unit, 5)
+            assert_equal(test, date)
+        test = date + TimeDelta('H', 24)
+        assert_equal(test, Date('D', '2001-01-02'))
+
+    def test_subtract_from_date(self):
+        date = Date("H", "2001-01-01 00:00")
+        test = date - TimeDelta('H', 3)
+        assert_equal(test, Date("H", "2000-12-31 21:00"))
+        test = date - TimeDelta('H', years=31, hours=3)
+        assert_equal(test, Date("H", "1969-12-31 21:00"))
+
+
 
 
 
