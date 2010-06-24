@@ -12,6 +12,7 @@ def configuration(parent_package='', top_path=None):
     sources = [join('src', x) for x in ('c_lib.c',
                                         'c_freqs.c',
                                         'c_dates.c',
+                                        'c_datearray.c',
                                         'c_tseries.c',
                                         'cseries.c')]
     confgr.add_extension('cseries',

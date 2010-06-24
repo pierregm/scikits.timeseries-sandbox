@@ -43,6 +43,42 @@ set_callback_DateTimeFromString(PyObject *dummy, PyObject *args) {
     return set_callback(args, &DateTimeFromString);
 }
 
+/* From ndarraytypes.h & numpy.datetime.c*/
+typedef struct {
+        npy_longlong year;
+        int month, day, hour, min, sec, us, ps, as;
+} our_datetimestruct;
+
+typedef struct {
+        npy_longlong day;
+        int sec, us, ps, as;
+} our_timedeltastruct;
+
+typedef struct {
+    int year, month, day;
+    int calendar;
+} ymdstruct;
+
+typedef struct {
+    int hour, min, sec;
+} hmsstruct;
+//
+
+typedef struct {
+    long absdate;
+    double abstime;
+
+    double second;
+    int minute;
+    int hour;
+    int day;
+    int month;
+    int quarter;
+    int year;
+    int day_of_week;
+    int day_of_year;
+    int calendar;
+} dateinfostruct;
 
 
 //DERIVED FROM mx.DateTime
@@ -76,26 +112,11 @@ static int days_in_month[2][12] = {
     { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
 };
 
-struct date_info {
-    long absdate;
-    double abstime;
-
-    double second;
-    int minute;
-    int hour;
-    int day;
-    int month;
-    int quarter;
-    int year;
-    int day_of_week;
-    int day_of_year;
-    int calendar;
-};
 
 
 /* Return 1/0 iff year points to a leap year in calendar. */
 static
-int dInfoCalc_Leapyear(register long year, int calendar) {
+int is_leapyear(register long year, int calendar) {
     if (calendar == GREGORIAN_CALENDAR) {
         return (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
     } else {
@@ -103,8 +124,20 @@ int dInfoCalc_Leapyear(register long year, int calendar) {
     }
 }
 
+
+/* Returns absolute seconds from an hour, minute, and second
+ */
+#define secs_from_hms(hour, min, sec, multiplier) (\
+  ((hour)*3600 + (min)*60 + (sec)) * (npy_int64)(multiplier)\
+)
+
+/* Returns the quarter */
+#define month_to_quarter(month) (((month)-1)/3 + 1)
+#define quarter_to_month(quarter) (((quarter)-1)*3 + 1)
+
+
 static
-int dInfoCalc_ISOWeek(struct date_info *dinfo) {
+int dInfoCalc_ISOWeek(dateinfostruct *dinfo) {
     int week;
 
     /* Estimate */
@@ -115,7 +148,7 @@ int dInfoCalc_ISOWeek(struct date_info *dinfo) {
     if (week < 0) {
         /* The day lies in last week of the previous year */
         if ((week > -2) ||
-            (week == -2 && dInfoCalc_Leapyear(dinfo->year-1, dinfo->calendar)))
+            (week == -2 && is_leapyear(dinfo->year-1, dinfo->calendar)))
             week = 53;
         else
             week = 52;
@@ -132,12 +165,12 @@ int dInfoCalc_ISOWeek(struct date_info *dinfo) {
 
 /* Return the day of the week for the given absolute date. */
 static
-int dInfoCalc_DayOfWeek(register long absdate) {
+int day_of_week(npy_longlong absdate) {
     int day_of_week;
-
     if (absdate >= 1) {
         day_of_week = (absdate - 1) % 7;
-    } else {
+    }
+    else {
         day_of_week = 6 - ((-absdate) % 7);
     }
     return day_of_week;
@@ -151,22 +184,21 @@ int dInfoCalc_DayOfWeek(register long absdate) {
    using the Gregorian Epoch) value by two days because the Epoch
    (0001-01-01) in the Julian calendar lies 2 days before the Epoch in
    the Gregorian calendar. */
-static
-int dInfoCalc_YearOffset(register long year,
-              int calendar)
+static npy_longlong
+year_offset(npy_longlong year, int calendar)
 {
     year--;
     if (calendar == GREGORIAN_CALENDAR) {
-    if (year >= 0 || -1/4 == -1)
-        return year*365 + year/4 - year/100 + year/400;
-    else
-        return year*365 + (year-3)/4 - (year-99)/100 + (year-399)/400;
+        if (year >= 0 || -1/4 == -1)
+            return year*365 + year/4 - year/100 + year/400;
+        else
+            return year*365 + (year-3)/4 - (year-99)/100 + (year-399)/400;
     }
     else if (calendar == JULIAN_CALENDAR) {
-    if (year >= 0 || -1/4 == -1)
-        return year*365 + year/4 - 2;
-    else
-        return year*365 + (year-3)/4 - 2;
+        if (year >= 0 || -1/4 == -1)
+            return year*365 + year/4 - 2;
+        else
+            return year*365 + (year-3)/4 - 2;
     }
     Py_Error(DateCalc_Error, "unknown calendar");
  onError:
@@ -178,60 +210,52 @@ int dInfoCalc_YearOffset(register long year,
    may be set to the flags: GREGORIAN_CALENDAR,
    JULIAN_CALENDAR to indicate the calendar to be used. */
 
-static
-int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
-                                 int year,
-                                 int month,
-                                 int day,
-                                 int hour,
-                                 int minute,
-                                 double second,
-                                 int calendar)
+static npy_longlong
+days_from_ymdc(int year, int month, int day, int calendar)
 {
-    /* Calculate the absolute date */
-    {
-        int leap;
-        long yearoffset,absdate;
+    int leap;
+    npy_longlong yearoffset, absdate;
 
-        /* Range check */
-        Py_AssertWithArg(year > -(INT_MAX / 366) && year < (INT_MAX / 366),
-                         DateCalc_RangeError,
-                         "year out of range: %i",
-                         year);
+    /* Range check */
+    Py_AssertWithArg(year > -(INT_MAX / 366) && year < (INT_MAX / 366),
+                     DateCalc_RangeError,
+                     "year out of range: %i",
+                     year);
 
-        /* Is it a leap year ? */
-        leap = dInfoCalc_Leapyear(year,calendar);
+    /* Is it a leap year ? */
+    leap = is_leapyear(year, calendar);
 
-        /* Negative month values indicate months relative to the years end */
-        if (month < 0) month += 13;
-        Py_AssertWithArg(month >= 1 && month <= 12,
-                         DateCalc_RangeError,
-                         "month out of range (1-12): %i",
-                         month);
+    /* Negative month values indicate months relative to the years end */
+    if (month < 0) month += 13;
+    Py_AssertWithArg(month >= 1 && month <= 12,
+                     DateCalc_RangeError,
+                     "month out of range (1-12): %i",
+                     month);
 
-        /* Negative values indicate days relative to the months end */
-        if (day < 0) day += days_in_month[leap][month - 1] + 1;
-        Py_AssertWithArg(day >= 1 && day <= days_in_month[leap][month - 1],
-                         DateCalc_RangeError,
-                         "day out of range: %i",
-                         day);
+    /* Negative values indicate days relative to the months end */
+    if (day < 0) day += days_in_month[leap][month - 1] + 1;
+    Py_AssertWithArg(day >= 1 && day <= days_in_month[leap][month - 1],
+                     DateCalc_RangeError,
+                     "day out of range: %i",
+                     day);
 
-        yearoffset = dInfoCalc_YearOffset(year,calendar);
-        if (PyErr_Occurred()) goto onError;
+    /* Nb of days between Dec. 31 (YYYY - 1) and Dec. 31 1969 */
+    yearoffset = year_offset(year,calendar);
+    if (PyErr_Occurred()) goto onError;
 
-        absdate = day + month_offset[leap][month - 1] + yearoffset;
-        dinfo->absdate = absdate;
-        dinfo->year = year;
-        dinfo->month = month;
-        dinfo->quarter = ((month-1)/3)+1;
-        dinfo->day = day;
-        dinfo->day_of_week = dInfoCalc_DayOfWeek(absdate);
-        dinfo->day_of_year = (short)(absdate - yearoffset);
-        dinfo->calendar = calendar;
-    }
+    absdate = day + month_offset[leap][month - 1] + yearoffset;
+    return absdate;
 
-    /* Calculate the absolute time */
-    {
+ onError:
+    return -1;
+    /* return 0; That's what numpy uses */
+}
+#define days_from_ymd(year, month, day) (days_from_ymdc((year), (month), (day), GREGORIAN_CALENDAR))
+
+
+static double
+secs_from_ranged_hms(int hour, int minute, double second)
+{
     Py_AssertWithArg(hour >= 0 && hour <= 23,
                      DateCalc_RangeError,
                      "hour out of range (0-23): %i",
@@ -246,17 +270,192 @@ int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo,
                      DateCalc_RangeError,
                      "second out of range (0.0 - <60.0; <61.0 for 23:59): %f",
                      second);
-    dinfo->abstime = (double)(hour*3600 + minute*60) + second;
-    dinfo->hour = hour;
-    dinfo->minute = minute;
-    dinfo->second = second;
-    }
-    return 0;
+    return secs_from_hms(hour, minute, second, 1);
+
  onError:
     return -1;
+    /* return 0; (the numpy way) */
 }
 
-static int monthToQuarter(int month) { return ((month-1)/3)+1; }
+
+
+/* from numpy/datetime.c (reference: 1CE) */
+static ymdstruct
+days_to_ymdstruct(npy_longlong absdate, int calendar)
+{
+    ymdstruct ymd;
+    long year;
+    npy_longlong yearoffset;
+    int leap, dayoffset;
+    int month = 1, day = 1;
+    int *monthoffset;
+
+    /* Approximate year */
+    if (calendar == JULIAN_CALENDAR) {
+        year = absdate / 365.25;
+    } else {
+        year = absdate / 365.2425;
+    };
+    if (absdate > 0) year++;
+
+    /* Apply corrections to reach the correct year */
+    while (1) {
+        /* Calculate the year offset */
+        yearoffset = year_offset(year, calendar);
+        /*
+         * Backward correction: absdate must be greater than the
+         * yearoffset
+         */
+        if (yearoffset >= absdate) {
+            year--;
+            continue;
+        }
+        leap = is_leapyear(year, calendar);
+
+        dayoffset = absdate - yearoffset;
+        /* Forward correction: non leap years only have 365 days */
+        if (dayoffset > 365 && !leap) {
+            year++;
+            continue;
+        }
+        break;
+    }
+
+    /* Now iterate to find the month */
+    monthoffset = month_offset[leap];
+    for (month = 1; month < 13; month++) {
+        if (monthoffset[month] >= dayoffset)
+            break;
+    }
+    day = dayoffset - month_offset[leap][month-1];
+
+    ymd.year  = year;
+    ymd.month = month;
+    ymd.day   = day;
+
+    return ymd;
+};
+
+
+static int
+isoweek_from_ymdc(int year, int month, int day, int calendar)
+{
+    int week;
+    npy_longlong yearoffset = year_offset(year, calendar);
+    npy_longlong absdate = days_from_ymdc(year, month, day, calendar);
+    npy_longlong dayofweek = day_of_week(absdate);
+
+    /* Estimate*/
+    week = (absdate - yearoffset - 1) - dayofweek + 3;
+    if (week >= 0)
+        week = week / 7 + 1;
+
+    /* Verify */
+    if (week < 0){
+        /* The day lies in last week of the previous year */
+        if ((week > -2) ||
+            (week == -2 && is_leapyear(year-1, calendar)))
+            week = 53;
+        else
+            week = 52;
+    }
+    else if (week == 53) {
+        /* Check if the week belongs to year or year+1 */
+        if (31 - day + dayofweek < 3)
+            week = 1;
+    }
+    return week;
+};
+
+
+
+static hmsstruct
+seconds_to_hmsstruct(npy_longlong abstime)
+{
+    int hour, minute, second;
+    hmsstruct hms;
+
+    hour   = abstime / 3600;
+    minute = (abstime % 3600) / 60;
+    second = abstime - (abstime*3600 + abstime*60);
+
+    hms.hour   = hour;
+    hms.min = minute;
+    hms.sec = second;
+
+    return hms;
+};
+
+
+static dateinfostruct
+info_to_dateinfostruct(int year, int month, int day,
+                       int hour, int minute, double second,
+                       int calendar)
+{
+    dateinfostruct dinfo;
+    /* Calculate the absolute date */
+    {
+    npy_longlong yearoffset, absdate;
+
+    absdate = days_from_ymdc(year, month, day, calendar);
+    dinfo.absdate = absdate;
+    dinfo.year = year;
+    dinfo.month = month;
+    dinfo.quarter = month_to_quarter(month);
+    dinfo.day = day;
+    dinfo.day_of_week = day_of_week(absdate);
+    //FIXME HERE
+    dinfo.day_of_year = (short)(absdate - yearoffset);
+    dinfo.calendar = calendar;
+    }
+
+    /* Calculate the absolute time */
+    {
+    double abstime;
+    abstime = secs_from_ranged_hms(hour, minute, second);
+
+    dinfo.abstime = abstime;
+    dinfo.hour = hour;
+    dinfo.minute = minute;
+    dinfo.second = second;
+    }
+    return dinfo;
+}
+
+
+static dateinfostruct
+days_to_dateinfostruct(npy_longlong absdate, int calendar)
+{
+    dateinfostruct dinfo;
+    ymdstruct ymd = days_to_ymdstruct(absdate, calendar);
+
+    dinfo.absdate = absdate;
+    dinfo.year = ymd.year;
+    dinfo.month = ymd.month;
+    dinfo.day = ymd.day;
+    dinfo.quarter = month_to_quarter(dinfo.month);
+    dinfo.day_of_week = day_of_week(absdate);
+    //FIXME HERE
+    dinfo.day_of_year = (short)(absdate - year_offset(ymd.year, calendar));
+    dinfo.calendar = calendar;
+
+    return dinfo;
+}
+
+
+static dateinfostruct
+secs_to_dateinfostruct(npy_longlong abstime){
+    dateinfostruct dinfo;
+    hmsstruct hms = seconds_to_hmsstruct(abstime);
+
+    dinfo.hour = hms.hour;
+    dinfo.minute = hms.min;
+    dinfo.second = hms.sec;
+
+    return dinfo;
+};
+
+
 
 /* Sets the date part of the date_info struct using the indicated
    calendar.
@@ -264,7 +463,7 @@ static int monthToQuarter(int month) { return ((month-1)/3)+1; }
    XXX This could also be done using some integer arithmetics rather
        than with this iterative approach... */
 static
-int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
+int dInfoCalc_SetFromAbsDate(dateinfostruct *dinfo,
                              long absdate,
                              int calendar)
 {
@@ -284,7 +483,7 @@ int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
     /* Apply corrections to reach the correct year */
     while (1) {
         /* Calculate the year offset */
-        yearoffset = dInfoCalc_YearOffset(year,calendar);
+        yearoffset = year_offset(year,calendar);
         if (PyErr_Occurred())
             goto onError;
         /* Backward correction: absdate must be greater than the
@@ -294,7 +493,7 @@ int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
             continue;
         }
         dayoffset = absdate - yearoffset;
-        leap = dInfoCalc_Leapyear(year,calendar);
+        leap = is_leapyear(year,calendar);
         /* Forward correction: non leap years only have 365 days */
         if (dayoffset > 365 && !leap) {
             year++;
@@ -313,10 +512,10 @@ int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
             break;
         }
         dinfo->month = month;
-        dinfo->quarter = monthToQuarter(month);
+        dinfo->quarter = month_to_quarter(month);
         dinfo->day = dayoffset - month_offset[leap][month-1];
     }
-    dinfo->day_of_week = dInfoCalc_DayOfWeek(absdate);
+    dinfo->day_of_week = day_of_week(absdate);
     dinfo->day_of_year = dayoffset;
     dinfo->absdate = absdate;
     return 0;
@@ -324,9 +523,11 @@ int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
     return -1;
 }
 
+
+
 /* Sets the time part of the DateTime object. */
 static
-int dInfoCalc_SetFromAbsTime(struct date_info *dinfo,
+int dInfoCalc_SetFromAbsTime(dateinfostruct *dinfo,
                              double abstime)
 {
     int inttime;
@@ -349,7 +550,7 @@ int dInfoCalc_SetFromAbsTime(struct date_info *dinfo,
    may be set to the flags: GREGORIAN_CALENDAR, JULIAN_CALENDAR to
    indicate the calendar to be used. */
 static
-int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
+int dInfoCalc_SetFromAbsDateTime(dateinfostruct *dinfo,
                                  long absdate,
                                  double abstime,
                                  int calendar)
@@ -374,19 +575,146 @@ int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
 ====================================================
 */
 
+/*
+ * Fill a datetimestruct from a value and a frequency
+ * from numpy.datetime.c
+ */
 
+//void DatetimeToDatetimeStruct(npy_longlong val, long unit,
+//                              npy_datetimestruct *result)
+//{
+//    int year=0, month=1, day=1,
+//        hour=0, min=0, sec=0,
+//        us = 0, ps = 0, as = 0;
+//
+//    npy_int64 tmp;
+//    ymdstruct ymd;
+//    hmsstruct hms;
+//
+//    if (unit == FR_ANN) {
+//        year = val;
+//    }
+//    else if (unit == FR_QTR){
+//        year = 0
+//    }
+//
+//}
+
+NPY_NO_EXPORT npy_longlong
+DatetimeStructToDatetime(long unit, our_datetimestruct *d)
+{
+    npy_longlong val;
+    npy_longlong days=0;
+
+
+    long ugroup = get_freq_group(unit);
+
+    if ((unit > FR_MTH) || (unit == FR_UND)) {
+        days = days_from_ymd(d->year, d->month, d->day);
+        if (unit >= FR_HR){
+            days -= HIGHFREQ_ORIG;
+        };
+    };
+    if (ugroup == FR_ANN) {
+        val = d->year;
+    }
+    else if (ugroup == FR_QTR) {
+        npy_longlong quarter = ((d->month -1 )/3) + 1;
+        if ((unit - ugroup) > 12) {
+            // quarterly frequency with year determined by ending period
+            val = d->year*4 + quarter;
+        }
+        else {
+            /* quarterly frequency with year determined by ending period
+                           or has December year end*/
+            val = (d->year - 1)*4 + quarter;
+        };
+    }
+    else if (unit == FR_MTH) {
+        val = (d->year-1)*12 + d->month;
+    }
+    else if (ugroup == FR_WK) {
+        npy_longlong end_week_day, adj_day;
+        end_week_day = (7 - (unit-FR_WK)) % 7;
+        adj_day = days + ((7 - end_week_day) - days % 7) % 7;
+        val = adj_day / 7;
+    }
+    else if (unit == FR_BUS) {
+        npy_longlong weeks = days/7;
+        val = days - weeks * 2;
+        /*
+        int dotw = day_of_week(days);
+        if (dotw > 4){
+            // Invalid business day
+            val = 0;
+        }
+        else {
+            npy_longlong x = days -2;
+            val = 2 + (x/7)*5 + x%7;
+        }
+        */
+    }
+    else if ((unit == FR_DAY) || (unit==FR_UND)){
+        val = days;
+    }
+    else if (unit == FR_HR) {
+        val = days * 24 + d->hour;
+    }
+    else if (unit == FR_MIN){
+        val = days * 1440 + d->hour * 60 + d->min;
+    }
+    else if (unit == FR_SEC){
+        val = days *  (npy_int64)(86400)
+            + secs_from_hms(d->hour, d->min, d->sec, 1);
+    }
+    else {
+        /* Shouldn't get here */
+        PyErr_SetString(PyExc_ValueError, "invalid internal frequency");
+        val = -1;
+    }
+    return val;
+}
+
+
+NPY_NO_EXPORT npy_longlong
+PyDatetime_ToDatetime(long unit, PyObject *datetime)
+{
+    our_datetimestruct dinfo;
+    npy_longlong val;
+
+    if (!PyDateTime_Check(datetime) && !PyDate_Check(datetime)){
+        PyObject *err_msg, *_type;
+        _type = PyObject_Type(datetime);
+        err_msg = PyString_FromString("Expected a datetime.date(time) object, received: ");
+        PyString_ConcatAndDel(&err_msg, PyObject_Str(_type));
+        PyErr_SetString(PyExc_TypeError, PyString_AsString(err_msg));
+        Py_DECREF(_type);
+        Py_DECREF(err_msg);
+        val = -1;
+    }
+    else {
+        dinfo.year = (npy_longlong)PyDateTime_GET_YEAR(datetime);
+        dinfo.month = PyDateTime_GET_MONTH(datetime);
+//        quarter=((month-1)/3)+1;
+        dinfo.day = (int)PyDateTime_GET_DAY(datetime);
+        dinfo.hour = (int)PyDateTime_DATE_GET_HOUR(datetime);
+        dinfo.min = (int)PyDateTime_DATE_GET_MINUTE(datetime);
+        dinfo.sec = (int)PyDateTime_DATE_GET_SECOND(datetime);
+        //
+        val = DatetimeStructToDatetime(unit, &dinfo);
+    }
+    return val;
+}
 
 
 
 ///////////////////////////////////////////////////////////////////////
 
-static long absdate_from_ymd(int y, int m, int d) {
-    struct date_info tempDate;
-    if (dInfoCalc_SetFromDateAndTime(&tempDate, y, m, d, 0, 0, 0, GREGORIAN_CALENDAR)) {
-        return INT_ERR_CODE;
-    };
-    return tempDate.absdate;
-};
+//static long absdate_from_ymd(int y, int m, int d) {
+//    dateinfostruct dinfo;
+//    dinfo = info_to_dateinfostruct(y,m,d,0,0,0,GREGORIAN_CALENDAR);
+//    return dinfo.absdate;
+//};
 
 // helpers for frequency conversion routines //
 
@@ -419,7 +747,7 @@ static long DtoB_WeekendToFriday(long absdate, int day_of_week) {
 //************ FROM DAILY ***************
 
 static long asfreq_DtoA(long fromDate, char relation, asfreq_info *af_info) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, fromDate, GREGORIAN_CALENDAR)) return INT_ERR_CODE;
     if (dinfo.month > af_info->to_a_year_end) {
         return (long)(dinfo.year + 1);
@@ -431,7 +759,7 @@ static long asfreq_DtoA(long fromDate, char relation, asfreq_info *af_info) {
 
 static long DtoQ_yq(long fromDate, asfreq_info *af_info,
                               int *year, int *quarter) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, fromDate, GREGORIAN_CALENDAR)) return INT_ERR_CODE;
     if (af_info->to_q_year_end != 12) {
         dinfo.month -= af_info->to_q_year_end;
@@ -441,7 +769,7 @@ static long DtoQ_yq(long fromDate, asfreq_info *af_info,
         else {
             dinfo.year += 1;
             }
-        dinfo.quarter = monthToQuarter(dinfo.month);
+        dinfo.quarter = month_to_quarter(dinfo.month);
     }
     *year = dinfo.year;
     *quarter = dinfo.quarter;
@@ -458,7 +786,7 @@ static long asfreq_DtoQ(long fromDate, char relation, asfreq_info *af_info) {
 }
 
 static long asfreq_DtoM(long fromDate, char relation, asfreq_info *af_info) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, fromDate, GREGORIAN_CALENDAR)) {
         return INT_ERR_CODE;
     };
@@ -470,7 +798,7 @@ static long asfreq_DtoW(long fromDate, char relation, asfreq_info *af_info) {
 }
 
 static long asfreq_DtoB(long fromDate, char relation, asfreq_info *af_info) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, fromDate, GREGORIAN_CALENDAR)) {
         return INT_ERR_CODE;
     };
@@ -482,7 +810,7 @@ static long asfreq_DtoB(long fromDate, char relation, asfreq_info *af_info) {
 }
 
 static long asfreq_DtoB_forConvert(long fromDate, char relation, asfreq_info *af_info) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, fromDate, GREGORIAN_CALENDAR)) {
         return INT_ERR_CODE;
     };
@@ -690,7 +1018,7 @@ static long asfreq_WtoW(long fromDate, char relation, asfreq_info *af_info) {
     return asfreq_DtoW(asfreq_WtoD(fromDate, relation, af_info), relation, af_info);
     };
 static long asfreq_WtoB(long fromDate, char relation, asfreq_info *af_info) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, asfreq_WtoD(fromDate, relation, af_info), GREGORIAN_CALENDAR)) {
         return INT_ERR_CODE;
     };
@@ -721,11 +1049,11 @@ static long asfreq_MtoD(long fromDate, char relation, asfreq_info *af_info) {
     long y, m, absdate;
     if (relation == 'S') {
         MtoD_ym(fromDate, &y, &m);
-        if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
+        if ((absdate = days_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
         return absdate;
     } else {
         MtoD_ym(fromDate+1, &y, &m);
-        if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
+        if ((absdate = days_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
         return absdate-1;
     };
 };
@@ -739,7 +1067,7 @@ static long asfreq_MtoW(long fromDate, char relation, asfreq_info *af_info) {
     return asfreq_DtoW(asfreq_MtoD(fromDate, relation, &NULL_AF_INFO), relation, af_info);
     };
 static long asfreq_MtoB(long fromDate, char relation, asfreq_info *af_info) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, asfreq_MtoD(fromDate, relation, &NULL_AF_INFO), GREGORIAN_CALENDAR)) {
         return INT_ERR_CODE;
     };
@@ -776,11 +1104,11 @@ static long asfreq_QtoD(long fromDate, char relation, asfreq_info *af_info) {
     long y, m, absdate;
     if (relation == 'S') {
         QtoD_ym(fromDate, &y, &m, af_info);
-        if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
+        if ((absdate = days_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
         return absdate;
     } else {
         QtoD_ym(fromDate+1, &y, &m, af_info);
-        if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
+        if ((absdate = days_from_ymd(y, m, 1)) == INT_ERR_CODE) return INT_ERR_CODE;
         return absdate - 1;
     };
 };
@@ -797,7 +1125,7 @@ static long asfreq_QtoW(long fromDate, char relation, asfreq_info *af_info) {
     return asfreq_DtoW(asfreq_QtoD(fromDate, relation, af_info), relation, af_info);
     };
 static long asfreq_QtoB(long fromDate, char relation, asfreq_info *af_info) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, asfreq_QtoD(fromDate, relation, af_info), GREGORIAN_CALENDAR)) {
         return INT_ERR_CODE;
     };
@@ -835,7 +1163,7 @@ static long asfreq_AtoD(long fromDate, char relation, asfreq_info *af_info) {
         else {year = fromDate;}
         final_adj = -1;
     }
-    absdate = absdate_from_ymd(year, month, 1);
+    absdate = days_from_ymd(year, month, 1);
     if (absdate  == INT_ERR_CODE) return INT_ERR_CODE;
     return absdate + final_adj;
 }
@@ -853,7 +1181,7 @@ static long asfreq_AtoW(long fromDate, char relation, asfreq_info *af_info) {
     return asfreq_DtoW(asfreq_AtoD(fromDate, relation, af_info), relation, af_info);
     };
 static long asfreq_AtoB(long fromDate, char relation, asfreq_info *af_info) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if (dInfoCalc_SetFromAbsDate(&dinfo, asfreq_AtoD(fromDate, relation, af_info), GREGORIAN_CALENDAR)) {
         return INT_ERR_CODE;
     };
@@ -1203,6 +1531,7 @@ DateObject_init(DateObject *self, PyObject *args, PyObject *kwds) {
         hour=def_info, minute=def_info, second=def_info;
     int free_dt=0;
 
+
     static char *kwlist[] = {"freq", "value", "string",
                              "year", "month", "day", "quarter",
                              "hour", "minute", "second",
@@ -1224,6 +1553,7 @@ DateObject_init(DateObject *self, PyObject *args, PyObject *kwds) {
         if((self->freq = check_freq(freq)) == INT_ERR_CODE) return -1;
     }
 
+    // The input value is a date string...
     if ((value && PyString_Check(value)) || string) {
 
         PyObject *string_arg = PyTuple_New(1);
@@ -1259,27 +1589,9 @@ DateObject_init(DateObject *self, PyObject *args, PyObject *kwds) {
         int freq_group = get_freq_group(self->freq);
 
         if (datetime) {
-            if (PyDateTime_Check(datetime) || PyDate_Check(datetime)) {
-                year=PyDateTime_GET_YEAR(datetime);
-                month=PyDateTime_GET_MONTH(datetime);
-                quarter=((month-1)/3)+1;
-                day=PyDateTime_GET_DAY(datetime);
-                hour=PyDateTime_DATE_GET_HOUR(datetime);
-                minute=PyDateTime_DATE_GET_MINUTE(datetime);
-                second=PyDateTime_DATE_GET_SECOND(datetime);
-            } else {
-                PyObject *err_msg, *_type;
-                _type = PyObject_Type(datetime);
-                err_msg = PyString_FromString("Expected datetime object, received: ");
-                PyString_ConcatAndDel(&err_msg, PyObject_Str(_type));
-                PyErr_SetString(PyExc_TypeError, PyString_AsString(err_msg));
-                Py_DECREF(_type);
-                Py_DECREF(err_msg);
-                return -1;
-            }
+            self->value = PyDatetime_ToDatetime(self->freq, datetime);
         }
-
-        if (!datetime) {
+        else {
             // First, some basic checks.....
             if (year == def_info) {
                 INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
@@ -1292,15 +1604,19 @@ DateObject_init(DateObject *self, PyObject *args, PyObject *kwds) {
                     INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
                 }
                 // if FR_BUS, check for week day
-            } else if (self->freq == FR_MTH) {
+            }
+            else if (self->freq == FR_MTH) {
                 if (month == def_info) {
                     INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
                 }
-            } else if (freq_group == FR_QTR) {
+            }
+            else if (freq_group == FR_QTR) {
                 if (quarter == def_info) {
                     INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
                 }
-            } else if (self->freq == FR_SEC) {
+                month = (quarter-1) * 3 + 1;
+            }
+            else if (self->freq == FR_SEC) {
                 if (month == def_info ||
                     day == def_info ||
                     second == def_info) {
@@ -1310,10 +1626,12 @@ DateObject_init(DateObject *self, PyObject *args, PyObject *kwds) {
                     hour = second/3600;
                     minute = (second % 3600)/60;
                     second = second % 60;
-                } else if (minute == def_info) {
+                }
+                else if (minute == def_info) {
                     INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
                 }
-            } else if (self->freq == FR_MIN) {
+            }
+            else if (self->freq == FR_MIN) {
                 if (month == def_info ||
                     day == def_info ||
                     minute == def_info) {
@@ -1323,59 +1641,26 @@ DateObject_init(DateObject *self, PyObject *args, PyObject *kwds) {
                     hour = minute/60;
                     minute = minute % 60;
                 }
-            } else if (self->freq == FR_HR) {
+            }
+            else if (self->freq == FR_HR) {
                 if (month == def_info ||
                     day == def_info ||
                     hour == def_info) {
                     INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
                 }
             }
-        }
 
-        if (self->freq == FR_SEC) {
-            long absdays, delta;
-            absdays = absdate_from_ymd(year, month, day);
-            delta = (absdays - HIGHFREQ_ORIG);
-            self->value = (long)(delta*86400 + hour*3600 + minute*60 + second);
-        } else if (self->freq == FR_MIN) {
-            long absdays, delta;
-            absdays = absdate_from_ymd(year, month, day);
-            delta = (absdays - HIGHFREQ_ORIG);
-            self->value = (long)(delta*1440 + hour*60 + minute);
-        } else if (self->freq == FR_HR) {
-            long absdays, delta;
-            if((absdays = absdate_from_ymd(year, month, day)) == INT_ERR_CODE) return -1;
-            delta = (absdays - HIGHFREQ_ORIG);
-            self->value = (long)(delta*24 + hour);
-        } else if (self->freq == FR_DAY) {
-            if((self->value = (long)absdate_from_ymd(year, month, day)) == INT_ERR_CODE) return -1;
-        } else if (self->freq == FR_UND) {
-            if((self->value = (long)absdate_from_ymd(year, month, day)) == INT_ERR_CODE) return -1;
-        } else if (self->freq == FR_BUS) {
-            long weeks, days;
-            if((days = absdate_from_ymd(year, month, day)) == INT_ERR_CODE) return -1;
-            weeks = days/7;
-            self->value = (long)(days - weeks*2);
-        } else if (freq_group == FR_WK) {
-            long adj_ordinal, ordinal, day_adj;
-            if((ordinal = (long)absdate_from_ymd(year, month, day)) == INT_ERR_CODE) return -1;
-            day_adj = (7 - (self->freq - FR_WK)) % 7;
-            adj_ordinal = ordinal + ((7 - day_adj) - ordinal % 7) % 7;
-            self->value = adj_ordinal/7;
-        } else if (self->freq == FR_MTH) {
-            self->value = (year-1)*12 + month;
-        } else if (freq_group == FR_QTR) {
-            if ((self->freq - freq_group) > 12) {
-                // quarterly frequency with year determined by ending period
-                self->value = year*4 + quarter;
-            } else {
-                /* quarterly frequency with year determined by ending period
-                   or has December year end*/
-                self->value = (year-1)*4 + quarter;
-            }
-        } else if (freq_group == FR_ANN) {
-            self->value = year;
+            our_datetimestruct dinfo;
+            dinfo.year = year;
+            dinfo.month = month;
+            dinfo.day = day;
+            dinfo.hour = hour;
+            dinfo.min = minute;
+            dinfo.sec = second;
+
+            self->value = DatetimeStructToDatetime(self->freq, &dinfo);
         }
+//        if (s
     }
     if (free_dt) { Py_DECREF(datetime); }
     return 0;
@@ -1852,7 +2137,7 @@ DateObject_strftime(DateObject *self, PyObject *args)
     int extra_fmts_found[3] = {0,0,0};
     int extra_fmts_found_one = 0;
     struct tm c_date;
-    struct date_info tempDate;
+    dateinfostruct tempDate;
     long absdate;
     double abstime;
     int i, result_len;
@@ -2206,7 +2491,7 @@ static PyObject *
 date_plus_timedelta(PyObject *datearg, PyObject *deltaarg){
     DateObject *date = (DateObject*)datearg;
     TimeDeltaObject *delta = (TimeDeltaObject*)deltaarg;
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     long seconds, minutes, hours, days, months, years;
     PyObject *daily_obj = DateObject_toordinal(date);
     long absdate = PyInt_AsLong(daily_obj);
@@ -2652,7 +2937,7 @@ DateObject___long__(DateObject *self) {
 
 // helper function for date property funcs
 static int
-DateObject_set_date_info(DateObject *self, struct date_info *dinfo) {
+DateObject_set_date_info(DateObject *self, dateinfostruct *dinfo) {
     PyObject *daily_obj = DateObject_toordinal(self);
     long absdate = PyInt_AsLong(daily_obj);
 //    long absdate = PyLong_AsLong(daily_obj);
@@ -2663,7 +2948,7 @@ DateObject_set_date_info(DateObject *self, struct date_info *dinfo) {
 
 // helper function for date property funcs
 static int
-DateObject_set_date_info_wtime(DateObject *self, struct date_info *dinfo) {
+DateObject_set_date_info_wtime(DateObject *self, dateinfostruct *dinfo) {
     PyObject *daily_obj = DateObject_toordinal(self);
     long absdate = PyInt_AsLong(daily_obj);
 //    long absdate = PyLong_AsLong(daily_obj);
@@ -2677,13 +2962,13 @@ DateObject_set_date_info_wtime(DateObject *self, struct date_info *dinfo) {
 
 static PyObject *
 DateObject_year(DateObject *self, void *closure) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if(DateObject_set_date_info(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong(dinfo.year);
 }
 //static PyObject *
 //DeltaObject_year(DeltaObject *self, void *closure) {
-//    struct date_info dinfo;
+//    dateinfostruct dinfo;
 //    if(DeltaObject_set_date_info(self, &dinfo) == -1) return NULL;
 //    return PyInt_FromLong(dinfo.year);
 //}
@@ -2734,63 +3019,63 @@ DateObject_quarter(DateObject *self, void *closure) {
 
 static PyObject *
 DateObject_month(DateObject *self, void *closure) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if(DateObject_set_date_info(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong(dinfo.month);
 }
 
 static PyObject *
 DateObject_day(DateObject *self, void *closure) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if(DateObject_set_date_info(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong(dinfo.day);
 }
 
 static PyObject *
 DateObject_weekday(DateObject *self, void *closure) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if(DateObject_set_date_info(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong(dinfo.day_of_week);
 }
 
 static PyObject *
 DateObject_day_of_week(DateObject *self, void *closure) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if(DateObject_set_date_info(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong(dinfo.day_of_week);
 }
 
 static PyObject *
 DateObject_day_of_year(DateObject *self, void *closure) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if(DateObject_set_date_info(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong(dinfo.day_of_year);
 }
 
 static PyObject *
 DateObject_week(DateObject *self, void *closure) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if(DateObject_set_date_info(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong(dInfoCalc_ISOWeek(&dinfo));
 }
 
 static PyObject *
 DateObject_hour(DateObject *self, void *closure) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if(DateObject_set_date_info_wtime(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong(dinfo.hour);
 }
 
 static PyObject *
 DateObject_minute(DateObject *self, void *closure) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if(DateObject_set_date_info_wtime(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong(dinfo.minute);
 }
 
 static PyObject *
 DateObject_second(DateObject *self, void *closure) {
-    struct date_info dinfo;
+    dateinfostruct dinfo;
     if(DateObject_set_date_info_wtime(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong((int)dinfo.second);
 }
@@ -2816,7 +3101,7 @@ DateObject_datetime(DateObject *self, void *closure) {
     PyObject *datetime;
     int hour=0, minute=0, second=0;
     int freq_group;
-    struct date_info dinfo;
+    dateinfostruct dinfo;
 
     if(DateObject_set_date_info_wtime(self, &dinfo) == -1) return NULL;
     freq_group = get_freq_group(self->freq);

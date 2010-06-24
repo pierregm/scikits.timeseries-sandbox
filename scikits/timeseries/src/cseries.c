@@ -1,6 +1,7 @@
 #include "c_lib.h"
 #include "c_freqs.h"
 #include "c_dates.h"
+#include "c_datearray.h"
 #include "c_tseries.h"
 
 static PyMethodDef cseries_methods[] = {
@@ -70,6 +71,7 @@ initcseries(void)
     import_c_lib(m);
     import_c_freqs(m);
     import_c_dates(m);
+    import_c_datearray(m);
     import_c_tseries(m);
 
 }
