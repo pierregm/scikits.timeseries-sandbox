@@ -109,6 +109,7 @@ DateTimeArray_freqstr(DateTimeArray *self) {
 
 
 
+
 static PyMemberDef DateTimeArray_members[] = {
     {"unit", T_INT, offsetof(DateTimeArray, unit), 0,
      "frequency"},
@@ -171,7 +172,7 @@ static PyTypeObject DateTimeArray_Type = {
     0,                                        /* tp_setattro */
     0,                                        /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
-    "iBase array objects",                    /* tp_doc */
+    "DateTimeArray",                          /* tp_doc */
     0,                                        /* tp_traverse */
     0,                                        /* tp_clear */
     0,     /* tp_richcompare */
@@ -190,6 +191,11 @@ static PyTypeObject DateTimeArray_Type = {
     0,                                        /* tp_alloc */
     DateTimeArray_new,                        /* tp_new */
 };
+
+
+
+
+
 
 
 /*

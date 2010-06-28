@@ -11,6 +11,7 @@ def configuration(parent_package='', top_path=None):
     confgr = Configuration('timeseries', parent_package, top_path)
     sources = [join('src', x) for x in ('c_lib.c',
                                         'c_freqs.c',
+                                        'c_convert.c',
                                         'c_dates.c',
                                         'c_datearray.c',
                                         'c_tseries.c',

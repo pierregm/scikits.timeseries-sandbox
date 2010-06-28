@@ -1,4 +1,5 @@
 #include "c_freqs.h"
+#include "c_convert.h"
 #include "c_dates.h"
 #include "c_tseries.h"
 
@@ -15,8 +16,8 @@ static long get_width(int fromFreq, int toFreq) {
     int maxDaysPerQuarter = 92;
     int maxDaysPerMonth = 31;
 
-    int fromGroup = get_freq_group(fromFreq);
-    int toGroup = get_freq_group(toFreq);
+    int fromGroup = get_base_unit(fromFreq);
+    int toGroup = get_base_unit(toFreq);
 
     if (fromGroup == FR_UND) { fromGroup = FR_DAY; }
 
@@ -114,8 +115,8 @@ TimeSeries_convert(PyObject *self, PyObject *args)
 
     long period;
     long startIndex, endIndex;
-    long newStart, newStartTemp;
-    long newEnd, newEndTemp;
+    npy_longlong newStart, newStartTemp;
+    npy_longlong newEnd, newEndTemp;
     long newLen, newWidth;
     long currIndex, prevIndex;
     long nd;
@@ -124,15 +125,16 @@ TimeSeries_convert(PyObject *self, PyObject *args)
     char *position;
     PyObject *fromFreq_arg, *toFreq_arg;
     int fromFreq, toFreq;
-    char relation;
-    asfreq_info af_info;
+    char relation_from, relation_to;
     int i;
+    conversion_function totmp, fromtmp;
+    conversion_info infoto, infofrom;
 
     PyObject *val, *valMask;
 
-    long (*asfreq_main)(long, char, asfreq_info*) = NULL;
-    long (*asfreq_endpoints)(long, char, asfreq_info*) = NULL;
-    long (*asfreq_reverse)(long, char, asfreq_info*) = NULL;
+    // long (*asfreq_main)(long, char, asfreq_info*) = NULL;
+    // long (*asfreq_endpoints)(long, char, asfreq_info*) = NULL;
+    // long (*asfreq_reverse)(long, char, asfreq_info*) = NULL;
 
     returnVal = PyDict_New();
 
@@ -165,24 +167,36 @@ TimeSeries_convert(PyObject *self, PyObject *args)
     {
         case 'S':
             // start -> before
-            relation = 'S';
+            relation_to = 'S';
             break;
         case 'E':
             // end -> after
-            relation = 'E';
+            relation_to = 'E';
             break;
         default:
             return NULL;
             break;
     }
+    if ((toFreq == FR_BUS) && (fromFreq < FR_DAY))
+        relation_from = 'S';
+    else
+        relation_from = relation_to;
 
-    get_asfreq_info(fromFreq, toFreq, &af_info);
+    totmp = convert_to_mediator(fromFreq, toFreq, 1);
+    set_conversion_info(fromFreq, 'S', &infoto);
+    fromtmp = convert_from_mediator(fromFreq, toFreq, 1);
+    set_conversion_info(toFreq, 'S', &infofrom);
 
-    asfreq_main = get_asfreq_func(fromFreq, toFreq, 1);
-    asfreq_endpoints = get_asfreq_func(fromFreq, toFreq, 0);
+
+
+    // get_asfreq_info(fromFreq, toFreq, &af_info);
+
+    // asfreq_main = get_asfreq_func(fromFreq, toFreq, 1);
+    // asfreq_endpoints = get_asfreq_func(fromFreq, toFreq, 0);
 
     //convert start index to new frequency
-    ERR_CHECK(newStartTemp = asfreq_main(startIndex, 'S', &af_info));
+    ERR_CHECK(newStartTemp = fromtmp(totmp(startIndex, &infoto), &infofrom));
+// asfreq_main(startIndex, 'S', &af_info));
     newStart = newStartTemp;
 //    if (newStartTemp < 1) {
 //        ERR_CHECK(newStart = asfreq_endpoints(startIndex, 'E', &af_info));
@@ -197,7 +211,11 @@ TimeSeries_convert(PyObject *self, PyObject *args)
 
     //convert end index to new frequency
     endIndex = startIndex + (array->dimensions[0] - 1)*period;
-    ERR_CHECK(newEndTemp = asfreq_main(endIndex, 'E', &af_info));
+
+    infoto.result_starts = (int)0;
+    infofrom.result_starts = (int)0;
+    ERR_CHECK(newEndTemp = fromtmp(totmp(endIndex, &infoto), &infofrom));
+    // ERR_CHECK(newEndTemp = asfreq_main(endIndex, 'E', &af_info));
 //    if (newEndTemp < 1) {
 //        ERR_CHECK(newEnd = asfreq_endpoints(endIndex, 'S', &af_info));
 //    } else { newEnd = newEndTemp; }
@@ -212,12 +230,19 @@ TimeSeries_convert(PyObject *self, PyObject *args)
 
     if (newWidth > 1) {
         long tempval;
-        asfreq_info af_info_rev;
+        conversion_function totmprev, fromtmprev;
+        conversion_info infotorev, infofromrev;
 
-        get_asfreq_info(toFreq, fromFreq, &af_info_rev);
-        asfreq_reverse = get_asfreq_func(toFreq, fromFreq, 0);
 
-        ERR_CHECK(tempval = asfreq_reverse(newStart, 'S', &af_info_rev));
+        // get_asfreq_info(toFreq, fromFreq, &af_info_rev);
+        // asfreq_reverse = get_asfreq_func(toFreq, fromFreq, 0);
+        totmprev = convert_to_mediator(toFreq, fromFreq, 0);
+        set_conversion_info(toFreq, 'S', &infotorev);
+        fromtmprev = convert_from_mediator(toFreq, fromFreq, 0);
+        set_conversion_info(fromFreq, 'S', &infofromrev);
+
+        // ERR_CHECK(tempval = asfreq_reverse(newStart, 'S', &af_info_rev));
+        ERR_CHECK(tempval = fromtmprev(totmprev(newStart, &infotorev), &infofromrev));
         currPerLen = startIndex - tempval;
 
         nd = 2;
@@ -243,7 +268,12 @@ TimeSeries_convert(PyObject *self, PyObject *args)
 
     prevIndex = newStart;
 
+    infofrom.result_starts = (relation_from == 'S');
+    infoto.result_starts = (relation_to == 'S');
+
+
     //set values in the new array
+
     for (i = 0; i < array->dimensions[0]; i++) {
 
         npy_intp idx = (npy_intp)i;
@@ -251,7 +281,8 @@ TimeSeries_convert(PyObject *self, PyObject *args)
         val = PyArray_GETITEM(array, PyArray_GetPtr(array, &idx));
         valMask = PyArray_GETITEM(mask, PyArray_GetPtr(mask, &idx));
 
-        ERR_CHECK(currIndex = asfreq_main(startIndex + i*period, relation, &af_info));
+        // ERR_CHECK(currIndex = asfreq_main(startIndex + i*period, relation, &af_info));
+        ERR_CHECK(currIndex = fromtmp(totmp(startIndex + i*period, &infoto), &infofrom));
 
         newIdx[0] = (npy_intp)(currIndex-newStart);
 

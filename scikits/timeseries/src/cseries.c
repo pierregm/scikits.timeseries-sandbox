@@ -1,5 +1,7 @@
 #include "c_lib.h"
+#include "dtypes.h"
 #include "c_freqs.h"
+#include "c_convert.h"
 #include "c_dates.h"
 #include "c_datearray.h"
 #include "c_tseries.h"

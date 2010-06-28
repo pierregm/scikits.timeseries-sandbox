@@ -7,7 +7,7 @@
 
 typedef struct {
     PyArrayObject array;
-    PyObject *cached_vals;
+//    PyObject *cached_vals;
     long unit;
 } DateTimeArray;
 

@@ -86,7 +86,9 @@
 
 
 int check_freq(PyObject *);
-int get_freq_group(int);
+
+#define get_base_unit(unit) (((unit)/1000)*1000)
+
 //int build_freq_dict(void);
 
 PyObject *c_freqs_check_freq(PyObject *, PyObject *);

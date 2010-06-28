@@ -21,7 +21,8 @@
 
 
 
-int get_freq_group(int freq) { return (freq/1000)*1000; }
+// int get_freq_group(int freq) { return (freq/1000)*1000; }
+// int base_unit(int freq) { return (freq/1000)*1000; }
 
 
 
@@ -320,7 +321,7 @@ c_freqs_get_freq_group(PyObject *self, PyObject *args) {
     int freq_val;
     if (!PyArg_ParseTuple(args, "O:get_freq_group(freq)", &freq)) return NULL;
     if ((freq_val = check_freq(freq)) == INT_ERR_CODE) return NULL;
-    return PyInt_FromLong(get_freq_group(freq_val));
+    return PyInt_FromLong(get_base_unit(freq_val));
 }
 
 

@@ -2,6 +2,7 @@
 #define C_DATES_H
 
 #include "c_lib.h"
+#include "dtypes.h"
 
 #define HIGHFREQ_ORIG 719163
 
