@@ -3,8 +3,6 @@
 
 #include "c_lib.h"
 #include "dtypes.h"
-#include <datetime.h>
-#include <time.h>
 
 
 #define GREGORIAN_CALENDAR 0
@@ -14,18 +12,28 @@
 #define DAYS_TO_NPYDAYS(days) ((days) - HIGHFREQ_ORIG)
 #define NPYDAYS_TO_DAYS(npy_days) ((npy_days) + HIGHFREQ_ORIG)
 
+/* Returns absolute seconds from an hour, minute, and second [in np.datetime.c] */
+#define secs_from_hms(hour, min, sec, multiplier) (\
+  ((hour)*3600 + (min)*60 + (sec)) * (npy_int64)(multiplier)\
+)
 
 ymdstruct days_to_ymdstruct(npy_longlong, int);
 hmsstruct seconds_to_hmsstruct(npy_longlong);
+
+void set_datetimestruct_from_days(ts_datetimestruct*, npy_longlong);
+void set_datetimestruct_from_secs(ts_datetimestruct*, npy_longlong);
+void set_datetimestruct_from_days_and_secs(ts_datetimestruct*, npy_longlong, npy_longlong);
 
 
 npy_int64 highunits_per_day(int);
 int day_of_week(npy_longlong);
 int is_leapyear(long, int);
 npy_longlong year_offset(npy_longlong, int);
+int isoweek_from_datetimestruct(ts_datetimestruct*);
 
 npy_longlong days_from_ymdc(int, int, int, int);
 #define days_from_ymd(year, month, day) (days_from_ymdc((year), (month), (day), GREGORIAN_CALENDAR))
+double secs_from_ranged_hms(int, int, double);
 
 int ending_day(int);
 int ending_month(int);
@@ -39,28 +47,18 @@ typedef struct {
 } conversion_info;
 
 typedef npy_longlong (*conversion_function)(npy_longlong, conversion_info*);
-conversion_function get_converter_from(int, int, int);
-conversion_function get_converter_to(int, int, int);
 
-npy_longlong _days_from_highfreq(npy_longlong, conversion_info*);
-npy_longlong _secs_to_highfreq(npy_longlong, conversion_info*);
-npy_longlong _secs_from_midnight(npy_longlong, int);
-//npy_longlong (*_convert_from_days(int, int))(npy_longlong, int, char);
-//npy_longlong (*_convert_to_days(int, int))(npy_longlong, int, char);
 conversion_function get_converter_from_days(int, int);
 conversion_function get_converter_to_days(int, int);
 conversion_function convert_to_mediator(int, int, int);
 conversion_function convert_from_mediator(int, int, int);
 
+npy_longlong _days_from_highfreq(npy_longlong, conversion_info*);
+npy_longlong _secs_to_highfreq(npy_longlong, conversion_info*);
+npy_longlong _secs_from_midnight(npy_longlong, int);
+
+
 void set_conversion_info(int, char, conversion_info*);
-
-//DERIVED FROM mx.DateTime
-/*
-    Functions in the following section are borrowed from mx.DateTime version
-    2.0.6, and hence this code is subject to the terms of the egenix public
-    license version 1.0.0
-*/
-
 
 
 #endif

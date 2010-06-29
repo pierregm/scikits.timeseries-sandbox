@@ -59,10 +59,6 @@ npy_int64 seconds_per_period(int freq, npy_int64 multiplier)
 }
 
 
-/* Returns absolute seconds from an hour, minute, and second [in np.datetime.c] */
-#define secs_from_hms(hour, min, sec, multiplier) (\
-  ((hour)*3600 + (min)*60 + (sec)) * (npy_int64)(multiplier)\
-)
 
 /* Returns the quarter */
 #define month_to_quarter(month) (((month)-1)/3 + 1)
@@ -194,7 +190,7 @@ days_from_ymdc(int year, int month, int day, int calendar)
 #define days_from_ymd(year, month, day) (days_from_ymdc((year), (month), (day), GREGORIAN_CALENDAR))
 
 
-static double
+double
 secs_from_ranged_hms(int hour, int minute, double second)
 {
     Py_AssertWithArg(hour >= 0 && hour <= 23,
@@ -273,6 +269,7 @@ days_to_ymdstruct(npy_longlong absdate, int calendar)
     ymd.year  = year;
     ymd.month = month;
     ymd.day   = day;
+    ymd.day_of_year = dayoffset;
 
     return ymd;
 };
@@ -308,6 +305,14 @@ isoweek_from_ymdc(int year, int month, int day, int calendar)
     return week;
 };
 
+int isoweek_from_datetimestruct(ts_datetimestruct *dinfo)
+{
+	return isoweek_from_ymdc(dinfo->year,
+                             dinfo->month,
+                             dinfo->day,
+                             GREGORIAN_CALENDAR);
+}
+
 
 
 hmsstruct
@@ -328,11 +333,35 @@ seconds_to_hmsstruct(npy_longlong abstime)
 };
 
 
+void set_datetimestruct_from_days(ts_datetimestruct *info, npy_longlong days)
+{
+    ymdstruct ymd = days_to_ymdstruct(days, GREGORIAN_CALENDAR);
+    info->year = ymd.year;
+    info->month = ymd.month;
+    info->day = ymd.day;
+    info->day_of_year = ymd.day_of_year;
+}
+
+void set_datetimestruct_from_secs(ts_datetimestruct *info, npy_longlong secs)
+{
+    hmsstruct hms = seconds_to_hmsstruct(secs);
+    info->hour = hms.hour;
+    info->min = hms.min;
+    info->sec = hms.sec;
+}
+
+void set_datetimestruct_from_days_and_secs(ts_datetimestruct *info,
+                                 npy_longlong days,
+                                 npy_longlong secs)
+{
+    set_datetimestruct_from_days(info, days);
+    set_datetimestruct_from_secs(info, secs);
+}
 
 
 //NPY_NO_EXPORT
 npy_longlong
-DatetimeStructToDatetime(long unit, our_datetimestruct *d)
+DatetimeStructToDatetime(int unit, ts_datetimestruct *d)
 {
     npy_longlong val;
     npy_longlong days=0;
@@ -406,12 +435,29 @@ DatetimeStructToDatetime(long unit, our_datetimestruct *d)
     return val;
 }
 
+//ts_datetimeinfo
+//DatetimeToDatetimeStruct(int unit, npy_longlong value)
+//{
+//    ts_datetimestruct info;
+//
+//    if (unit <= FR_DAY) {
+//        conversion_function todays = get_converter_to_days(unit, 0);
+//        conversion_info convinfo;
+//        set_conversion_info(unit, 'S', &info);
+//        npy_longlong absdate = todays(unit, &info);
+//        set_info_from_days(*info, days);
+//    }
+//
+//    set_info_from_days(*info, days);
+//    set_info_from_secs(*info, secs);
+//}
+
 
 //NPY_NO_EXPORT
 npy_longlong
 PyDatetime_ToDatetime(long unit, PyObject *datetime)
 {
-    our_datetimestruct dinfo;
+    ts_datetimestruct dinfo;
     npy_longlong val;
 
     if (!PyDateTime_Check(datetime) && !PyDate_Check(datetime)){
@@ -428,10 +474,10 @@ PyDatetime_ToDatetime(long unit, PyObject *datetime)
         dinfo.year = (npy_longlong)PyDateTime_GET_YEAR(datetime);
         dinfo.month = PyDateTime_GET_MONTH(datetime);
 //        quarter=((month-1)/3)+1;
-        dinfo.day = (int)PyDateTime_GET_DAY(datetime);
-        dinfo.hour = (int)PyDateTime_DATE_GET_HOUR(datetime);
-        dinfo.min = (int)PyDateTime_DATE_GET_MINUTE(datetime);
-        dinfo.sec = (int)PyDateTime_DATE_GET_SECOND(datetime);
+        dinfo.day = PyDateTime_GET_DAY(datetime);
+        dinfo.hour = PyDateTime_DATE_GET_HOUR(datetime);
+        dinfo.min = PyDateTime_DATE_GET_MINUTE(datetime);
+        dinfo.sec = PyDateTime_DATE_GET_SECOND(datetime);
         //
         val = DatetimeStructToDatetime(unit, &dinfo);
     }
@@ -442,7 +488,8 @@ PyDatetime_ToDatetime(long unit, PyObject *datetime)
 /* Helpers for frequency conversion routines */
 #define _days_to_bus_weekday(days) ((((days)/ 7) * 5) + (absdate) % 7)
 
-static long _days_to_bus_weekend_to_monday(long absdate, int day_of_week) {
+static long _days_to_bus_weekend_to_monday(long absdate, int day_of_week) 
+{
     if (day_of_week > 4) {
         //change to Monday after weekend
         absdate += (7 - day_of_week);
@@ -450,7 +497,8 @@ static long _days_to_bus_weekend_to_monday(long absdate, int day_of_week) {
     return _days_to_bus_weekday(absdate);
 };
 
-static long _days_to_bus_weekend_to_friday(long absdate, int day_of_week) {
+static long _days_to_bus_weekend_to_friday(long absdate, int day_of_week) 
+{
     if (day_of_week > 4) {
         //change to friday before weekend
         absdate -= (day_of_week - 4);
@@ -744,33 +792,8 @@ _secs_to_highfreq(npy_longlong indate, conversion_info *info)
 
 
 
-// 
-// /* Use secs as intermediary for high frequencies, days otherwise... */
-// if ((self->freq > FR_DAY) && (tofreq > FR_DAY))
-//     val = _secs_from_highfreq(self->value, self->freq, relation);
-// else
-//     val = _convert_to_days(self->value, self->freq, relation);
-// 
-// if ((tofreq == FR_DAY) || (tofreq == FR_UND)) {
-//     result->value = val;
-// }
-// else if (tofreq < FR_DAY) {
-//     /* Fix the conversion for low frequencies */
-//     if ((tofreq == FR_BUS) && (self->freq < FR_DAY))
-//         relation = 'S';
-//     result->value = _convert_from_days(val, tofreq, relation);
-// }
-// else {
-//     /*High frequencies*/
-//     if (self->freq <= FR_DAY)
-//         result->value = _convert_from_days(val, tofreq, relation);
-//     else
-//         result->value = _convert_from_secs(val, tofreq, relation);
-// };
-
 conversion_function convert_to_mediator(int fromunit, int tounit, int inbatch)
 {
-//    npy_longlong (*converter)(npy_longlong, int, char)=NULL;
     if ((fromunit > FR_DAY) && (tounit > FR_DAY))
         return &_secs_from_highfreq;
     else
@@ -779,7 +802,6 @@ conversion_function convert_to_mediator(int fromunit, int tounit, int inbatch)
 
 conversion_function convert_from_mediator(int fromunit, int tounit, int inbatch)
 {
-//    npy_longlong (*converter)(npy_longlong, unit, char) = NULL;
     if ((tounit == FR_DAY) || (tounit == FR_UND))
         return &no_convert;
     else if (tounit > FR_DAY)

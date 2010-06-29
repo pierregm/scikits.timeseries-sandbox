@@ -21,10 +21,6 @@
 
 
 
-// int get_freq_group(int freq) { return (freq/1000)*1000; }
-// int base_unit(int freq) { return (freq/1000)*1000; }
-
-
 
 static int init_freq_group(int num_items, int num_roots, int base_const,
                            char item_abbrevs[][2][10], char group_prefixes[][15],
@@ -99,6 +95,7 @@ static int reverse_dict(PyObject *source, PyObject *dest) {
     }
     return 0;
 }
+
 
 
 static int build_freq_dict(void) {
