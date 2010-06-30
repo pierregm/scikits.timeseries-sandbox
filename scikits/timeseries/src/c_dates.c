@@ -198,48 +198,6 @@ PyDatetime_ToDatetime(long unit, PyObject *datetime)
 
 
 
-///////////////////////////////////////////////////////////////////////
-
-
-void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info) {
-    int fromGroup = get_base_unit(fromFreq);
-    int toGroup = get_base_unit(toFreq);
-    switch(fromGroup)
-    {
-        case FR_WK: {
-//            af_info->from_week_end = calc_week_end(fromFreq, fromGroup);
-            af_info->from_week_end = ending_day(fromFreq);
-        } break;
-        case FR_ANN: {
-//            af_info->from_a_year_end = calc_a_year_end(fromFreq, fromGroup);
-            af_info->from_a_year_end = ending_month(fromFreq);
-        } break;
-        case FR_QTR: {
-//            af_info->from_q_year_end = calc_a_year_end(fromFreq, fromGroup);
-            af_info->from_q_year_end = ending_month(fromFreq);
-        } break;
-    }
-    switch(toGroup)
-    {
-        case FR_WK: {
-//            af_info->to_week_end = calc_week_end(toFreq, toGroup);
-            af_info->to_week_end = ending_day(toFreq);
-        } break;
-        case FR_ANN: {
-//            af_info->to_a_year_end = calc_a_year_end(toFreq, toGroup);
-            af_info->to_a_year_end = ending_month(toFreq);
-        } break;
-        case FR_QTR: {
-//            af_info->to_q_year_end = calc_a_year_end(toFreq, toGroup);
-            af_info->to_q_year_end = ending_month(toFreq);
-        } break;
-    }
-}
-
-
-
-
-
 /************************************************************
 ** Date type definition
 ************************************************************/
