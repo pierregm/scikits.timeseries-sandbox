@@ -8,6 +8,53 @@
 #include <time.h>
 
 
+/* ---------------------------------------------------------------------------
+ * Normalization utilities (from Python/datetime.c).
+ */
+
+/* Compute Python divmod(x, y), returning the quotient and storing the
+ * remainder into *r.  The quotient is the floor of x/y, and that's
+ * the real point of this.  C will probably truncate instead (C99
+ * requires truncation; C89 left it implementation-defined).
+ * Simplification:  we *require* that y > 0 here.  That's appropriate
+ * for all the uses made of it.  This simplifies the code and makes
+ * the overflow case impossible (divmod(LONG_MIN, -1) is the only
+ * overflow case).
+ */
+static npy_longlong
+divmod(npy_longlong x, npy_longlong y, npy_longlong *r)
+{
+    npy_longlong quo;
+
+    assert(y > 0);
+    quo = x / y;
+    *r = x - quo * y;
+    if (*r < 0) {
+        --quo;
+        *r += y;
+    }
+    assert(0 <= *r && *r < y);
+    return quo;
+}
+/* Modified in order to deal with negative seconds higher than -day
+ */
+static void
+normalize_pair(npy_longlong *hi, npy_longlong *lo, int factor)
+{
+    assert(factor > 0);
+    assert(lo != hi);
+    if (*lo <= -factor || *lo >= factor) {
+        const npy_longlong num_hi = divmod(*lo, factor, lo);
+        const npy_longlong new_hi = *hi + num_hi;
+        assert(! SIGNED_ADD_OVERFLOWED(new_hi, *hi, num_hi));
+        *hi = new_hi;
+    }
+    assert(-factor < *lo && *lo < factor);
+}
+
+
+
+
 /* Return the number of high unit periods per day*/
 npy_int64 highunits_per_day(int freq){
     switch(freq)
@@ -365,9 +412,7 @@ DatetimeStructToDatetime(int unit, ts_datetimestruct *d)
 {
     npy_longlong val;
     npy_longlong days=0;
-
-
-    long ugroup = get_base_unit(unit);
+    int ugroup = get_base_unit(unit);
 
     if ((unit > FR_MTH) || (unit == FR_UND)) {
         days = days_from_ymd(d->year, d->month, d->day);
@@ -435,22 +480,7 @@ DatetimeStructToDatetime(int unit, ts_datetimestruct *d)
     return val;
 }
 
-//ts_datetimeinfo
-//DatetimeToDatetimeStruct(int unit, npy_longlong value)
-//{
-//    ts_datetimestruct info;
-//
-//    if (unit <= FR_DAY) {
-//        conversion_function todays = get_converter_to_days(unit, 0);
-//        conversion_info convinfo;
-//        set_conversion_info(unit, 'S', &info);
-//        npy_longlong absdate = todays(unit, &info);
-//        set_info_from_days(*info, days);
-//    }
-//
-//    set_info_from_days(*info, days);
-//    set_info_from_secs(*info, secs);
-//}
+
 
 
 //NPY_NO_EXPORT
@@ -759,7 +789,7 @@ conversion_function get_converter_to_days(int fromunit, int inbatch)
 
 /* From seconds */
 
-static npy_longlong
+npy_longlong
 _secs_from_highfreq(npy_longlong indate, conversion_info *info)
 {
     npy_longlong secs_per_period = info->secs_per_period;
@@ -829,3 +859,16 @@ set_conversion_info(int unit, char relation, conversion_info *info){
     else
         info->result_starts = 0;
 }
+
+
+void normalize_days_secs(npy_longlong *d, npy_longlong *s)
+{
+    if (*s <= -86400 || *s >= 86400)
+        normalize_pair(d, s, 86400);
+}
+void normalize_years_months(npy_longlong *y, npy_longlong *m)
+{
+    normalize_pair(y, m, 12);
+    m += 1;
+}
+

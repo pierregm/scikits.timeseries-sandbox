@@ -1367,43 +1367,52 @@ class TestMethods(TestCase):
 
 
 def get_delta_attr(delta):
-    return [getattr(delta, _) for _ in ('years', 'months', 'days', 'seconds')]
+    return [getattr(delta, _) for _ in ('months', 'days', 'seconds')]
 
 class TestTimeDelta(TestCase):
     #
     def test_creation_w_values_and_units(self):
         "Test w/ values and units"
         delta = TimeDelta("Y", 5)
-        assert_equal(get_delta_attr(delta), [5, 0, 0, 0])
+        assert_equal(get_delta_attr(delta), [60, 0, 0])
         delta = TimeDelta("Q", 5)
-        assert_equal(get_delta_attr(delta), [0, 15, 0, 0])
+        assert_equal(get_delta_attr(delta), [15, 0, 0])
         delta = TimeDelta("M", 5)
-        assert_equal(get_delta_attr(delta), [0, 5, 0, 0])
+        assert_equal(get_delta_attr(delta), [5, 0, 0])
         delta = TimeDelta("W", 5)
-        assert_equal(get_delta_attr(delta), [0, 0, 35, 0])
+        assert_equal(get_delta_attr(delta), [0, 35, 0])
         delta = TimeDelta("D", 5)
-        assert_equal(get_delta_attr(delta), [0, 0, 5, 0])
+        assert_equal(get_delta_attr(delta), [0, 5, 0])
         delta = TimeDelta("H", 5)
-        assert_equal(get_delta_attr(delta), [0, 0, 0, 5 * 3600])
+        assert_equal(get_delta_attr(delta), [0, 0, 5 * 3600])
         delta = TimeDelta("T", 5)
-        assert_equal(get_delta_attr(delta), [0, 0, 0, 300])
+        assert_equal(get_delta_attr(delta), [0, 0, 300])
 
     def test_creation_w_keywords(self):
         "Test w/ keywords"
         delta = TimeDelta("D", years=1, months=1, quarters=1, days=1,
                           hours=1, minutes=1, seconds=1)
-        assert_equal(get_delta_attr(delta), [1, 4, 1, 3661])
+        assert_equal(get_delta_attr(delta), [16, 1, 3661])
         #
         "Tests w/ keywords and value"
         delta = TimeDelta("D", 1, years=1, months=1, quarters=1, days=1,
                           hours=1, minutes=1, seconds=1)
-        assert_equal(get_delta_attr(delta), [1, 4, 2, 3661])
+        assert_equal(get_delta_attr(delta), [16, 2, 3661])
+        "Tests w/ normalization"
+        delta = TimeDelta("S", days=1, hours=28, minutes=1444, seconds=86404)
+        assert_equal(get_delta_attr(delta), [0, 4, 14644])
     #
     def test_creation_w_timedelta(self):
         "Tests w/ timedelta "
         delta = TimeDelta("D", dt.timedelta(1, 60, 0))
-        assert_equal(get_delta_attr(delta), [0, 0, 1, 60])
-
+        assert_equal(get_delta_attr(delta), [0, 1, 60])
+        "Add to high freq"
+        date = Date("M", "2001-01-01 00:00")
+        test = date + TimeDelta("D", 5)
+        assert_equal(test, Date("M", "2001-01-06 00:00"))
+        "Add to high freqw/ normalization"
+        test = date + TimeDelta("D", days=4, seconds=86580)
+        assert_equal(test, Date("M", "2001-01-06 00:03"))
 
     def test_timedelta_property(self):
         "Tests TimeDelta.timedelta"
@@ -1415,9 +1424,9 @@ class TestTimeDelta(TestCase):
 
     def test_add_w_integers(self):
         "Test addition w integers"
-        results = dict(A=[2, 0, 0, 0], Q=[0, 6, 0, 0], M=[0, 2, 0, 0],
-                       W=[0, 0, 14, 0], D=[0, 0, 2, 0],
-                       H=[0, 0, 0, 7200], T=[0, 0, 0, 120], S=[0, 0, 0, 2])
+        results = dict(A=[24, 0, 0], Q=[6, 0, 0], M=[2, 0, 0],
+                       W=[0, 14, 0], D=[0, 2, 0],
+                       H=[0, 0, 7200], T=[0, 0, 120], S=[0, 0, 2])
         for (f, r) in results.items():
             delta = TimeDelta(f, 1)
             test = delta + 1
@@ -1431,37 +1440,37 @@ class TestTimeDelta(TestCase):
         "Test addition w/ TimeDelta"
         delta = TimeDelta('d', years=1, months=0)
         test = delta + TimeDelta('d', 1)
-        assert_equal(get_delta_attr(test), [1, 0, 1, 0])
+        assert_equal(get_delta_attr(test), [12, 1, 0])
         test = delta + TimeDelta('y', days=1)
-        assert_equal(get_delta_attr(test), [1, 0, 1, 0])
+        assert_equal(get_delta_attr(test), [12, 1, 0])
         test = delta - TimeDelta('d', 1)
-        assert_equal(get_delta_attr(test), [1, 0, -1, 0])
+        assert_equal(get_delta_attr(test), [12, -1, 0])
 
 
     def test_add_w_dttimedelta(self):
         "Test addition w/ timedelta"
         delta = TimeDelta('d', years=1, months=0)
         test = delta + dt.timedelta(1, 30, 0)
-        assert_equal(get_delta_attr(test), [1, 0, 1, 30])
+        assert_equal(get_delta_attr(test), [12, 1, 30])
         test = delta - dt.timedelta(1, 30, 0)
         try:
-            assert_equal(get_delta_attr(test), [1, 0, -1, -30])
+            assert_equal(get_delta_attr(test), [12, -1, -30])
         except AssertionError:
-            assert_equal(get_delta_attr(test), [1, 0, -2, 86400 - 30])
+            assert_equal(get_delta_attr(test), [12, -2, 86400 - 30])
 
     def test_multiply(self):
         "Test multiplication"
         delta = TimeDelta('d', 15, months=2)
         test = delta * 2
-        assert_equal(get_delta_attr(test), [0, 4, 30, 0])
+        assert_equal(get_delta_attr(test), [4, 30, 0])
         test = 2 * delta
-        assert_equal(get_delta_attr(test), [0, 4, 30, 0])
+        assert_equal(get_delta_attr(test), [4, 30, 0])
         # Multiply w/ float : the float is truncated to an integer
         delta = TimeDelta('d', 15, months=2)
         test = delta * 3.14159
-        assert_equal(get_delta_attr(test), [0, 6, 45, 0])
+        assert_equal(get_delta_attr(test), [6, 45, 0])
         test = delta * np.pi
-        assert_equal(get_delta_attr(test), [0, 6, 45, 0])
+        assert_equal(get_delta_attr(test), [6, 45, 0])
         # Multiply w/ str
         self.failUnlessRaises(TypeError, lambda : delta * '?')
 
@@ -1485,6 +1494,29 @@ class TestTimeDelta(TestCase):
             assert_equal(test, date)
         test = date + TimeDelta('H', 24)
         assert_equal(test, Date('D', '2001-01-02'))
+
+    def test_add_w_date_on_change(self):
+        "Test change of days"
+        date = Date("S", "2001-01-01 23:59:59")
+        test = date + TimeDelta("S", 1)
+        assert_equal(test, Date("S", "2001-01-02 00:00:00"))
+        #
+        "Test change of years"
+        date = Date("S", "2001-12-31 23:59:59")
+        test = date + TimeDelta("S", 1)
+        assert_equal(test, Date("S", "2002-01-01 00:00:00"))
+
+    def test_add_to_date_before_epoch(self):
+        "Test before epoch"
+        date = Date("S", "1969-01-01 00:00:00")
+        test = date + TimeDelta("S", 1)
+        assert_equal(test, Date("S", "1969-01-01 00:00:01"))
+        date = Date("S", "1969-01-01 23:59:59")
+        test = date + TimeDelta("S", 1)
+        assert_equal(test, Date("S", "1969-01-02 00:00:00"))
+        date = Date("S", "1969-12-31 23:59:59")
+        test = date + TimeDelta("S", 1)
+        assert_equal(test, Date("S", "1970-01-01 00:00:00"))
 
     def test_subtract_from_date(self):
         date = Date("H", "2001-01-01 00:00")
