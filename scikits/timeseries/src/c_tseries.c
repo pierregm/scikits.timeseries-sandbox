@@ -115,8 +115,8 @@ TimeSeries_convert(PyObject *self, PyObject *args)
 
     long period;
     long startIndex, endIndex;
-    npy_longlong newStart, newStartTemp;
-    npy_longlong newEnd, newEndTemp;
+    npy_int64 newStart, newStartTemp;
+    npy_int64 newEnd, newEndTemp;
     long newLen, newWidth;
     long currIndex, prevIndex;
     long nd;

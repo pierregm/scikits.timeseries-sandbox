@@ -90,11 +90,11 @@ static int month_offset[2][13] = {
 ====================================================
 */
 
-NPY_NO_EXPORT npy_longlong
+NPY_NO_EXPORT npy_int64
 DatetimeStructToDatetime(long unit, ts_datetimestruct *d)
 {
-    npy_longlong val;
-    npy_longlong days=0;
+    npy_int64 val;
+    npy_int64 days=0;
 
 
     long ugroup = get_base_unit(unit);
@@ -109,7 +109,7 @@ DatetimeStructToDatetime(long unit, ts_datetimestruct *d)
         val = d->year;
     }
     else if (ugroup == FR_QTR) {
-        npy_longlong quarter = ((d->month -1 )/3) + 1;
+        npy_int64 quarter = ((d->month -1 )/3) + 1;
         if ((unit - ugroup) > 12) {
             // quarterly frequency with year determined by ending period
             val = d->year*4 + quarter;
@@ -124,13 +124,13 @@ DatetimeStructToDatetime(long unit, ts_datetimestruct *d)
         val = (d->year-1)*12 + d->month;
     }
     else if (ugroup == FR_WK) {
-        npy_longlong end_week_day, adj_day;
+        npy_int64 end_week_day, adj_day;
         end_week_day = (7 - (unit-FR_WK)) % 7;
         adj_day = days + ((7 - end_week_day) - days % 7) % 7;
         val = adj_day / 7;
     }
     else if (unit == FR_BUS) {
-        npy_longlong weeks = days/7;
+        npy_int64 weeks = days/7;
         val = days - weeks * 2;
         /*
         int dotw = day_of_week(days);
@@ -139,7 +139,7 @@ DatetimeStructToDatetime(long unit, ts_datetimestruct *d)
             val = 0;
         }
         else {
-            npy_longlong x = days -2;
+            npy_int64 x = days -2;
             val = 2 + (x/7)*5 + x%7;
         }
         */
@@ -166,11 +166,11 @@ DatetimeStructToDatetime(long unit, ts_datetimestruct *d)
 }
 
 
-NPY_NO_EXPORT npy_longlong
+NPY_NO_EXPORT npy_int64
 PyDatetime_ToDatetime(long unit, PyObject *datetime)
 {
     ts_datetimestruct dinfo;
-    npy_longlong val;
+    npy_int64 val;
 
     if (!PyDateTime_Check(datetime) && !PyDate_Check(datetime)){
         PyObject *err_msg, *_type;
@@ -183,7 +183,7 @@ PyDatetime_ToDatetime(long unit, PyObject *datetime)
         val = -1;
     }
     else {
-        dinfo.year = (npy_longlong)PyDateTime_GET_YEAR(datetime);
+        dinfo.year = (npy_int64)PyDateTime_GET_YEAR(datetime);
         dinfo.month = PyDateTime_GET_MONTH(datetime);
 //        quarter=((month-1)/3)+1;
         dinfo.day = (int)PyDateTime_GET_DAY(datetime);
@@ -487,7 +487,7 @@ TimeDeltaObject_init(TimeDeltaObject *self, PyObject *args, PyObject *kwds) {
     PyObject *unit=NULL, *freq=NULL, *value=NULL, *delta=NULL;
     PyObject *py_years=NULL, *py_months=NULL, *py_days=NULL, *py_quarters=NULL;
     PyObject *py_hours=NULL, *py_minutes=NULL, *py_seconds=NULL;
-    npy_longlong months=0, days=0, seconds=0;
+    npy_int64 months=0, days=0, seconds=0;
 
     int fr_group;
     int free_dt=0;
@@ -932,7 +932,7 @@ DateObject_strftime(DateObject *self, PyObject *args)
     struct tm c_date;
     ymdstruct ymd;
     hmsstruct hms;
-    npy_longlong absdate;
+    npy_int64 absdate;
     double abstime;
     int i, result_len;
     conversion_info info;
@@ -1201,7 +1201,7 @@ isvalid(self):
 
 
 static DateObject *
-DateObject_FromFreqAndValue(int freq, npy_longlong value) {
+DateObject_FromFreqAndValue(int freq, npy_int64 value) {
     DateObject *result = DateObject_New();
     result->freq = freq;
     result->value = value;
@@ -1212,7 +1212,7 @@ DateObject_FromFreqAndValue(int freq, npy_longlong value) {
 
 static TimeDeltaObject *
 timedelta_fromMDS(int unit,
-                  npy_longlong months, npy_longlong days, npy_longlong seconds)
+                  npy_int64 months, npy_int64 days, npy_int64 seconds)
 {
     TimeDeltaObject *result = TimeDeltaObject_New();
     normalize_days_secs(&days, &seconds);
@@ -1242,7 +1242,7 @@ date_plus_timedelta(PyObject *datearg, PyObject *deltaarg){
     TimeDeltaObject *delta = (TimeDeltaObject*)deltaarg;
 
     ts_datetimestruct dtinfo;
-    npy_longlong seconds, days, months, years=0, absdate, abstime=0;
+    npy_int64 seconds, days, months, years=0, absdate, abstime=0;
     // Get the info from the delta
     seconds = delta->seconds;
     days = delta->days;
@@ -1274,7 +1274,7 @@ date_plus_timedelta(PyObject *datearg, PyObject *deltaarg){
     dtinfo.month = months;
 
     // Convert to datetime
-    npy_longlong value = DatetimeStructToDatetime(date->freq, &dtinfo);
+    npy_int64 value = DatetimeStructToDatetime(date->freq, &dtinfo);
 
     return (PyObject*)DateObject_FromFreqAndValue(date->freq, value);
 
@@ -1391,9 +1391,9 @@ static PyObject *
 timedelta_plus_timedelta(PyObject *tdaobj, PyObject *tdbobj) {
     TimeDeltaObject *tda = (TimeDeltaObject*)tdaobj;
     TimeDeltaObject *tdb = (TimeDeltaObject*)tdbobj;
-    npy_longlong months = get_timedelta_months(tda) + get_timedelta_months(tdb);
-    npy_longlong days = get_timedelta_days(tda) + get_timedelta_days(tdb);
-    npy_longlong seconds = get_timedelta_seconds(tda) + get_timedelta_seconds(tdb);
+    npy_int64 months = get_timedelta_months(tda) + get_timedelta_months(tdb);
+    npy_int64 days = get_timedelta_days(tda) + get_timedelta_days(tdb);
+    npy_int64 seconds = get_timedelta_seconds(tda) + get_timedelta_seconds(tdb);
     normalize_days_secs(&days, &seconds);
     //
     return (PyObject*)timedelta_fromMDS(tda->unit, months, days, seconds);
@@ -1470,8 +1470,8 @@ timedelta_plus_delta(PyObject *left, PyObject *right){
     TimeDeltaObject *oleft = (TimeDeltaObject*)left;
     PyDateTime_Delta *oright = (PyDateTime_Delta*)right;
     PyObject *result=NULL;
-    npy_longlong days = oleft->days + oright->days;
-    npy_longlong seconds = oleft->seconds + oright->seconds;
+    npy_int64 days = oleft->days + oright->days;
+    npy_int64 seconds = oleft->seconds + oright->seconds;
     normalize_days_secs(&days, &seconds);
     result = (PyObject*)timedelta_fromMDS(oleft->unit,
                                           oleft->months, days, seconds);
@@ -1663,7 +1663,7 @@ DateObject_set_datestruct(DateObject *self, ts_datetimestruct *dinfo) {
     conversion_function todays = get_converter_to_days(self->freq, 0);
     conversion_info info;
     set_conversion_info(self->freq, 'E', &info);
-    npy_longlong days = todays(self->value, &info);
+    npy_int64 days = todays(self->value, &info);
     set_datetimestruct_from_days(dinfo, days);
     return 0;
 }
@@ -1674,8 +1674,8 @@ DateObject_set_datetimestruct(DateObject *self, ts_datetimestruct *dinfo) {
     conversion_function todays = get_converter_to_days(self->freq, 0);
     conversion_info info;
     set_conversion_info(self->freq, 'E', &info);
-    npy_longlong absdate = todays(self->value, &info);
-    npy_longlong abstime = _secs_from_midnight(self->value, self->freq);
+    npy_int64 absdate = todays(self->value, &info);
+    npy_int64 abstime = _secs_from_midnight(self->value, self->freq);
     set_datetimestruct_from_days_and_secs(dinfo, absdate, abstime);
     return 0;
 }
@@ -1734,7 +1734,7 @@ static PyObject *
 DateObject_day_of_week(DateObject *self, void *closure) {
     PyObject *daily_obj;
     daily_obj = DateObject_toordinal(self);
-    npy_longlong absdate = PyInt_AsLong(daily_obj);
+    npy_int64 absdate = PyInt_AsLong(daily_obj);
     Py_DECREF(daily_obj);
     return PyInt_FromLong(day_of_week(absdate));
 }
@@ -1822,9 +1822,9 @@ DateObject_datetime(DateObject *self, void *closure) {
 static PyObject *
 TimeDeltaObject_timedelta(TimeDeltaObject *self, void *closure) {
     PyObject *timedelta;
-    npy_longlong days = 30.4375 * get_timedelta_months(self);
+    npy_int64 days = 30.4375 * get_timedelta_months(self);
     days += get_timedelta_days(self);
-    npy_longlong seconds=self->seconds;
+    npy_int64 seconds=self->seconds;
     timedelta = PyDelta_FromDSU(days, seconds, 0);
     return timedelta;
 }
@@ -2146,7 +2146,7 @@ DateArray_asfreq(PyObject *self, PyObject *args)
     conversion_function converterfrom, converterto;
     conversion_info infofrom, infoto;
     int fromFreq, toFreq;
-    npy_longlong fromDate, toDate, tmpDate;
+    npy_int64 fromDate, toDate, tmpDate;
 
     if (!PyArg_ParseTuple(args,
                 "Oiis:asfreq(fromDates, fromfreq, tofreq, relation)",

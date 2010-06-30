@@ -21,10 +21,10 @@
  * the overflow case impossible (divmod(LONG_MIN, -1) is the only
  * overflow case).
  */
-static npy_longlong
-divmod(npy_longlong x, npy_longlong y, npy_longlong *r)
+static npy_int64
+divmod(npy_int64 x, npy_int64 y, npy_int64 *r)
 {
-    npy_longlong quo;
+    npy_int64 quo;
 
     assert(y > 0);
     quo = x / y;
@@ -39,13 +39,13 @@ divmod(npy_longlong x, npy_longlong y, npy_longlong *r)
 /* Modified in order to deal with negative seconds higher than -day
  */
 static void
-normalize_pair(npy_longlong *hi, npy_longlong *lo, int factor)
+normalize_pair(npy_int64 *hi, npy_int64 *lo, int factor)
 {
     assert(factor > 0);
     assert(lo != hi);
     if (*lo <= -factor || *lo >= factor) {
-        const npy_longlong num_hi = divmod(*lo, factor, lo);
-        const npy_longlong new_hi = *hi + num_hi;
+        const npy_int64 num_hi = divmod(*lo, factor, lo);
+        const npy_int64 new_hi = *hi + num_hi;
         assert(! SIGNED_ADD_OVERFLOWED(new_hi, *hi, num_hi));
         *hi = new_hi;
     }
@@ -137,7 +137,7 @@ static int days_in_month[2][12] = {
 
 
 /* Return the day of the week for the given absolute date. */
-int day_of_week(npy_longlong absdate) {
+int day_of_week(npy_int64 absdate) {
     int day_of_week;
     if (absdate >= 1) {
         day_of_week = (absdate - 1) % 7;
@@ -166,8 +166,8 @@ int is_leapyear(register long year, int calendar) {
    using the Gregorian Epoch) value by two days because the Epoch
    (0001-01-01) in the Julian calendar lies 2 days before the Epoch in
    the Gregorian calendar. */
-npy_longlong
-year_offset(npy_longlong year, int calendar)
+npy_int64
+year_offset(npy_int64 year, int calendar)
 {
     year--;
     if (calendar == GREGORIAN_CALENDAR) {
@@ -193,11 +193,11 @@ year_offset(npy_longlong year, int calendar)
    may be set to the flags: GREGORIAN_CALENDAR,
    JULIAN_CALENDAR to indicate the calendar to be used. */
 
-npy_longlong
+npy_int64
 days_from_ymdc(int year, int month, int day, int calendar)
 {
     int leap;
-    npy_longlong yearoffset, absdate;
+    npy_int64 yearoffset, absdate;
 
     /* Range check */
     Py_AssertWithArg(year > -(INT_MAX / 366) && year < (INT_MAX / 366),
@@ -265,11 +265,11 @@ secs_from_ranged_hms(int hour, int minute, double second)
 /* from numpy/datetime.c (reference: 1CE) */
 //static
 ymdstruct
-days_to_ymdstruct(npy_longlong absdate, int calendar)
+days_to_ymdstruct(npy_int64 absdate, int calendar)
 {
     ymdstruct ymd;
-    long year;
-    npy_longlong yearoffset;
+    npy_int64 year;
+    npy_int64 yearoffset;
     int leap, dayoffset;
     int month = 1, day = 1;
     int *monthoffset;
@@ -326,9 +326,9 @@ static int
 isoweek_from_ymdc(int year, int month, int day, int calendar)
 {
     int week;
-    npy_longlong yearoffset = year_offset(year, calendar);
-    npy_longlong absdate = days_from_ymdc(year, month, day, calendar);
-    npy_longlong dayofweek = day_of_week(absdate);
+    npy_int64 yearoffset = year_offset(year, calendar);
+    npy_int64 absdate = days_from_ymdc(year, month, day, calendar);
+    npy_int64 dayofweek = day_of_week(absdate);
 
     /* Estimate*/
     week = (absdate - yearoffset - 1) - dayofweek + 3;
@@ -363,7 +363,7 @@ int isoweek_from_datetimestruct(ts_datetimestruct *dinfo)
 
 
 hmsstruct
-seconds_to_hmsstruct(npy_longlong abstime)
+seconds_to_hmsstruct(npy_int64 abstime)
 {
     int hour, minute, second;
     hmsstruct hms;
@@ -380,7 +380,7 @@ seconds_to_hmsstruct(npy_longlong abstime)
 };
 
 
-void set_datetimestruct_from_days(ts_datetimestruct *info, npy_longlong days)
+void set_datetimestruct_from_days(ts_datetimestruct *info, npy_int64 days)
 {
     ymdstruct ymd = days_to_ymdstruct(days, GREGORIAN_CALENDAR);
     info->year = ymd.year;
@@ -389,7 +389,7 @@ void set_datetimestruct_from_days(ts_datetimestruct *info, npy_longlong days)
     info->day_of_year = ymd.day_of_year;
 }
 
-void set_datetimestruct_from_secs(ts_datetimestruct *info, npy_longlong secs)
+void set_datetimestruct_from_secs(ts_datetimestruct *info, npy_int64 secs)
 {
     hmsstruct hms = seconds_to_hmsstruct(secs);
     info->hour = hms.hour;
@@ -398,8 +398,8 @@ void set_datetimestruct_from_secs(ts_datetimestruct *info, npy_longlong secs)
 }
 
 void set_datetimestruct_from_days_and_secs(ts_datetimestruct *info,
-                                 npy_longlong days,
-                                 npy_longlong secs)
+                                 npy_int64 days,
+                                 npy_int64 secs)
 {
     set_datetimestruct_from_days(info, days);
     set_datetimestruct_from_secs(info, secs);
@@ -433,11 +433,11 @@ static long _days_to_bus_weekend_to_friday(long absdate, int day_of_week)
 
 /* --- Conversion routines                                                  */
 
-static npy_longlong
-missing_convert(npy_longlong indate, conversion_info *info) { return -1;}
+static npy_int64
+missing_convert(npy_int64 indate, conversion_info *info) { return -1;}
 
-static npy_longlong
-no_convert(npy_longlong indate, conversion_info *info) { return indate;}
+static npy_int64
+no_convert(npy_int64 indate, conversion_info *info) { return indate;}
 
 
 /* From days to other units ................................................*/
@@ -451,16 +451,16 @@ int ending_month(int unit)
 /* Returns the day ending the current weekly freq */
 int ending_day(int unit) { return unit % 1000; }
 
-static npy_longlong
-_days_to_years(npy_longlong indate, conversion_info *info)
+static npy_int64
+_days_to_years(npy_int64 indate, conversion_info *info)
 {
     ymdstruct ymd = days_to_ymdstruct(indate, GREGORIAN_CALENDAR);
     int end_month = info->ending_month;
     return (ymd.month > end_month ? ymd.year + 1: ymd.year);
 }
 
-static npy_longlong
-_days_to_quarters(npy_longlong indate, conversion_info *info)
+static npy_int64
+_days_to_quarters(npy_int64 indate, conversion_info *info)
 {
     ymdstruct ymd = days_to_ymdstruct(indate, GREGORIAN_CALENDAR);
     int end_month = info->ending_month;
@@ -477,23 +477,23 @@ _days_to_quarters(npy_longlong indate, conversion_info *info)
     return (year - 1) * 4 + quarter;
 }
 
-static npy_longlong
-_days_to_months(npy_longlong indate, conversion_info *info)
+static npy_int64
+_days_to_months(npy_int64 indate, conversion_info *info)
 {
     ymdstruct ymd = days_to_ymdstruct(indate, GREGORIAN_CALENDAR);
     return (ymd.year - 1) * 12 + ymd.month;
 }
 
-static npy_longlong
-_days_to_weeks(npy_longlong indate, conversion_info *info)
+static npy_int64
+_days_to_weeks(npy_int64 indate, conversion_info *info)
 {
 //    ymdstruct ymd = days_to_ymdstruct(indate, GREGORIAN_CALENDAR);
     int weekend = info->ending_day;
     return (indate - (1 + weekend))/7 + 1;
 }
 
-static npy_longlong
-_days_to_bus(npy_longlong indate, conversion_info *info)
+static npy_int64
+_days_to_bus(npy_int64 indate, conversion_info *info)
 {
     int dayofweek = day_of_week(indate);
     if (info->result_starts)
@@ -502,8 +502,8 @@ _days_to_bus(npy_longlong indate, conversion_info *info)
         return _days_to_bus_weekend_to_monday(indate, dayofweek);
 }
 
-static npy_longlong 
-_days_to_bus_batch(npy_longlong indate, conversion_info *info)
+static npy_int64
+_days_to_bus_batch(npy_int64 indate, conversion_info *info)
 {
     int dayofweek = day_of_week(indate);
     if (dayofweek > 4)
@@ -515,14 +515,14 @@ _days_to_bus_batch(npy_longlong indate, conversion_info *info)
 };
 
 
-static npy_longlong
-_days_to_days(npy_longlong indate, conversion_info *info)
+static npy_int64
+_days_to_days(npy_int64 indate, conversion_info *info)
 {
     return indate;
 }
 
-static npy_longlong
-_days_to_highfreq(npy_longlong indate, conversion_info *info)
+static npy_int64
+_days_to_highfreq(npy_int64 indate, conversion_info *info)
 {
 npy_int64 periods_per_day = info->periods_per_day;
     if (info->result_starts)
@@ -558,10 +558,10 @@ conversion_function get_converter_from_days(int fromunit, int inbatch)
 
 
 
-static npy_longlong
-_days_from_years(npy_longlong indate, conversion_info *info)
+static npy_int64
+_days_from_years(npy_int64 indate, conversion_info *info)
 {
-    npy_longlong absdate, year;
+    npy_int64 absdate, year;
     int final_adj;
     int endmonth = info->ending_month;
     int month = endmonth % 12;
@@ -580,10 +580,10 @@ _days_from_years(npy_longlong indate, conversion_info *info)
     return absdate + final_adj;
 }
 
-static npy_longlong
-_days_from_quarters(npy_longlong indate, conversion_info *info)
+static npy_int64
+_days_from_quarters(npy_int64 indate, conversion_info *info)
 {
-    npy_longlong absdate;
+    npy_int64 absdate;
     int year, month, final_adj;
     int end_month = info->ending_month;
 
@@ -609,10 +609,10 @@ _days_from_quarters(npy_longlong indate, conversion_info *info)
     return absdate + final_adj;
 }
 
-static npy_longlong
-_days_from_months(npy_longlong indate, conversion_info *info)
+static npy_int64
+_days_from_months(npy_int64 indate, conversion_info *info)
 {
-    npy_longlong absdate;
+    npy_int64 absdate;
     int year, month, final_adj;
 
     if (info->result_starts){
@@ -631,8 +631,8 @@ _days_from_months(npy_longlong indate, conversion_info *info)
 }
 
 
-static npy_longlong
-_days_from_weeks(npy_longlong indate, conversion_info *info)
+static npy_int64
+_days_from_weeks(npy_int64 indate, conversion_info *info)
 {
     int weekend = info->ending_day;
     if (info->result_starts)
@@ -641,14 +641,14 @@ _days_from_weeks(npy_longlong indate, conversion_info *info)
         return indate*7 + weekend;
 }
 
-static npy_longlong
-_days_from_busdays(npy_longlong indate, conversion_info *info)
+static npy_int64
+_days_from_busdays(npy_int64 indate, conversion_info *info)
 {
     return ((indate-1)/5)*7 + (indate-1)%5 + 1;
 }
 
-npy_longlong
-_days_from_highfreq(npy_longlong indate, conversion_info *info)
+npy_int64
+_days_from_highfreq(npy_int64 indate, conversion_info *info)
 {
     npy_int64 periods_per_day = info->periods_per_day;
     if (indate < 0)
@@ -683,31 +683,31 @@ conversion_function get_converter_to_days(int fromunit, int inbatch)
 
 /* From seconds */
 
-npy_longlong
-_secs_from_highfreq(npy_longlong indate, conversion_info *info)
+npy_int64
+_secs_from_highfreq(npy_int64 indate, conversion_info *info)
 {
-    npy_longlong secs_per_period = info->secs_per_period;
+    npy_int64 secs_per_period = info->secs_per_period;
     if (info->result_starts)
         return indate*secs_per_period;
     else
         return (indate + 1)*secs_per_period - 1;
 }
 
-npy_longlong
-_secs_from_midnight(npy_longlong indate, int unit)
+npy_int64
+_secs_from_midnight(npy_int64 indate, int unit)
 {
     conversion_info info;
     set_conversion_info(unit, 'S', &info);
-    npy_longlong secs=_secs_from_highfreq(indate, &info) % 86400;
+    npy_int64 secs=_secs_from_highfreq(indate, &info) % 86400;
     if (secs < 0)
         secs += 86400;
     return secs;
 }
 
-npy_longlong
-_secs_to_highfreq(npy_longlong indate, conversion_info *info)
+npy_int64
+_secs_to_highfreq(npy_int64 indate, conversion_info *info)
 {
-    npy_longlong secs_per_period = info->secs_per_period;
+    npy_int64 secs_per_period = info->secs_per_period;
     if (indate < 0)
         return (indate + 1)/secs_per_period - 1;
     else
@@ -755,12 +755,12 @@ set_conversion_info(int unit, char relation, conversion_info *info){
 }
 
 
-void normalize_days_secs(npy_longlong *d, npy_longlong *s)
+void normalize_days_secs(npy_int64 *d, npy_int64 *s)
 {
     if (*s <= -86400 || *s >= 86400)
         normalize_pair(d, s, 86400);
 }
-void normalize_years_months(npy_longlong *y, npy_longlong *m)
+void normalize_years_months(npy_int64 *y, npy_int64 *m)
 {
     normalize_pair(y, m, 12);
     m += 1;
