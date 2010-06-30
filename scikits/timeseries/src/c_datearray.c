@@ -31,6 +31,7 @@ DateTimeArray_new(PyTypeObject *cls, PyObject *args, PyObject *kw)
 
 
     self = (DateTimeArray*)PyObject_CallMethod(arr, "view", "O", cls);
+//    self = PyArray_View(&arr, NULL, &DateTimeArray_Type);
     Py_DECREF(arr);
     if(self == NULL)
         return NULL;
@@ -182,7 +183,7 @@ static PyTypeObject DateTimeArray_Type = {
     DateTimeArray_methods,                    /* tp_methods */
     DateTimeArray_members,                    /* tp_members */
     DateTimeArray_getseters,                  /* tp_getset */
-    0,                                        /* tp_base */
+    0,                            /* tp_base */
     0,                                        /* tp_dict */
     0,                                        /* tp_descr_get */
     0,                                        /* tp_descr_set */

@@ -58,7 +58,6 @@ npy_longlong _secs_from_highfreq(npy_longlong, conversion_info*);
 npy_longlong _secs_to_highfreq(npy_longlong, conversion_info*);
 npy_longlong _secs_from_midnight(npy_longlong, int);
 
-
 void set_conversion_info(int, char, conversion_info*);
 
 void normalize_ts_timedeltastruct(ts_timedeltastruct*);

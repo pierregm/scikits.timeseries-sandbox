@@ -406,113 +406,7 @@ void set_datetimestruct_from_days_and_secs(ts_datetimestruct *info,
 }
 
 
-//NPY_NO_EXPORT
-npy_longlong
-DatetimeStructToDatetime(int unit, ts_datetimestruct *d)
-{
-    npy_longlong val;
-    npy_longlong days=0;
-    int ugroup = get_base_unit(unit);
 
-    if ((unit > FR_MTH) || (unit == FR_UND)) {
-        days = days_from_ymd(d->year, d->month, d->day);
-        if (unit >= FR_HR){
-            days -= HIGHFREQ_ORIG;
-        };
-    };
-    if (ugroup == FR_ANN) {
-        val = d->year;
-    }
-    else if (ugroup == FR_QTR) {
-        npy_longlong quarter = ((d->month -1 )/3) + 1;
-        if ((unit - ugroup) > 12) {
-            // quarterly frequency with year determined by ending period
-            val = d->year*4 + quarter;
-        }
-        else {
-            /* quarterly frequency with year determined by ending period
-                           or has December year end*/
-            val = (d->year - 1)*4 + quarter;
-        };
-    }
-    else if (unit == FR_MTH) {
-        val = (d->year-1)*12 + d->month;
-    }
-    else if (ugroup == FR_WK) {
-        npy_longlong end_week_day, adj_day;
-        end_week_day = (7 - (unit-FR_WK)) % 7;
-        adj_day = days + ((7 - end_week_day) - days % 7) % 7;
-        val = adj_day / 7;
-    }
-    else if (unit == FR_BUS) {
-        npy_longlong weeks = days/7;
-        val = days - weeks * 2;
-        /*
-        int dotw = day_of_week(days);
-        if (dotw > 4){
-            // Invalid business day
-            val = 0;
-        }
-        else {
-            npy_longlong x = days -2;
-            val = 2 + (x/7)*5 + x%7;
-        }
-        */
-    }
-    else if ((unit == FR_DAY) || (unit==FR_UND)){
-        val = days;
-    }
-    else if (unit == FR_HR) {
-        val = days * 24 + d->hour;
-    }
-    else if (unit == FR_MIN){
-        val = days * 1440 + d->hour * 60 + d->min;
-    }
-    else if (unit == FR_SEC){
-        val = days *  (npy_int64)(86400)
-            + secs_from_hms(d->hour, d->min, d->sec, 1);
-    }
-    else {
-        /* Shouldn't get here */
-        PyErr_SetString(PyExc_ValueError, "invalid internal frequency");
-        val = -1;
-    }
-    return val;
-}
-
-
-
-
-//NPY_NO_EXPORT
-npy_longlong
-PyDatetime_ToDatetime(long unit, PyObject *datetime)
-{
-    ts_datetimestruct dinfo;
-    npy_longlong val;
-
-    if (!PyDateTime_Check(datetime) && !PyDate_Check(datetime)){
-        PyObject *err_msg, *_type;
-        _type = PyObject_Type(datetime);
-        err_msg = PyString_FromString("Expected a datetime.date(time) object, received: ");
-        PyString_ConcatAndDel(&err_msg, PyObject_Str(_type));
-        PyErr_SetString(PyExc_TypeError, PyString_AsString(err_msg));
-        Py_DECREF(_type);
-        Py_DECREF(err_msg);
-        val = -1;
-    }
-    else {
-        dinfo.year = (npy_longlong)PyDateTime_GET_YEAR(datetime);
-        dinfo.month = PyDateTime_GET_MONTH(datetime);
-//        quarter=((month-1)/3)+1;
-        dinfo.day = PyDateTime_GET_DAY(datetime);
-        dinfo.hour = PyDateTime_DATE_GET_HOUR(datetime);
-        dinfo.min = PyDateTime_DATE_GET_MINUTE(datetime);
-        dinfo.sec = PyDateTime_DATE_GET_SECOND(datetime);
-        //
-        val = DatetimeStructToDatetime(unit, &dinfo);
-    }
-    return val;
-}
 
 
 /* Helpers for frequency conversion routines */
@@ -871,4 +765,5 @@ void normalize_years_months(npy_longlong *y, npy_longlong *m)
     normalize_pair(y, m, 12);
     m += 1;
 }
+
 

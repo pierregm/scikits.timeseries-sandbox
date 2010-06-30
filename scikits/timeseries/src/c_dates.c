@@ -83,123 +83,6 @@ static int month_offset[2][13] = {
 #define quarter_to_month(quarter) (((quarter)-1)*3 + 1)
 
 
-//static
-//int dInfoCalc_ISOWeek(ts_datetimestruct *dinfo) {
-//    int week;
-//
-//    /* Estimate */
-//    week = (dinfo->day_of_year-1) - dinfo->day_of_week + 3;
-//    if (week >= 0) week = week / 7 + 1;
-//
-//    /* Verify */
-//    if (week < 0) {
-//        /* The day lies in last week of the previous year */
-//        if ((week > -2) ||
-//            (week == -2 && is_leapyear(dinfo->year-1, dinfo->calendar)))
-//            week = 53;
-//        else
-//            week = 52;
-//    } else if (week == 53) {
-//    /* Check if the week belongs to year or year+1 */
-//        if (31-dinfo->day + dinfo->day_of_week < 3) {
-//            week = 1;
-//        }
-//    }
-//
-//    return week;
-//}
-
-
-
-/* Sets the date part of the date_info struct using the indicated
-   calendar.
-
-   XXX This could also be done using some integer arithmetics rather
-       than with this iterative approach... */
-static
-int dInfoCalc_SetFromAbsDate(dateinfostruct *dinfo,
-                             long absdate,
-                             int calendar)
-{
-    register long year;
-    long yearoffset;
-    int leap,dayoffset;
-    int *monthoffset;
-    /* Approximate year */
-    if (calendar == GREGORIAN_CALENDAR) {
-        year = (long)(((double)absdate) / 365.2425);
-    } else if (calendar == JULIAN_CALENDAR) {
-        year = (long)(((double)absdate) / 365.25);
-    } else {
-        Py_Error(DateCalc_Error, "unknown calendar");
-    }
-    if (absdate > 0) year++;
-    /* Apply corrections to reach the correct year */
-    while (1) {
-        /* Calculate the year offset */
-        yearoffset = year_offset(year,calendar);
-        if (PyErr_Occurred())
-            goto onError;
-        /* Backward correction: absdate must be greater than the
-           yearoffset */
-        if (yearoffset >= absdate) {
-            year--;
-            continue;
-        }
-        dayoffset = absdate - yearoffset;
-        leap = is_leapyear(year,calendar);
-        /* Forward correction: non leap years only have 365 days */
-        if (dayoffset > 365 && !leap) {
-            year++;
-            continue;
-        }
-        break;
-    }
-    dinfo->year = year;
-    dinfo->calendar = calendar;
-    /* Now iterate to find the month */
-    monthoffset = month_offset[leap];
-    {
-        register int month;
-        for (month = 1; month < 13; month++) {
-            if (monthoffset[month] >= dayoffset)
-            break;
-        }
-        dinfo->month = month;
-        dinfo->quarter = month_to_quarter(month);
-        dinfo->day = dayoffset - month_offset[leap][month-1];
-    }
-    dinfo->day_of_week = day_of_week(absdate);
-    dinfo->day_of_year = dayoffset;
-    dinfo->absdate = absdate;
-    return 0;
- onError:
-    return -1;
-}
-
-
-
-/* Sets the time part of the DateTime object. */
-static
-int dInfoCalc_SetFromAbsTime(dateinfostruct *dinfo,
-                             double abstime)
-{
-    int inttime;
-    int hour,minute;
-    double second;
-
-    inttime = (int)abstime;
-    hour = inttime / 3600;
-    minute = (inttime % 3600) / 60;
-    second = abstime - (double)(hour*3600 + minute*60);
-
-    dinfo->hour = hour;
-    dinfo->minute = minute;
-    dinfo->second = second;
-    dinfo->abstime = abstime;
-    return 0;
-}
-
 
 /*
 ====================================================
@@ -679,7 +562,6 @@ TimeDeltaObject_init(TimeDeltaObject *self, PyObject *args, PyObject *kwds) {
             self->days = ((PyDateTime_Delta *)(delta))->days;
             self->seconds = ((PyDateTime_Delta *)(delta))->seconds + \
                             ((PyDateTime_Delta *)(delta))->microseconds/1000000;
-            DEBUGPRINTF("D:%ld S:%ld ", self->days, self->seconds);
 //            free_dt = 1;
         }
         else {
@@ -731,12 +613,6 @@ TimeDeltaObject_init(TimeDeltaObject *self, PyObject *args, PyObject *kwds) {
     if (free_dt) { Py_DECREF(delta); }
     return 0;
 }
-
-//static
-//int TimeDelta_set_timedeltastruct(TimeDeltaObject *delta, ts_datetimestruct *tdinfo)
-//{
-//    ts_timedeltafunction tdinfo;
-//}
 
 
 
@@ -1333,7 +1209,7 @@ DateObject_FromFreqAndValue(int freq, npy_longlong value) {
     return result;
 }
 
-static DateObje
+
 static TimeDeltaObject *
 timedelta_fromMDS(int unit,
                   npy_longlong months, npy_longlong days, npy_longlong seconds)
@@ -1382,10 +1258,10 @@ date_plus_timedelta(PyObject *datearg, PyObject *deltaarg){
     set_datetimestruct_from_secs(&dtinfo, seconds);
 
     // Convert the current date to days and set the datetimestruct
-    conversion_function converter = get_converter_to_days(date->freq, 0);
+    conversion_function todays = get_converter_to_days(date->freq, 0);
     conversion_info cvinfo;
     set_conversion_info(date->freq, 'S', &cvinfo);
-    absdate = converter(date->value, &cvinfo);
+    absdate = todays(date->value, &cvinfo);
     set_datetimestruct_from_days(&dtinfo, absdate + days);
 
     // Update the datetime info with the months and normalize the months
@@ -1518,6 +1394,7 @@ timedelta_plus_timedelta(PyObject *tdaobj, PyObject *tdbobj) {
     npy_longlong months = get_timedelta_months(tda) + get_timedelta_months(tdb);
     npy_longlong days = get_timedelta_days(tda) + get_timedelta_days(tdb);
     npy_longlong seconds = get_timedelta_seconds(tda) + get_timedelta_seconds(tdb);
+    normalize_days_secs(&days, &seconds);
     //
     return (PyObject*)timedelta_fromMDS(tda->unit, months, days, seconds);
 
@@ -1607,52 +1484,52 @@ timedelta_add(PyObject *left, PyObject *right)
 {
     PyObject *result = Py_NotImplemented;
 
-    if (TimeDelta_Check(left)){
-        if (TimeDelta_Check(right)){
+    if (TimeDelta_Check(left)) {
+        if (TimeDelta_Check(right))
             result = timedelta_plus_timedelta(left, right);
-        } else if (PyDelta_Check(right)){
+        else if (PyDelta_Check(right))
             result = timedelta_plus_delta(left, right);
-        } else if (PyInt_Check(right) || PyLong_Check(right)){
+        else if (PyInt_Check(right) || PyLong_Check(right))
             result = timedelta_plus_int(left, right);
-        };
-    } else if (PyDelta_Check(left)) {
+        }
+    else if (PyDelta_Check(left))
         result = timedelta_plus_delta(right, left);
-    } else if (PyInt_Check(left) || PyLong_Check(left)) {
+    else if (PyInt_Check(left) || PyLong_Check(left))
         result = timedelta_plus_int(right,left);
-    };
+
     if (result == Py_NotImplemented)
         Py_INCREF(result);
     return result;
 };
+
 
 static PyObject *
 timedelta_subtract(PyObject *left, PyObject *right)
 {
     PyObject *result = Py_NotImplemented;
 
-    if (!TimeDelta_Check(left)){
+    if (!TimeDelta_Check(left))
         PyErr_SetString(PyExc_ValueError, "Cannot subtract a TimeDelta from a non-TimeDelta object.");
-    }
-    if (TimeDelta_Check(right)){
-//        DEBUGPRINTF("W/ TIMEDELTA")
-//        PyObject *minus_right = timedelta_negative(right);
+
+    if (TimeDelta_Check(right)) {
         PyObject *minus_right = PyNumber_Negative(right);
         result = timedelta_plus_timedelta(left, minus_right);
     }
     else {
         PyObject *minus_right = PyNumber_Negative(right);
         if (minus_right) {
-            if (PyDelta_Check(right)){
+            if (PyDelta_Check(right))
                 result = timedelta_plus_delta(left, minus_right);
-            } else if (TimeDelta_Check(right)) {
+            else if (TimeDelta_Check(right))
                 result = timedelta_plus_timedelta(left, minus_right);
-            } else {
-            result = timedelta_plus_int(left, minus_right);
-            };
+            else
+                result = timedelta_plus_int(left, minus_right);
             Py_DECREF(minus_right);
-        } else
+        }
+        else {
             result = NULL;
-    }
+        };
+    };
     if (result == Py_NotImplemented)
         Py_INCREF(result);
     return result;
@@ -1677,29 +1554,14 @@ timedelta_times_int(PyObject *delta, PyObject *py_int)
 
 
 static PyObject *
-timedelta_multiply(PyObject *left, PyObject *right){
+timedelta_multiply(PyObject *left, PyObject *right) {
     PyObject *result = Py_NotImplemented;
 
-//    char *type_str;
-//    PyObject *type_repr, *obj_type;
-//    obj_type = PyObject_Type(left);
-//    type_repr = PyObject_Repr(obj_type);
-//    type_str = PyString_AsString(type_repr);
-//    DEBUGPRINTF("We have a %s on the left", type_str);
-//    obj_type = PyObject_Type(right);
-//    type_repr = PyObject_Repr(obj_type);
-//    type_str = PyString_AsString(type_repr);
-//    DEBUGPRINTF("We have a %s on the right", type_str);
-//    Py_DECREF(obj_type);
-//    Py_DECREF(type_repr);
-
-    if (TimeDelta_Check(left)){
-        if (NUM_CHECK(right)){
-//            DEBUGPRINTF("So we can do it...");
+    if (TimeDelta_Check(left)) {
+        if (NUM_CHECK(right))
             result = timedelta_times_int(left, right);
-        }
-    } else if (NUM_CHECK(left)) {
-//        DEBUGPRINTF("So we should be doing it");
+    }
+    else if (NUM_CHECK(left)) {
         result = timedelta_times_int(right, left);
     };
     if (result == Py_NotImplemented)
@@ -1723,6 +1585,7 @@ DateObject___compare__(DateObject * obj1, DateObject * obj2)
     if (obj1->value == obj2->value) return 0;
     return -1;
 }
+
 static int
 TimeDeltaObject___compare__(TimeDeltaObject * obj1, TimeDeltaObject * obj2)
 {
@@ -1797,23 +1660,23 @@ DateObject___long__(DateObject *self) {
 // helper function for date property funcs
 static int
 DateObject_set_datestruct(DateObject *self, ts_datetimestruct *dinfo) {
-    PyObject *daily_obj = DateObject_toordinal(self);
-    npy_longlong days = PyInt_AsLong(daily_obj);
-    Py_DECREF(daily_obj);
+    conversion_function todays = get_converter_to_days(self->freq, 0);
+    conversion_info info;
+    set_conversion_info(self->freq, 'E', &info);
+    npy_longlong days = todays(self->value, &info);
     set_datetimestruct_from_days(dinfo, days);
-//    if(dInfoCalc_SetFromAbsDate(dinfo, absdate, GREGORIAN_CALENDAR)) return -1;
     return 0;
 }
 
 // helper function for date property funcs
 static int
 DateObject_set_datetimestruct(DateObject *self, ts_datetimestruct *dinfo) {
-    PyObject *daily_obj = DateObject_toordinal(self);
-    npy_longlong absdate = PyInt_AsLong(daily_obj);
-    Py_DECREF(daily_obj);
+    conversion_function todays = get_converter_to_days(self->freq, 0);
+    conversion_info info;
+    set_conversion_info(self->freq, 'E', &info);
+    npy_longlong absdate = todays(self->value, &info);
     npy_longlong abstime = _secs_from_midnight(self->value, self->freq);
     set_datetimestruct_from_days_and_secs(dinfo, absdate, abstime);
-//    if(dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime, GREGORIAN_CALENDAR)) return -1;
     return 0;
 }
 
@@ -1825,6 +1688,7 @@ DateObject_year(DateObject *self, void *closure) {
 //    if(DateObject_set_datestruct(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong(dinfo.year);
 }
+
 
 static PyObject *
 DateObject_qyear(DateObject *self, void *closure) {
@@ -1847,15 +1711,8 @@ DateObject_quarter(DateObject *self, void *closure) {
     if (get_base_unit(self->freq) == FR_QTR)
         month = dinfo.month - ending_month(self->freq);
         if (month <= 0)
-//        return year+1;
-//    else
             month += 12;
     return PyInt_FromLong(month_to_quarter(month));
-//    int year, quarter;
-//    if(_DateObject_quarter_year(self, &year, &quarter) == INT_ERR_CODE) {
-//        return NULL;
-//        }
-//    return PyInt_FromLong(quarter);
 }
 
 static PyObject *
@@ -1881,6 +1738,7 @@ DateObject_day_of_week(DateObject *self, void *closure) {
     Py_DECREF(daily_obj);
     return PyInt_FromLong(day_of_week(absdate));
 }
+
 static PyObject *
 DateObject_weekday(DateObject *self, void *closure) {
     return DateObject_day_of_week(self, closure);
@@ -1897,8 +1755,8 @@ DateObject_day_of_year(DateObject *self, void *closure) {
 static PyObject *
 DateObject_week(DateObject *self, void *closure) {
     ts_datetimestruct dinfo;
-    if(DateObject_set_datestruct(self, &dinfo) == -1) return NULL;
-//    return PyInt_FromLong(dInfoCalc_ISOWeek(&dinfo));
+    if(DateObject_set_datestruct(self, &dinfo) == -1)
+        return NULL;
     return PyInt_FromLong(isoweek_from_datetimestruct(&dinfo));
 }
 
@@ -1906,14 +1764,16 @@ DateObject_week(DateObject *self, void *closure) {
 static PyObject *
 DateObject_hour(DateObject *self, void *closure) {
     ts_datetimestruct dinfo;
-    if(DateObject_set_datetimestruct(self, &dinfo) == -1) return NULL;
+    if(DateObject_set_datetimestruct(self, &dinfo) == -1)
+        return NULL;
     return PyInt_FromLong(dinfo.hour);
 }
 
 static PyObject *
 DateObject_minute(DateObject *self, void *closure) {
     ts_datetimestruct dinfo;
-    if(DateObject_set_datetimestruct(self, &dinfo) == -1) return NULL;
+    if(DateObject_set_datetimestruct(self, &dinfo) == -1)
+        return NULL;
     return PyInt_FromLong(dinfo.min);
 }
 
