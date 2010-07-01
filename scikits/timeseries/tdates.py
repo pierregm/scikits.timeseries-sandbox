@@ -469,7 +469,13 @@ class DateArray(ndarray):
     seconds = second
     @property
     def ordinals(self):
-        return self.__getdateinfo__('L')
+        return self.__getdateinfo__('O')
+    @property
+    def datetime(self):
+        return np.asarray(cseries.DA_getDateInfo(np.asarray(self),
+                                                 self.freq, 'P',
+                                                 int(self.is_full())),
+                          dtype=object)
 
     def __getdateinfo__(self, info):
         return np.asarray(cseries.DA_getDateInfo(np.asarray(self),

@@ -46,7 +46,7 @@ typedef struct {
 	int result_starts;
 } conversion_info;
 
-typedef npy_int64 (*conversion_function)(npy_int64, conversion_info*);
+typedef npy_int64(*conversion_function)(npy_int64, conversion_info*);
 
 conversion_function get_converter_from_days(int, int);
 conversion_function get_converter_to_days(int, int);
