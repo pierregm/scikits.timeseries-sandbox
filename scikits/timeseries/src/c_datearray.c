@@ -14,25 +14,25 @@ DateTimeArray_new(PyTypeObject *cls, PyObject *args, PyObject *kw)
     static char *kwlist[] = {"object", "unit", 0};
 
     PyObject *obj;
-    PyObject *arr = NULL;
+    PyArrayObject *arr = NULL;
     PyObject *unit = NULL;
-//    PyObject *cached_vals = NULL;
+    PyObject *timestep = NULL;
     DateTimeArray *self;
+    PyArray_Descr *descr;
 
     if(!PyArg_ParseTupleAndKeywords(args,kw,"OO",kwlist,
                                     &obj,
-                                    &unit))
+                                    &unit,&timestep))
         return NULL;
 
-    arr = PyArray_FROM_O(obj);
+    arr = (PyArrayObject *)PyArray_FROM_O(obj);
     if(arr == NULL)
         return NULL;
     DEBUGPRINTF("We have an array...");
 
+    descr = PyArray_DescrFromType(PyArray_INT64);
+    self = (DateTimeArray *)PyArray_View(arr, descr, &DateTimeArray_Type);
 
-    self = (DateTimeArray*)PyObject_CallMethod(arr, "view", "O", cls);
-//    self = PyArray_View(&arr, NULL, &DateTimeArray_Type);
-    Py_DECREF(arr);
     if(self == NULL)
         return NULL;
 
@@ -71,6 +71,7 @@ DateTimeArray_finalize(DateTimeArray *self, PyObject *args)
             DEBUGPRINTF("in context from DTA");
 //            self->cached_vals = context->cached_vals;
             self->unit = context->unit;
+            self->timestep = context->timestep;
         } else {
             DEBUGPRINTF("in context from scratch");
 //            self->cached_vals = NULL;
@@ -108,11 +109,28 @@ DateTimeArray_freqstr(DateTimeArray *self) {
     return main_alias;
 }
 
-
+//static PyObject *
+//DateTimeArray_timestep(DateTimeArray *self){
+//    PyArrayObject *steps=NULL;
+//    int i=0;
+//    npy_int64 val=0, prev=0;
+//
+//    steps = (PyArrayObject*)PyArray_ZEROS(self->nd,
+//                                          self->dimensions,
+//                                          PyArray_INT64, 0);
+//    NULL_CHECK(steps);
+//    PyArray_SETITEM(0, 0);
+//    for (i=0; i<steps->dimensions[0]; i++){
+//        npy_intp idx = (npy_intp)i;
+//        val = PyArray_GETITEM(idx);
+//    };
+//}
 
 
 static PyMemberDef DateTimeArray_members[] = {
     {"unit", T_INT, offsetof(DateTimeArray, unit), 0,
+     "frequency"},
+    {"timestep", T_INT, offsetof(DateTimeArray, timestep), 0,
      "frequency"},
 //     {"cached_vals", T_OBJECT_EX, offsetof(DateTimeArray, cached_vals), 0,
 //      "cached_values"},

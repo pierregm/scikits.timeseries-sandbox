@@ -246,6 +246,13 @@ class TestCreation(TestCase):
                               [ 3., 4., 5.],
                               [ 0., 1., 2.]])
 
+    def test_setdates_w_timestep(self):
+        "Define a timeseries w/ a regular timesteps"
+        s = time_series(np.arange(96),
+                        start_date=Date('T', '2001-01-01'), timestep=15)
+        ctrl = date_array(start_date=Date('T', '2001-01-01'), length=24 * 60)
+        assert_equal(s.dates, ctrl[::15])
+
 
     def test_copy(self):
         "Tests the creation of a timeseries with copy=True"

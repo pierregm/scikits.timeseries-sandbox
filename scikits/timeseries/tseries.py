@@ -1693,7 +1693,8 @@ def time_series(data, dates=None, start_date=None, length=None,
         dshape = np.shape(data)
         if len(dshape) > 0:
             length = length or dshape[0]
-            _dates = date_array(start_date=start_date, freq=freq, length=length)
+            _dates = date_array(start_date=start_date, freq=freq, length=length,
+                                timestep=timestep)
         else:
             _dates = date_array([], freq=freq)
 

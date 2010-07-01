@@ -8,7 +8,8 @@
 typedef struct {
     PyArrayObject array;
 //    PyObject *cached_vals;
-    long unit;
+    int unit;
+	npy_int64 timestep;
 } DateTimeArray;
 
 #define DateTimeArray_Check(o)                               \
