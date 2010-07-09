@@ -121,7 +121,7 @@ TimeSeries_convert(PyObject *self, PyObject *args)
     long currIndex, prevIndex;
     long nd;
     npy_intp *dim, *newIdx;
-    long currPerLen;
+    long currPerLen=0;
     char *position;
     PyObject *fromFreq_arg, *toFreq_arg;
     int fromFreq, toFreq;

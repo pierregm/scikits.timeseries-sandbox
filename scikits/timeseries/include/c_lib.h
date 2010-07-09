@@ -3,7 +3,10 @@
 
 #include <Python.h>
 #include <structmember.h>
+
 #include "arrayobject.h"
+// #include "arrayscalars.h"
+
 
 /* c_lib defines generic functions that aren't inherently time series/date
 specific but are needed in various parts of the module. */

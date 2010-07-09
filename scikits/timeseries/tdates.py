@@ -470,19 +470,15 @@ class DateArray(ndarray):
     @property
     def ordinals(self):
         return self.__getdateinfo__('O')
-    @property
-    def datetime(self):
-        return np.asarray(cseries.DA_getDateInfo(np.asarray(self),
-                                                 self.freq, 'P',
-                                                 int(self.is_full())),
-                          dtype=object)
-
     def __getdateinfo__(self, info):
-        return np.asarray(cseries.DA_getDateInfo(np.asarray(self),
-                                                 self.freq, info,
-                                                 int(self.is_full())),
+        return np.asarray(cseries.DateArray_getdateinfo(self,
+                                                        self.freq, info,
+                                                        int(self.is_full())),
                           dtype=int)
     __getDateInfo = __getdateinfo__
+    @property
+    def datetime(self):
+        return cseries.DateArray_getdatetime(self, self.freq)
 
     #.... Conversion methods ....................
 
@@ -550,10 +546,7 @@ class DateArray(ndarray):
      [datetime.datetime(2001, 3, 31, 0, 0), datetime.datetime(2001, 4, 30, 0, 0)]]
 
         """
-        # We need an array to 
-        _result = np.empty(self.shape, dtype=np.object_)
-        _result.flat = [d.datetime for d in self.ravel()]
-        return _result.tolist()
+        return self.datetime.tolist()
     #
     def tostring(self):
         """
@@ -583,7 +576,7 @@ class DateArray(ndarray):
         return self._cachedinfo['tostr']
     #
     def todays(self):
-        return np.fromiter((d.day for d in self), dtype=int)
+        return self.day
     #
     def asunit(self, unit=None, relation="END", freq=None):
         """
@@ -623,8 +616,8 @@ class DateArray(ndarray):
         if fromunit == _c.FR_UND:
             new = self.__array__()
         else:
-            new = cseries.DA_asfreq(self.__array__(),
-                                    fromunit, tounit, relation[0])
+            new = cseries.DateArray_asfreq(self.__array__(),
+                                           fromunit, tounit, relation[0])
         return DateArray(new, unit=unit)
     asfreq = asunit
 
@@ -1002,8 +995,9 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
 
     """
     freq = check_freq(freq)
+    print "do we have something ?", (dlist is not None)
     # Case #1: we have a list ...................
-    if dlist is not None:
+    if (dlist is not None):
         # Already a DateArray....................
         if isinstance(dlist, DateArray):
             if (freq != _c.FR_UND) and (dlist.freq != check_freq(freq)):
@@ -1019,6 +1013,7 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
         # Make sure it's a sequence, else that's a start_date
         if hasattr(dlist, '__len__') and not isinstance(dlist, basestring):
             dlist = _listparser(dlist, freq=freq)
+            print "PARSED"
             if autosort:
                 dlist.sort_chronologically()
             return dlist
@@ -1058,6 +1053,7 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
             (start_date, end_date) = (end_date, start_date)
         length = int(end_date - start_date) + 1
     #
+    print "Here?"
     dlist = np.arange(0, length, timestep, dtype=np.int)
     dlist += start_date.value
     if freq == _c.FR_UND:

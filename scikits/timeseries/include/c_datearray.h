@@ -6,13 +6,18 @@
 
 
 typedef struct {
-    PyArrayObject array;
+    int has_dups, has_missing, is_chrono;
+} timestatus;
+
+typedef struct {
+    PyArrayObject base;
 //    PyObject *cached_vals;
     int unit;
-	npy_int64 timestep;
-} DateTimeArray;
+    npy_int64 timestep;
+    timestatus status;
+} DateTimeArrayObject;
 
-#define DateTimeArray_Check(o)                               \
+#define DateTimeArray_Check(o)                              \
     PyObject_TypeCheck((PyObject*)(o), &DateTimeArray_Type)
 
 

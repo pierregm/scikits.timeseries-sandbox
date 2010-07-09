@@ -22,9 +22,11 @@ static PyMethodDef cseries_methods[] = {
     {"TS_convert", (PyCFunction)TimeSeries_convert,
      METH_VARARGS, ""},
 
-    {"DA_asfreq", (PyCFunction)DateArray_asfreq,
+    {"DateArray_asfreq", (PyCFunction)DateArray_asfreq,
      METH_VARARGS, ""},
-    {"DA_getDateInfo", (PyCFunction)DateArray_getDateInfo,
+    {"DateArray_getdateinfo", (PyCFunction)DateArray_getdateinfo,
+     METH_VARARGS, ""},
+    {"DateArray_getdatetime", (PyCFunction)DateArray_getdatetime,
      METH_VARARGS, ""},
 
 
@@ -73,7 +75,7 @@ initcseries(void)
     import_c_lib(m);
     import_c_freqs(m);
     import_c_dates(m);
-    import_c_datearray(m);
+     import_c_datearray(m);
     import_c_tseries(m);
 
 }

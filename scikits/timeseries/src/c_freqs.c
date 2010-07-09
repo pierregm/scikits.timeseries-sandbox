@@ -291,8 +291,10 @@ c_freqs_check_freq(PyObject *self, PyObject *args) {
     PyObject *freq;
     int freq_val;
 
-    if (!PyArg_ParseTuple(args, "O:check_freq(freq)", &freq)) return NULL;
-    if ((freq_val = check_freq(freq)) == INT_ERR_CODE) return NULL;
+    if (!PyArg_ParseTuple(args, "O:check_freq(freq)", &freq)) 
+        return NULL;
+    if ((freq_val = check_freq(freq)) == INT_ERR_CODE) 
+        return NULL;
     return PyInt_FromLong(freq_val);
 }
 
@@ -301,7 +303,8 @@ PyObject *
 c_freqs_check_freq_str(PyObject *self, PyObject *args) {
     PyObject *alias_tuple, *result, *freq_key;
 
-    if ((freq_key = c_freqs_check_freq(self, args)) == NULL) return NULL;
+    if ((freq_key = c_freqs_check_freq(self, args)) == NULL) 
+        return NULL;
 
     alias_tuple = PyDict_GetItem(freq_dict, freq_key);
     result = PyTuple_GET_ITEM(alias_tuple, 0);
@@ -316,8 +319,10 @@ PyObject *
 c_freqs_get_freq_group(PyObject *self, PyObject *args) {
     PyObject *freq;
     int freq_val;
-    if (!PyArg_ParseTuple(args, "O:get_freq_group(freq)", &freq)) return NULL;
-    if ((freq_val = check_freq(freq)) == INT_ERR_CODE) return NULL;
+    if (!PyArg_ParseTuple(args, "O:get_freq_group(freq)", &freq)) 
+        return NULL;
+    if ((freq_val = check_freq(freq)) == INT_ERR_CODE) 
+        return NULL;
     return PyInt_FromLong(get_base_unit(freq_val));
 }
 
@@ -325,14 +330,14 @@ c_freqs_get_freq_group(PyObject *self, PyObject *args) {
 void import_c_freqs(PyObject *m)
 {
     if(build_freq_dict() == INT_ERR_CODE) {
-        PyErr_SetString(                    \
-            PyExc_ImportError,              \
-            "initialization of module timeseries.c_dates failed");
+        PyErr_SetString(PyExc_ImportError,              \
+                        "initialization of module timeseries.c_dates failed");
         return;
     };
 
     PyModule_AddObject(m, "freq_dict", freq_dict);
     PyModule_AddObject(m, "freq_dict_rev", freq_dict_rev);
     PyModule_AddObject(m, "freq_constants", freq_constants);
+
 }
 
