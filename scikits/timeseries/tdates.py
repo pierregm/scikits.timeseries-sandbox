@@ -995,7 +995,7 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
 
     """
     freq = check_freq(freq)
-    print "do we have something ?", (dlist is not None)
+#####    print "do we have something ?", (dlist is not None)
     # Case #1: we have a list ...................
     if (dlist is not None):
         # Already a DateArray....................
@@ -1013,7 +1013,7 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
         # Make sure it's a sequence, else that's a start_date
         if hasattr(dlist, '__len__') and not isinstance(dlist, basestring):
             dlist = _listparser(dlist, freq=freq)
-            print "PARSED"
+#####            print "PARSED"
             if autosort:
                 dlist.sort_chronologically()
             return dlist
@@ -1053,7 +1053,6 @@ def date_array(dlist=None, start_date=None, end_date=None, length=None,
             (start_date, end_date) = (end_date, start_date)
         length = int(end_date - start_date) + 1
     #
-    print "Here?"
     dlist = np.arange(0, length, timestep, dtype=np.int)
     dlist += start_date.value
     if freq == _c.FR_UND:
@@ -1178,7 +1177,7 @@ def convert_to_float(datearray, ofreq):
         if (ofreq >= freqdict['A']) and (ofreq < freqdict['Q']):
             output = datearray.asfreq('A')
             output = output.tovalue().astype(float) + \
-                     (datearray.yeardays - 1.) / output.yeardays.astype(float)
+                     (datearray.day_of_year - 1.) / output.day_of_year.astype(float)
         # ... to quarterly
         elif (ofreq >= freqdict['Q']) and (ofreq < freqdict['M']):
             raise NotImplementedError

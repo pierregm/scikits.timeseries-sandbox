@@ -128,7 +128,7 @@ TimeSeries_convert(PyObject *self, PyObject *args)
     char relation_from, relation_to;
     int i;
     conversion_function totmp, fromtmp;
-    conversion_info infoto, infofrom;
+    ts_metadata metato, metafrom;
 
     PyObject *val, *valMask;
 
@@ -143,8 +143,10 @@ TimeSeries_convert(PyObject *self, PyObject *args)
         &array, &fromFreq_arg, &period, &toFreq_arg,
         &position, &startIndex, &mask)) return NULL;
 
-    if((fromFreq = check_freq(fromFreq_arg)) == INT_ERR_CODE) return NULL;
-    if((toFreq = check_freq(toFreq_arg)) == INT_ERR_CODE) return NULL;
+    if((fromFreq = check_freq(fromFreq_arg)) == INT_ERR_CODE)
+        return NULL;
+    if((toFreq = check_freq(toFreq_arg)) == INT_ERR_CODE)
+        return NULL;
 
     if (toFreq == fromFreq) {
         PyObject *sidx;
@@ -183,9 +185,13 @@ TimeSeries_convert(PyObject *self, PyObject *args)
         relation_from = relation_to;
 
     totmp = convert_to_mediator(fromFreq, toFreq, 1);
-    set_conversion_info(fromFreq, 'S', &infoto);
+    init_metadata_from_unit(&metato, fromFreq);
+    metato.convert_to_start = 1;
+//    set_conversion_info(fromFreq, 'S', &infoto);
     fromtmp = convert_from_mediator(fromFreq, toFreq, 1);
-    set_conversion_info(toFreq, 'S', &infofrom);
+    init_metadata_from_unit(&metafrom, toFreq);
+    metafrom.convert_to_start = 1;
+//    set_conversion_info(toFreq, 'S', &infofrom);
 
 
 
@@ -195,7 +201,7 @@ TimeSeries_convert(PyObject *self, PyObject *args)
     // asfreq_endpoints = get_asfreq_func(fromFreq, toFreq, 0);
 
     //convert start index to new frequency
-    ERR_CHECK(newStartTemp = fromtmp(totmp(startIndex, &infoto), &infofrom));
+    ERR_CHECK(newStartTemp = fromtmp(totmp(startIndex, &metato), &metafrom));
 // asfreq_main(startIndex, 'S', &af_info));
     newStart = newStartTemp;
 //    if (newStartTemp < 1) {
@@ -212,9 +218,9 @@ TimeSeries_convert(PyObject *self, PyObject *args)
     //convert end index to new frequency
     endIndex = startIndex + (array->dimensions[0] - 1)*period;
 
-    infoto.result_starts = (int)0;
-    infofrom.result_starts = (int)0;
-    ERR_CHECK(newEndTemp = fromtmp(totmp(endIndex, &infoto), &infofrom));
+    metato.convert_to_start = (int)0;
+    metafrom.convert_to_start = (int)0;
+    ERR_CHECK(newEndTemp = fromtmp(totmp(endIndex, &metato), &metafrom));
     // ERR_CHECK(newEndTemp = asfreq_main(endIndex, 'E', &af_info));
 //    if (newEndTemp < 1) {
 //        ERR_CHECK(newEnd = asfreq_endpoints(endIndex, 'S', &af_info));
@@ -231,18 +237,22 @@ TimeSeries_convert(PyObject *self, PyObject *args)
     if (newWidth > 1) {
         long tempval;
         conversion_function totmprev, fromtmprev;
-        conversion_info infotorev, infofromrev;
+        ts_metadata metatorev, metafromrev;
 
 
         // get_asfreq_info(toFreq, fromFreq, &af_info_rev);
         // asfreq_reverse = get_asfreq_func(toFreq, fromFreq, 0);
         totmprev = convert_to_mediator(toFreq, fromFreq, 0);
-        set_conversion_info(toFreq, 'S', &infotorev);
+        init_metadata_from_unit(&metatorev, toFreq);
+        metatorev.convert_to_start = 1;
+//        set_conversion_info(toFreq, 'S', &metatorev);
         fromtmprev = convert_from_mediator(toFreq, fromFreq, 0);
-        set_conversion_info(fromFreq, 'S', &infofromrev);
+//        set_conversion_info(fromFreq, 'S', &infofromrev);
+        init_metadata_from_unit(&metafromrev, fromFreq);
+        metafromrev.convert_to_start = 1;
 
         // ERR_CHECK(tempval = asfreq_reverse(newStart, 'S', &af_info_rev));
-        ERR_CHECK(tempval = fromtmprev(totmprev(newStart, &infotorev), &infofromrev));
+        ERR_CHECK(tempval = fromtmprev(totmprev(newStart, &metatorev), &metafromrev));
         currPerLen = startIndex - tempval;
 
         nd = 2;
@@ -268,8 +278,8 @@ TimeSeries_convert(PyObject *self, PyObject *args)
 
     prevIndex = newStart;
 
-    infofrom.result_starts = (relation_from == 'S');
-    infoto.result_starts = (relation_to == 'S');
+    metafrom.convert_to_start = (relation_from == 'S');
+    metato.convert_to_start = (relation_to == 'S');
 
 
     //set values in the new array
@@ -282,7 +292,7 @@ TimeSeries_convert(PyObject *self, PyObject *args)
         valMask = PyArray_GETITEM(mask, PyArray_GetPtr(mask, &idx));
 
         // ERR_CHECK(currIndex = asfreq_main(startIndex + i*period, relation, &af_info));
-        ERR_CHECK(currIndex = fromtmp(totmp(startIndex + i*period, &infoto), &infofrom));
+        ERR_CHECK(currIndex = fromtmp(totmp(startIndex + i*period, &metato), &metafrom));
 
         newIdx[0] = (npy_intp)(currIndex-newStart);
 
@@ -638,22 +648,22 @@ calc_mov_ranked(PyArrayObject *orig_ndarray, int span, int rtype, char rank_type
             MEM_CHECK(even_array);
         }
 
-		switch(rank_type) {
-			case 'E': // median
-				R = (span + 1)/2;
-				break;
-			case 'I': // min
-				R = 1;
-				break;
-			case 'A': // max
-				R = span;
-				break;
-			default:
-			{
-				PyErr_SetString(PyExc_RuntimeError, "unexpected rank type");
-		        return NULL;
-			}
-		}
+        switch(rank_type) {
+            case 'E': // median
+                R = (span + 1)/2;
+                break;
+            case 'I': // min
+                R = 1;
+                break;
+            case 'A': // max
+                R = span;
+                break;
+            default:
+            {
+                PyErr_SetString(PyExc_RuntimeError, "unexpected rank type");
+                return NULL;
+            }
+        }
 
         one_half = PyFloat_FromDouble(0.5);
 

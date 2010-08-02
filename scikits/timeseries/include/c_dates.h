@@ -3,18 +3,9 @@
 
 #include "c_lib.h"
 // #include "arrayscalars.h"
-#include "dtypes.h"
+#include "c_types.h"
 
-#define HIGHFREQ_ORIG 719163
-;
-typedef npy_int64 ts_datetime;
-
-typedef struct {
-    PyObject_HEAD;
-    int freq; /* frequency of date */
-    int unit;
-    ts_datetime value; /* integer representation of date */
-} DatetimeObject;
+// #define HIGHFREQ_ORIG 719163;
 
 
 ////////////////////////////////////////////////////
@@ -22,9 +13,10 @@ typedef struct {
 PyTypeObject DatetimeObject_Type;
 #define DatetimeObject_Check(op) PyObject_TypeCheck(op, &DatetimeObject_Type)
 
-ts_datetime datetimestruct_to_tsdatetime(int, ts_datetimestruct *);
-ts_datetime string_to_tsdatetime(int, PyObject *);
-ts_datetime PyDatetime_to_tsdatetime(int, PyObject *);
+void init_metadata_from_unit(ts_metadata *, int);
+ts_datetime datetimestruct_to_tsdatetime(ts_metadata *, ts_datetimestruct *);
+ts_datetime PyString_to_tsdatetime(ts_metadata *, PyObject *);
+ts_datetime PyDatetime_to_tsdatetime(ts_metadata *, PyObject *);
 
 
 DatetimeObject *DatetimeObject_FromFreqAndValue(int, npy_int64);
@@ -39,7 +31,7 @@ PyObject *c_dates_now(PyObject *, PyObject *);
 PyObject *set_callback_DateFromString(PyObject *, PyObject *);
 PyObject *set_callback_DateTimeFromString(PyObject *, PyObject *);
 
-PyObject * PyDateTime_FromFreqAndValue(npy_int64, int);
+PyObject * PyDateTime_FromFreqAndValue(npy_int64, ts_metadata *);
 
 void import_c_dates(PyObject *);
 

@@ -7,865 +7,188 @@
 #include "c_lib.h"
 
 
-static PyTypeObject DateTimeArray_Type;
+static PyTypeObject DatetimeArray_Type;
 
 int PyArray_TS_DATETIME;
 
-typedef struct {
-    int unit; // base in numpy
-    int timestep; // num in numpy...
-} DatetimeObject_MetaData;
+#define TS_METADATA_DTSTR "timeunit"
 
 typedef struct {
    PyObject_HEAD;
    ts_datetime obval;
-   DatetimeObject_MetaData obmeta;
-} DatetimeArrayObject_Type;
+   ts_metadata obmeta;
+} DatetimeScalarObject;
 
-TS_METADATA_DTSTR = "timeunit"
+NPY_NO_EXPORT PyTypeObject DatetimeArrType_Type = {
+#if defined(NPY_PY3K)
+    PyVarObject_HEAD_INIT(NULL, 0)
+#else
+    PyObject_HEAD_INIT(NULL)
+    0,                                          /* ob_size */
+#endif
+//    "timeseries.datetime" _THIS_SIZE,                  /* tp_name*/
+    "timeseries.datetime",                  /* tp_name*/
+    sizeof(DatetimeScalarObject),               /* tp_basicsize*/
+    0,                                          /* tp_itemsize */
+    0,                                          /* tp_dealloc */
+    0,                                          /* tp_print */
+    0,                                          /* tp_getattr */
+    0,                                          /* tp_setattr */
+#if defined(NPY_PY3K)
+    0,                                          /* tp_reserved */
+#else
+    0,                                          /* tp_compare */
+#endif
+    0,                                          /* tp_repr */
+    0,                                          /* tp_as_number */
+    0,                                          /* tp_as_sequence */
+    0,                                          /* tp_as_mapping */
+    0,                                          /* tp_hash */
+    0,                                          /* tp_call */
+    0,                                          /* tp_str */
+    0,                                          /* tp_getattro */
+    0,                                          /* tp_setattro */
+    0,                                          /* tp_as_buffer */
+    0,                                          /* tp_flags */
+    0,                                          /* tp_doc */
+    0,                                          /* tp_traverse */
+    0,                                          /* tp_clear */
+    0,                                          /* tp_richcompare */
+    0,                                          /* tp_weaklistoffset */
+    0,                                          /* tp_iter */
+    0,                                          /* tp_iternext */
+    0,                                          /* tp_methods */
+    0,                                          /* tp_members */
+    0,                                          /* tp_getset */
+    0,                                          /* tp_base */
+    0,                                          /* tp_dict */
+    0,                                          /* tp_descr_get */
+    0,                                          /* tp_descr_set */
+    0,                                          /* tp_dictoffset */
+    0,                                          /* tp_init */
+    0,                                          /* tp_alloc */
+    0,                                          /* tp_new */
+    0,                                          /* tp_free */
+    0,                                          /* tp_is_gc */
+    0,                                          /* tp_bases */
+    0,                                          /* tp_mro */
+    0,                                          /* tp_cache */
+    0,                                          /* tp_subclasses */
+    0,                                          /* tp_weaklist */
+    0,                                          /* tp_del */
+#if PY_VERSION_HEX >= 0x02060000
+    0,                                          /* tp_version_tag */
+#endif
+};
+
+#undef _THIS_SIZE
+/**/
+
+
+
 
 #if PY_VERSION_HEX >= 0x02070000
-#define Get_Datetime_MetaData(descr)                                 \
-    ((descr->metadata == NULL) ? NULL :                                       \
-        ((DatetimeObject_MetaData *)(PyCapsule_GetPointer(                   \
-                PyDict_GetItemString(                                         \
-                    descr->metadata, TS_METADATA_DTSTR), NULL))))
+#define get_metadata_from_descr(descr)  \
+    ((descr->metadata == NULL) ? \
+     NULL :                                       \
+    ((ts_metadata *)(PyCapsule_GetPointer(                   \
+                     PyDict_GetItemString(descr->metadata, TS_METADATA_DTSTR), \
+                     NULL))))
 #else
-#define Get_Datetime_MetaData(descr)                                 \
-    ((descr->metadata == NULL) ? NULL :                                       \
-        ((DatetimeObject_MetaData *)(PyCObject_AsVoidPtr(                    \
-                PyDict_GetItemString(descr->metadata, TS_METADATA_DTSTR)))))
+#define get_metadata_from_descr(descr)  \
+    ((descr->metadata == NULL) ? \
+     NULL :                                       \
+     ((ts_metadata *)(PyCObject_AsVoidPtr(                    \
+                      PyDict_GetItemString(descr->metadata, TS_METADATA_DTSTR)))))
 #endif
 
+
+#define get_descr(self) ( ((PyArrayObject *)self)->descr )
+#define get_metadata_from_array(self) (get_metadata_from_descr(get_descr(self)))
+//#define get_timestep(self) (get_metadata_from_array(self)->timestep)
+
+
+#define TS_METADATA_DTSTR "timeunit"
+
 //----------------------------------------------------------------------------
+/* from private/npy_3kcompat.h */
+#if PY_VERSION_HEX >= 0x02070000
+
+static NPY_INLINE PyObject *
+NpyCapsule_FromVoidPtr(void *ptr, void (*dtor)(PyObject *))
+{
+    PyObject *ret = PyCapsule_New(ptr, NULL, dtor);
+    if (ret == NULL) {
+        PyErr_Clear();
+    }
+    return ret;
+}
+
+static void
+simple_capsule_dtor(PyObject *cap)
+{
+    PyArray_free(PyCapsule_GetPointer(cap, NULL));
+}
+
+#else
+
+static NPY_INLINE PyObject *
+NpyCapsule_FromVoidPtr(void *ptr, void (*dtor)(void *))
+{
+    return PyCObject_FromVoidPtr(ptr, dtor);
+}
+
+static void
+simple_capsule_dtor(void *ptr)
+{
+    PyArray_free(ptr);
+}
+
+#endif
+/**/
+
 
 #include "noprefix.h"
 
-static char * _SEQUENCE_MESSAGE = "error setting an array element with a sequence";
-
-NPY_NO_EXPORT void
-_unaligned_strided_byte_copy(char *dst, npy_intp outstrides, char *src,
-                             npy_intp instrides, npy_intp N, int elsize)
+static void
+init_datetime_descr(PyArray_Descr *descr)
 {
-    npy_intp i;
-    char *tout = dst;
-    char *tin = src;
+    ts_metadata *dt_data;
+    PyObject *cobj;
 
-#define _COPY_N_SIZE(size)                      \
-    for(i=0; i<N; i++) {                       \
-        memcpy(tout, tin, size);                \
-        tin += instrides;                       \
-        tout += outstrides;                     \
-    }                                           \
-    return
+    dt_data = _pya_malloc(sizeof(ts_metadata));
+    dt_data->unit = FR_UND;
+    dt_data->timestep = 1;
+    dt_data->period_end_at = 0;
+    dt_data->periods_per_day = -1;
+    dt_data->secs_per_period = -1;
+    dt_data->convert_to_start = 0;
 
-    switch(elsize) {
-    case 8:
-        _COPY_N_SIZE(8);
-    case 4:
-        _COPY_N_SIZE(4);
-    case 1:
-        _COPY_N_SIZE(1);
-    case 2:
-        _COPY_N_SIZE(2);
-    case 16:
-        _COPY_N_SIZE(16);
-    default:
-        _COPY_N_SIZE(elsize);
-    }
-#undef _COPY_N_SIZE
+/* FIXME
+ * There is no error check here and no way to indicate an error
+ * until the metadata turns up NULL.
+ */
+    cobj = NpyCapsule_FromVoidPtr((void *)dt_data, simple_capsule_dtor);
+    descr->metadata = PyDict_New();
+    PyDict_SetItemString(descr->metadata, TS_METADATA_DTSTR, cobj);
+    Py_DECREF(cobj);
 
-}
-
-NPY_NO_EXPORT void
-_strided_byte_swap(void *p, npy_intp stride, npy_intp n, int size)
-{
-    char *a, *b, c = 0;
-    int j, m;
-
-    switch(size) {
-    case 1: /* no byteswap necessary */
-        break;
-    case 4:
-        for (a = (char*)p; n > 0; n--, a += stride - 1) {
-            b = a + 3;
-            c = *a; *a++ = *b; *b-- = c;
-            c = *a; *a = *b; *b   = c;
-        }
-        break;
-    case 8:
-        for (a = (char*)p; n > 0; n--, a += stride - 3) {
-            b = a + 7;
-            c = *a; *a++ = *b; *b-- = c;
-            c = *a; *a++ = *b; *b-- = c;
-            c = *a; *a++ = *b; *b-- = c;
-            c = *a; *a = *b; *b   = c;
-        }
-        break;
-    case 2:
-        for (a = (char*)p; n > 0; n--, a += stride) {
-            b = a + 1;
-            c = *a; *a = *b; *b = c;
-        }
-        break;
-    default:
-        m = size/2;
-        for (a = (char *)p; n > 0; n--, a += stride - m) {
-            b = a + (size - 1);
-            for (j = 0; j < m; j++) {
-                c=*a; *a++ = *b; *b-- = c;
-            }
-        }
-        break;
-    }
-}
-
-
-
-//static int
-//UNICODE_setitem(PyObject *op, char *ov, PyArrayObject *ap)
-//{
-//    PyObject *temp;
-//    Py_UNICODE *ptr;
-//    int datalen;
-//#ifndef Py_UNICODE_WIDE
-//    char *buffer;
-//#endif
-//
-//    if (!PyBytes_Check(op) && !PyUnicode_Check(op) &&
-//            PySequence_Check(op) && PySequence_Size(op) > 0) {
-//        PyErr_SetString(PyExc_ValueError,
-//                "setting an array element with a sequence");
-//        return -1;
-//    }
-//    /* Sequence_Size might have returned an error */
-//    if (PyErr_Occurred()) {
-//        PyErr_Clear();
-//    }
-//#if defined(NPY_PY3K)
-//    if (PyBytes_Check(op)) {
-//        /* Try to decode from ASCII */
-//        temp = PyUnicode_FromEncodedObject(op, "ASCII", "strict");
-//        if (temp == NULL) {
-//            return -1;
-//        }
-//    }
-//    else if ((temp=PyObject_Str(op)) == NULL) {
-//#else
-//    if ((temp=PyObject_Unicode(op)) == NULL) {
-//#endif
-//        return -1;
-//    }
-//    ptr = PyUnicode_AS_UNICODE(temp);
-//    if ((ptr == NULL) || (PyErr_Occurred())) {
-//        Py_DECREF(temp);
-//        return -1;
-//    }
-//    datalen = PyUnicode_GET_DATA_SIZE(temp);
-//
-//#ifdef Py_UNICODE_WIDE
-//    memcpy(ov, ptr, MIN(ap->descr->elsize, datalen));
-//#else
-//    if (!PyArray_ISALIGNED(ap)) {
-//        buffer = _pya_malloc(ap->descr->elsize);
-//        if (buffer == NULL) {
-//            Py_DECREF(temp);
-//            PyErr_NoMemory();
-//            return -1;
-//        }
-//    }
-//    else {
-//        buffer = ov;
-//    }
-//    datalen = PyUCS2Buffer_AsUCS4(ptr, (PyArray_UCS4 *)buffer,
-//            datalen >> 1, ap->descr->elsize >> 2);
-//    datalen <<= 2;
-//    if (!PyArray_ISALIGNED(ap)) {
-//        memcpy(ov, buffer, datalen);
-//        _pya_free(buffer);
-//    }
-//#endif
-//    /* Fill in the rest of the space with 0 */
-//    if (ap->descr->elsize > datalen) {
-//        memset(ov + datalen, 0, (ap->descr->elsize - datalen));
-//    }
-//    if (!PyArray_ISNOTSWAPPED(ap)) {
-//        byte_swap_vector(ov, ap->descr->elsize >> 2, 4);
-//    }
-//    Py_DECREF(temp);
-//    return 0;
-//}
-
-
-static int
-STRING_setitem(PyObject *op, char *ov, PyArrayObject *ap)
-{
-    char *ptr;
-    Py_ssize_t len;
-    PyObject *temp = NULL;
-
-    if (!PyBytes_Check(op) && !PyUnicode_Check(op)
-            && PySequence_Check(op) && PySequence_Size(op) > 0) {
-        PyErr_SetString(PyExc_ValueError,
-                "setting an array element with a sequence");
-        return -1;
-    }
-    /* Sequence_Size might have returned an error */
-    if (PyErr_Occurred()) {
-        PyErr_Clear();
-    }
-#if defined(NPY_PY3K)
-    if (PyUnicode_Check(op)) {
-        /* Assume ASCII codec -- function similarly as Python 2 */
-        temp = PyUnicode_AsASCIIString(op);
-        if (temp == NULL) return -1;
-    }
-    else if (PyBytes_Check(op) || PyMemoryView_Check(op)) {
-        temp = PyObject_Bytes(op);
-        if (temp == NULL) {
-            return -1;
-        }
-    }
-    else {
-        /* Emulate similar casting behavior as on Python 2 */
-        PyObject *str;
-        str = PyObject_Str(op);
-        if (str == NULL) {
-            return -1;
-        }
-        temp = PyUnicode_AsASCIIString(str);
-        Py_DECREF(str);
-        if (temp == NULL) {
-            return -1;
-        }
-    }
-#else
-    if ((temp = PyObject_Str(op)) == NULL) {
-        return -1;
-    }
-#endif
-    if (PyBytes_AsStringAndSize(temp, &ptr, &len) == -1) {
-        Py_DECREF(temp);
-        return -1;
-    }
-    memcpy(ov, ptr, MIN(ap->descr->elsize,len));
-    /*
-     * If string lenth is smaller than room in array
-     * Then fill the rest of the element size with NULL
-     */
-    if (ap->descr->elsize > len) {
-        memset(ov + len, 0, (ap->descr->elsize - len));
-    }
-    Py_DECREF(temp);
-    return 0;
-}
-
-
-
-static int
-VOID_setitem(PyObject *op, char *ip, PyArrayObject *ap)
-{
-    PyArray_Descr* descr;
-    int itemsize=ap->descr->elsize;
-    int res;
-
-    descr = ap->descr;
-    if (descr->names && PyTuple_Check(op)) {
-        PyObject *key;
-        PyObject *names;
-        int i, n;
-        PyObject *tup, *title;
-        PyArray_Descr *new;
-        int offset;
-        int savedflags;
-
-        res = -1;
-        /* get the names from the fields dictionary*/
-        names = descr->names;
-        n = PyTuple_GET_SIZE(names);
-        if (PyTuple_GET_SIZE(op) != n) {
-            PyErr_SetString(PyExc_ValueError,
-                    "size of tuple must match number of fields.");
-            return -1;
-        }
-        savedflags = ap->flags;
-        for (i = 0; i < n; i++) {
-            key = PyTuple_GET_ITEM(names, i);
-            tup = PyDict_GetItem(descr->fields, key);
-            if (!PyArg_ParseTuple(tup, "Oi|O", &new, &offset, &title)) {
-                ap->descr = descr;
-                return -1;
-            }
-            ap->descr = new;
-            /* remember to update alignment flags */
-            if ((new->alignment > 1)
-                    && ((((npy_intp)(ip+offset)) % new->alignment) != 0)) {
-                ap->flags &= ~NPY_ALIGNED;
-            }
-            else {
-                ap->flags |= NPY_ALIGNED;
-            }
-            res = new->f->setitem(PyTuple_GET_ITEM(op, i), ip+offset, ap);
-            ap->flags = savedflags;
-            if (res < 0) {
-                break;
-            }
-        }
-        ap->descr = descr;
-        return res;
-    }
-
-    if (descr->subarray) {
-        /* copy into an array of the same basic type */
-        PyArray_Dims shape = {NULL, -1};
-        PyObject *ret;
-        if (!(PyArray_IntpConverter(descr->subarray->shape, &shape))) {
-            PyDimMem_FREE(shape.ptr);
-            PyErr_SetString(PyExc_ValueError,
-                    "invalid shape in fixed-type tuple.");
-            return -1;
-        }
-        Py_INCREF(descr->subarray->base);
-        ret = PyArray_NewFromDescr(&PyArray_Type,
-                descr->subarray->base, shape.len, shape.ptr,
-                NULL, ip, ap->flags, NULL);
-        PyDimMem_FREE(shape.ptr);
-        if (!ret) {
-            return -1;
-        }
-        PyArray_BASE(ret) = (PyObject *)ap;
-        Py_INCREF(ap);
-        PyArray_UpdateFlags((PyArrayObject *)ret, NPY_UPDATE_ALL);
-        res = PyArray_CopyObject((PyArrayObject *)ret, op);
-        Py_DECREF(ret);
-        return res;
-    }
-
-    /* Default is to use buffer interface to set item */
-    {
-        const void *buffer;
-        Py_ssize_t buflen;
-        if (PyDataType_FLAGCHK(descr, NPY_ITEM_HASOBJECT)
-                || PyDataType_FLAGCHK(descr, NPY_ITEM_IS_POINTER)) {
-            PyErr_SetString(PyExc_ValueError,
-                    "Setting void-array with object members using buffer.");
-            return -1;
-        }
-        res = PyObject_AsReadBuffer(op, &buffer, &buflen);
-        if (res == -1) {
-            goto fail;
-        }
-        memcpy(ip, buffer, NPY_MIN(buflen, itemsize));
-        if (itemsize > buflen) {
-            memset(ip + buflen, 0, itemsize - buflen);
-        }
-    }
-    return 0;
-
-fail:
-    return -1;
-}
-
-//----------------------------------------------------------------------------
-static int
-get_unit_from_metadata(PyArray_Descr *descr)
-{
-    Datetime_MetaData *meta;
-
-    meta = Get_Datetime_MetaData(descr);
-    if (meta == NULL) {
-        PyErr_SetString(PyExc_RuntimeError,
-                "metadata not set for descriptor");
-        return -1;
-    }
-    return meta->unit;
-
-
-//----------------------------------------------------------------------------
-
-static Bool
-TS_DATETIME_nonzero (char *ip, DateTimeArrayObject *ap)
-{
-    if (ap == NULL || PyArray_ISBEHAVED_RO(ap)) {
-        ts_datetime *ptmp = (ts_datetime *)ip;
-        return (Bool) (*ptmp != 0);
-    }
-    else {
-        /*
-         * don't worry about swap, since we are just testing
-         * whether or not equal to 0
-         */
-        ts_datetime tmp;
-        memcpy(&tmp, ip, sizeof(ts_datetime));
-        return (Bool) (tmp != 0);
-    }
 }
 
 static void
-TS_DATETIME_copyswapn (void *dst, npy_intp dstride, void *src, npy_intp sstride,
-                       npy_intp n, int swap, void *NPY_UNUSED(arr))
-{
-    if (src != NULL) {
-        if (sstride == sizeof(ts_datetime) && dstride == sizeof(ts_datetime)) {
-            memcpy(dst, src, n*sizeof(ts_datetime));
-        }
-        else {
-            _unaligned_strided_byte_copy(dst, dstride, src, sstride,
-                    n, sizeof(ts_datetime));
-        }
-    }
-    if (swap) {
-        _strided_byte_swap(dst, dstride, n, sizeof(ts_datetime));
-    }
+update_datetime_metadata(PyArray_Descr *descr, ts_metadata *meta) {
+    PyObject *cobj;
+    cobj = NpyCapsule_FromVoidPtr((void *)meta, simple_capsule_dtor);
+    descr->metadata = PyDict_New();
+    PyDict_SetItemString(descr->metadata, TS_METADATA_DTSTR, cobj);
+    Py_DECREF(cobj);
 }
-
-static void
-TS_DATETIME_copyswap (void *dst, void *src, int swap, void *NPY_UNUSED(arr))
-{
-
-    if (src != NULL) {
-        /* copy first if needed */
-        memcpy(dst, src, sizeof(ts_datetime));
-    }
-    if (swap) {
-        char *a, *b, c;
-
-        a = (char *)dst;
-#if SIZEOF_DATETIME == 2
-        b = a + 1;
-        c = *a; *a++ = *b; *b = c;
-#elif SIZEOF_DATETIME == 4
-        b = a + 3;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b   = c;
-#elif SIZEOF_DATETIME == 8
-        b = a + 7;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b   = c;
-#elif SIZEOF_DATETIME == 10
-        b = a + 9;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b   = c;
-#elif SIZEOF_DATETIME == 12
-        b = a + 11;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b   = c;
-#elif SIZEOF_DATETIME == 16
-        b = a + 15;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b-- = c;
-        c = *a; *a++ = *b; *b   = c;
-#else
-        {
-            int i, nn;
-
-            b = a + (SIZEOF_DATETIME-1);
-            nn = SIZEOF_DATETIME / 2;
-            for (i = 0; i < nn; i++) {
-                c = *a;
-                *a++ = *b;
-                *b-- = c;
-            }
-        }
-#endif
-    }
-}
-
-
-static PyObject *
-TS_DATETIME_getitem(char *ip, PyArrayObject *ap) {
-    ts_datetime t1;
-    DateTimeArrayObject *dtap = (DateTimeArrayObject *)ap;
-	DEBUGPRINTF("getitem got called");
-
-    if ((ap == NULL) || PyArray_ISBEHAVED_RO(ap)) {
-        t1 = *((ts_datetime *)ip);
-        return PyDateTime_FromFreqAndValue((ts_datetime)t1, dtap->unit);
-    }
-    else {
-        ap->descr->f->copyswap(&t1, ip, !PyArray_ISNOTSWAPPED(ap), ap);
-        return PyDateTime_FromFreqAndValue((ts_datetime)t1, dtap->unit);
-    }
-    Py_XDECREF(dtap);
-}
-
-
-static int
-TS_DATETIME_setitem(PyObject *op, char *ov, PyArrayObject *ap) {
-    /* ensure alignment */
-    ts_datetime temp;
-
-    if (PyArray_IsScalar(op, Datetime)) {
-        /* This needs to convert based on type */
-        temp = ((PyDatetimeScalarObject *)op)->obval;
-    }
-//#if defined(NPY_PY3K)
-//    else if (PyUString_Check(op)) {
-//#else
-//    else if (PyUString_Check(op) || PyUnicode_Check(op)) {
-// #endif
-    else if (PyString_Check(op)) {
-        temp = string_to_tsdatetime(((DateTimeArrayObject *)ap)->unit, op);
-//         /* FIXME:  Converts to DateTime first and therefore does not handle extended notation */
-//         /* import _mx_datetime_parser 
-//          * res = _mx_datetime_parser(name)
-//          *  Convert from datetime to Int
-//          */
-//         PyObject *res, *module;
-// 
-//         module = PyImport_ImportModule("numpy.core._mx_datetime_parser");
-//         if (module == NULL) { return -1; }
-//         res = PyObject_CallMethod(module, "datetime_from_string", "O", op);
-//         Py_DECREF(module);
-//         if (res == NULL) { return -1; }
-//         // temp = PyDateTime_AsInt64(res, ap->descr);
-//         temp = 
-//         Py_DECREF(res);
-//         if (PyErr_Occurred()) return -1;
-    }
-    else if (PyInt_Check(op)) {
-        temp = PyInt_AS_LONG(op);
-    }
-    else if (PyLong_Check(op)) {
-        temp = PyLong_AsLongLong(op);
-    }
-    else {
-        // temp = PyDateTime_AsInt64(op, ap->descr);
-        temp = PyLong_AsLongLong(op);
-    };
-
-    if (PyErr_Occurred()) {
-        if (PySequence_Check(op)) {
-            PyErr_Clear();
-            PyErr_SetString(PyExc_ValueError, _SEQUENCE_MESSAGE);
-        }
-        return -1;
-    }
-    if (ap == NULL || PyArray_ISBEHAVED(ap))
-        *((datetime *)ov)=temp;
-    else {
-        ap->descr->f->copyswap(ov, &temp, !PyArray_ISNOTSWAPPED(ap), ap);
-    }
-    return 0;
-}
-
-
-
-//-----------------------------------------------------------------------------
-static void
-//TS_DATETIME_to_BYTE(ts_datetime *ip, byte *op, npy_intp n,
-//               PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-//{
-//    while (n--) {
-//        *op++ = (byte)*ip++;
-//    }
-//}
-//static void
-//TS_DATETIME_to_UBYTE(ts_datetime *ip, ubyte *op, npy_intp n,
-//               PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-//{
-//    while (n--) {
-//        *op++ = (ubyte)*ip++;
-//    }
-//}
-TS_DATETIME_to_SHORT(ts_datetime *ip, short *op, npy_intp n,
-               PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-{
-    while (n--) {
-        *op++ = (short)*ip++;
-    }
-}
-// static void
-// TS_DATETIME_to_USHORT(ts_datetime *ip, ushort *op, npy_intp n,
-//                PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-// {
-//     while (n--) {
-//         *op++ = (ushort)*ip++;
-//     }
-// }
-static void
-TS_DATETIME_to_INT(ts_datetime *ip, int *op, npy_intp n,
-               PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-{
-    while (n--) {
-        *op++ = (int)*ip++;
-    }
-}
-//static void
-//TS_DATETIME_to_UINT(ts_datetime *ip, uint *op, npy_intp n,
-//               PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-//{
-//    while (n--) {
-//        *op++ = (uint)*ip++;
-//    }
-//}
-static void
-TS_DATETIME_to_LONG(ts_datetime *ip, long *op, npy_intp n,
-               PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-{
-    while (n--) {
-        *op++ = (long)*ip++;
-    }
-}
-// static void
-// TS_DATETIME_to_ULONG(ts_datetime *ip, ulong *op, npy_intp n,
-//                PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-// {
-//     while (n--) {
-//         *op++ = (ulong)*ip++;
-//     }
-// }
-// static void
-// TS_DATETIME_to_LONGLONG(ts_datetime *ip, longlong *op, npy_intp n,
-//                PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-// {
-//     while (n--) {
-//         *op++ = (longlong)*ip++;
-//     }
-// }
-// static void
-// TS_DATETIME_to_ULONGLONG(ts_datetime *ip, ulonglong *op, npy_intp n,
-//                PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-// {
-//     while (n--) {
-//         *op++ = (ulonglong)*ip++;
-//     }
-// }
-static void
-TS_DATETIME_to_FLOAT(ts_datetime *ip, float *op, npy_intp n,
-               PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-{
-    while (n--) {
-        *op++ = (float)*ip++;
-    }
-}
-static void
-TS_DATETIME_to_DOUBLE(ts_datetime *ip, double *op, npy_intp n,
-               PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-{
-    while (n--) {
-        *op++ = (double)*ip++;
-    }
-}
-// static void
-// TS_DATETIME_to_LONGDOUBLE(ts_datetime *ip, longdouble *op, npy_intp n,
-//                PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-// {
-//     while (n--) {
-//         *op++ = (longdouble)*ip++;
-//     }
-// }
-//static void
-//TS_DATETIME_to_BOOL(ts_datetime *ip, Bool *op, npy_intp n,
-//               PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-//{
-//    while (n--) {
-//        *op++ = (Bool)*ip++;
-//    }
-//}
-static void
-TS_DATETIME_to_CFLOAT(ts_datetime *ip, float *op, npy_intp n,
-               PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-{
-    while (n--) {
-        *op++ = (float)*ip++;
-        *op++ = 0.0;
-    }
-}
-static void
-TS_DATETIME_to_CDOUBLE(ts_datetime *ip, double *op, npy_intp n,
-               PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-{
-    while (n--) {
-        *op++ = (double)*ip++;
-        *op++ = 0.0;
-    }
-}
-//static void
-//TS_DATETIME_to_CLONGDOUBLE(ts_datetime *ip, longdouble *op, npy_intp n,
-//               PyArrayObject *NPY_UNUSED(aip), PyArrayObject *NPY_UNUSED(aop))
-//{
-//    while (n--) {
-//        *op++ = (longdouble)*ip++;
-//        *op++ = 0.0;
-//    }
-//}
-static void
-TS_DATETIME_to_OBJECT(ts_datetime *ip, PyObject **op, npy_intp n, PyArrayObject *aip,
-                 PyArrayObject *NPY_UNUSED(aop))
-{
-    npy_intp i;
-    int skip = 1;
-    for (i = 0; i < n; i++, ip +=skip, op++) {
-        Py_XDECREF(*op);
-        *op = TS_DATETIME_getitem((char *)ip, aip);
-    }
-}
-static void
-TS_DATETIME_to_STRING(ts_datetime *ip, char *op, npy_intp n, PyArrayObject *aip,
-             PyArrayObject *aop)
-{
-    npy_intp i;
-    PyObject *temp = NULL;
-    int skip = 1;
-    int oskip = aop->descr->elsize;
-    for (i = 0; i < n; i++, ip += skip, op += oskip) {
-        temp = TS_DATETIME_getitem((char *)ip, aip);
-        if (temp == NULL) {
-            Py_INCREF(Py_False);
-            temp = Py_False;
-        }
-        if (STRING_setitem(temp,(char *)op, aop)) {
-            Py_DECREF(temp);
-            return;
-        }
-        Py_DECREF(temp);
-    }
-}
-//static void
-//TS_DATETIME_to_UNICODE(ts_datetime *ip, char *op, npy_intp n, PyArrayObject *aip,
-//             PyArrayObject *aop)
-//{
-//    npy_intp i;
-//    PyObject *temp = NULL;
-//    int skip = 1;
-//    int oskip = aop->descr->elsize;
-//    for (i = 0; i < n; i++, ip += skip, op += oskip) {
-//        temp = TS_DATETIME_getitem((char *)ip, aip);
-//        if (temp == NULL) {
-//            Py_INCREF(Py_False);
-//            temp = Py_False;
-//        }
-//        if (UNICODE_setitem(temp,(char *)op, aop)) {
-//            Py_DECREF(temp);
-//            return;
-//        }
-//        Py_DECREF(temp);
-//    }
-//}
-static void
-TS_DATETIME_to_VOID(ts_datetime *ip, char *op, npy_intp n, PyArrayObject *aip,
-             PyArrayObject *aop)
-{
-    npy_intp i;
-    PyObject *temp = NULL;
-    int skip = 1;
-    int oskip = aop->descr->elsize;
-    for (i = 0; i < n; i++, ip += skip, op += oskip) {
-        temp = TS_DATETIME_getitem((char *)ip, aip);
-        if (temp == NULL) {
-            Py_INCREF(Py_False);
-            temp = Py_False;
-        }
-        if (VOID_setitem(temp,(char *)op, aop)) {
-            Py_DECREF(temp);
-            return;
-        }
-        Py_DECREF(temp);
-    }
-}
-
-//-----------------------------------------------------------------------------
-
-
-// typedef PyArray_Descr TS_DATETIME_Descr;
-// TS_DATETIME_Descr.typeobject = *DateTimeTypeObject;
-static PyArray_ArrFuncs _PyTS_Datetime_ArrFuncs = {
-    (PyArray_GetItemFunc*)TS_DATETIME_getitem,
-    (PyArray_SetItemFunc*)TS_DATETIME_setitem,
-    (PyArray_CopySwapNFunc*)TS_DATETIME_copyswapn,
-    (PyArray_CopySwapFunc*)TS_DATETIME_copyswap,
-    (PyArray_CompareFunc*)NULL,//TS_DATETIME_compare,
-    (PyArray_ArgFunc*)NULL,//TS_DATETIME_argmax,
-    (PyArray_DotFunc*)NULL,//TS_DATETIME_dot,
-    (PyArray_ScanFunc*)NULL,//TS_DATETIME_scan,
-    (PyArray_FromStrFunc*)NULL,//TS_DATETIME_fromstr,
-    (PyArray_NonzeroFunc*)TS_DATETIME_nonzero,
-    (PyArray_FillFunc*)NULL,//TS_DATETIME_fill,
-    (PyArray_FillWithScalarFunc*)NULL,//S_DATETIME_fillwithscalar,
-    {
-        NULL, NULL, NULL
-    },
-    {
-        NULL, NULL, NULL
-    },
-    NULL,
-    (PyArray_ScalarKindFunc*)NULL,
-    NULL,
-    NULL,
-    (PyArray_FastClipFunc*)NULL,//(PyArray_FastClipFunc*)TS_DATETIME_fastclip,
-    (PyArray_FastPutmaskFunc*)NULL,//(PyArray_FastPutmaskFunc*)TS_DATETIME_fastputmask,
-    (PyArray_FastTakeFunc*)NULL,//(PyArray_FastTakeFunc*)TS_DATETIME_fasttake,
-    NULL, NULL, NULL, NULL,
-    {
-        (PyArray_VectorUnaryFunc*)NULL,//TS_DATETIME_to_BOOL,
-        (PyArray_VectorUnaryFunc*)NULL,//TS_DATETIME_to_BYTE,
-        (PyArray_VectorUnaryFunc*)NULL,//TS_DATETIME_to_UBYTE,
-        (PyArray_VectorUnaryFunc*)TS_DATETIME_to_SHORT,
-        (PyArray_VectorUnaryFunc*)NULL,//TS_DATETIME_to_USHORT,
-        (PyArray_VectorUnaryFunc*)TS_DATETIME_to_INT,
-        (PyArray_VectorUnaryFunc*)NULL,//TS_DATETIME_to_UINT,
-        (PyArray_VectorUnaryFunc*)TS_DATETIME_to_LONG,
-        (PyArray_VectorUnaryFunc*)NULL,//TS_DATETIME_to_ULONG,
-        (PyArray_VectorUnaryFunc*)NULL,//TS_DATETIME_to_LONGLONG,
-        (PyArray_VectorUnaryFunc*)NULL,//TS_DATETIME_to_ULONGLONG,
-        (PyArray_VectorUnaryFunc*)TS_DATETIME_to_FLOAT,
-        (PyArray_VectorUnaryFunc*)TS_DATETIME_to_DOUBLE,
-        (PyArray_VectorUnaryFunc*)NULL,//TS_DATETIME_to_LONGDOUBLE,
-        (PyArray_VectorUnaryFunc*)TS_DATETIME_to_CFLOAT,
-        (PyArray_VectorUnaryFunc*)TS_DATETIME_to_CDOUBLE,
-        (PyArray_VectorUnaryFunc*)NULL,//TS_DATETIME_to_CLONGDOUBLE,
-        (PyArray_VectorUnaryFunc*)NULL,//TS_DATETIME_to_TS_DATETIME,
-        (PyArray_VectorUnaryFunc*)NULL,//TS_DATETIME_to_TIMEDELTA,
-        (PyArray_VectorUnaryFunc*)TS_DATETIME_to_OBJECT,
-        (PyArray_VectorUnaryFunc*)TS_DATETIME_to_STRING,
-        (PyArray_VectorUnaryFunc*)NULL,//TS_DATETIME_to_UNICODE,
-        (PyArray_VectorUnaryFunc*)TS_DATETIME_to_VOID
-    }
-};
-
-
-NPY_NO_EXPORT PyArray_Descr TS_DATETIME_Descr = {
-//    PyObject_HEAD_INIT(&PyArrayDescr_Type)
-    PyObject_HEAD_INIT(NULL)
-    &DatetimeObject_Type,
-    'T',
-    'T',
-    '=',
-    0,
-    0,
-    -1,
-    1*sizeof(ts_datetime),
-    offsetof(struct {char c; ts_datetime v;}, v),
-    NULL,
-    NULL,
-    NULL,
-    &_PyTS_Datetime_ArrFuncs,
-    NULL,
-};
-// 
-// int PyArray_TS_DATETIME = PyArray_RegisterDataType(&TS_DATETIME_Descr);
-
 
 
 //-----------------------------------------------------------------------------
 
 static PyObject *
-DateTimeArray_new(PyTypeObject *cls, PyObject *args, PyObject *kw)
+DatetimeArray_new(PyTypeObject *cls, PyObject *args, PyObject *kw)
 {
     static char *kwlist[] = {"object", "unit", 0};
 
@@ -873,7 +196,7 @@ DateTimeArray_new(PyTypeObject *cls, PyObject *args, PyObject *kw)
     PyArrayObject *arr = NULL;
     PyObject *unit = NULL;
     PyObject *timestep = NULL;
-    DateTimeArrayObject *self;
+    DatetimeArrayObject *self;
     PyArray_Descr *descr;
 
     if(!PyArg_ParseTupleAndKeywords(args,kw,"OO",kwlist,
@@ -884,38 +207,62 @@ DateTimeArray_new(PyTypeObject *cls, PyObject *args, PyObject *kw)
     arr = (PyArrayObject *)PyArray_FROM_O(obj);
     if(arr == NULL)
         return NULL;
-    DEBUGPRINTF("We have an array...");
+//    DEBUGPRINTF("We have an array...");
 
-    // descr = PyArray_DescrFromType(PyArray_INT64);
-//    descr = PyArray_DescrFromType(PyArray_TS_DATETIME);
-    //    descr = PyArray_DescrFromType(TS_DATETIME_Descr.type_num);
-    descr = &TS_DATETIME_Descr;
+    descr = PyArray_DescrFromType(PyArray_INT64);
     if (descr == NULL)
         return NULL;
-    DEBUGPRINTF("datetime initialize %i", descr->type_num);
+    Py_INCREF(descr);
+    init_datetime_descr(descr);
+//    DEBUGPRINTF("datetime initialize %i", descr->type_num);
+//    DEBUGPRINTF("PyArray_DescrCheck(obj):%i",PyArray_DescrCheck((PyObject *)descr));
+
+
+
     // DEBUGPRINTF("type_num; %i", (long)(&descr->type_num));
     // DEBUGPRINTF("flags: %i", (long)(&descr->flags));
     // descr = &TS_DATETIME_Descr;
-    self = (DateTimeArrayObject *)PyArray_View(arr, descr, &DateTimeArray_Type);
-    DEBUGPRINTF("Back in __new__");
+    self = (DatetimeArrayObject *)PyArray_NewFromDescr(&DatetimeArray_Type,
+                                                       arr->descr,
+                                                       arr->nd, arr->dimensions,
+                                                       arr->strides,
+                                                       arr->data,
+                                                       arr->flags,
+                                                       (PyObject *)arr);
     if(self == NULL)
         return NULL;
+    Py_INCREF(arr);
+    PyArray_BASE(self) = (PyObject *)arr;
+//    DEBUGPRINTF("Setting the dtype");
+    if (PyObject_SetAttrString((PyObject *)self, "dtype", (PyObject *)descr) < 0) {
+        Py_DECREF(self);
+        return NULL;
+    }
+
+    ts_metadata *obmeta = get_metadata_from_descr(descr);
 
     if (unit == NULL){
         unit = PyInt_FromLong(FR_UND);
     }
 //    self->cached_vals = cached_vals;
-
-    self->unit = check_freq(unit);
-    if (self->unit == -1)
+//    DEBUGPRINTF("Setting the unit");
+    int u = check_freq(unit);
+    if (u == -1)
         goto onError;
+    init_metadata_from_unit(obmeta, u);
 
-    DEBUGPRINTF("set unit");
+//    DEBUGPRINTF("Setting the timestep");
     if (timestep == NULL)
-        self->timestep = 1;
+        obmeta->timestep = 1;
     else
-        self->timestep = PyInt_AsLong(timestep);
+        obmeta->timestep = PyInt_AsLong(timestep);
 
+    self->obmeta.unit = obmeta->unit;
+    self->obmeta.timestep = obmeta->timestep; // num in numpy...
+    self->obmeta.period_end_at = obmeta->period_end_at; //
+    self->obmeta.periods_per_day = obmeta->periods_per_day;
+    self->obmeta.secs_per_period = obmeta->secs_per_period;
+    self->obmeta.convert_to_start = obmeta->convert_to_start;
 //    timestatus status;
 //    status.has_dups = -1;
 //    status.has_missing = -1;
@@ -931,7 +278,7 @@ DateTimeArray_new(PyTypeObject *cls, PyObject *args, PyObject *kw)
 }
 
 static void
-DateTimeArray_dealloc(DateTimeArrayObject *self)
+DatetimeArray_dealloc(DatetimeArrayObject *self)
 {
 //    DEBUGPRINTF("Dropping cache");
 //    Py_XDECREF(self->cached_vals);
@@ -940,29 +287,24 @@ DateTimeArray_dealloc(DateTimeArrayObject *self)
 }
 
 static PyObject*
-DateTimeArray_finalize(DateTimeArrayObject *self, PyObject *args)
+DatetimeArray_finalize(DatetimeArrayObject *self, PyObject *args)
 {
-    DateTimeArrayObject *context;
+    DatetimeArrayObject *context;
     if(PyArg_ParseTuple(args,"O",&context))
     {
-        if (DateTimeArray_Check(context)){
+        if (DatetimeArray_Check(context)){
             DEBUGPRINTF("in context from DTA");
-//            self->cached_vals = context->cached_vals;
-            self->unit = context->unit;
-            self->timestep = context->timestep;
+            ts_metadata *meta_context = get_metadata_from_array(context);
+            update_datetime_metadata(get_descr(self), meta_context);
         } else {
             DEBUGPRINTF("in context from scratch");
-//            self->cached_vals = NULL;
-            self->unit = FR_UND;
-//            Py_XINCREF(self->cached_vals);
+            init_datetime_descr(get_descr(self));
         };
-        DEBUGPRINTF("Setting the status...");
-		// self->status.is_chrono);
         self->status.is_chrono = -1;
         self->status.has_dups = -1;
         self->status.has_missing = -1;
-        DEBUGPRINTF("... done");
-//        Py_XINCREF(self->cached_vals);
+        ts_metadata *selfmeta = get_metadata_from_array(self);
+        DEBUGPRINTF("self.unit is %i", selfmeta->unit);
     }
     PyErr_Clear();
     DEBUGPRINTF("Returning...");
@@ -982,10 +324,30 @@ DateTimeArray_finalize(DateTimeArrayObject *self, PyObject *args)
 //     return res;
 // }
 
+static int
+_get_unit_from_descr(PyArray_Descr *descr) {
+    ts_metadata *meta = get_metadata_from_descr(descr);
+    return meta->unit + meta->period_end_at;
+}
+static int
+_get_unit_from_array(DatetimeArrayObject *self) {
+    ts_metadata *meta = get_metadata_from_descr(((PyArrayObject *)self)->descr);
+    return meta->unit + meta->period_end_at;
+}
 static PyObject *
-//DateTimeArray_freqstr(DateTimeArray *self, void *closure) {
-DateTimeArray_freqstr(DateTimeArrayObject *self) {
-    PyObject *key = PyInt_FromLong(self->unit);
+DatetimeArray_unit(DatetimeArrayObject *self){
+    int unit = _get_unit_from_array(self);
+    return PyInt_FromLong(unit);
+}
+static PyObject *
+DatetimeArray_timestep(DatetimeArrayObject *self){
+    PyArray_Descr *descr = ((PyArrayObject *)self)->descr;
+    ts_metadata *meta = get_metadata_from_descr(descr);
+    return PyInt_FromLong(meta->timestep);
+}
+static PyObject *
+DatetimeArray_freqstr(DatetimeArrayObject *self) {
+    PyObject *key = DatetimeArray_unit(self);
     PyObject *freq_aliases = PyDict_GetItem(freq_dict, key);
     PyObject *main_alias = PyTuple_GET_ITEM(freq_aliases, 0);
     Py_DECREF(key);
@@ -993,7 +355,7 @@ DateTimeArray_freqstr(DateTimeArrayObject *self) {
 }
 
 static PyObject *
-DateTimeArray_steps(DateTimeArrayObject *self){
+DatetimeArray_steps(DatetimeArrayObject *self){
     PyArrayObject *steps=NULL;
     PyArrayIterObject *self_iter, *steps_iter;
     npy_intp size;
@@ -1012,10 +374,9 @@ DateTimeArray_steps(DateTimeArrayObject *self){
     };
     self_iter = (PyArrayIterObject *)PyArray_IterNew((PyObject *)self);
     if (self_iter == NULL) {
-            DEBUGPRINTF("can't initialize self_iter");
-            goto fail;
+        DEBUGPRINTF("can't initialize self_iter");
+        goto fail;
     };
-    DEBUGPRINTF("iterators initialzed");
     PyObject *val=NULL, *prev=NULL, *diff=NULL;
     prev = PyArray_GETITEM(self, self_iter->dataptr);
     PyArray_ITER_NEXT(self_iter);
@@ -1032,7 +393,6 @@ DateTimeArray_steps(DateTimeArrayObject *self){
     Py_DECREF(prev);
     Py_DECREF(val);
     Py_DECREF(diff);
-    DEBUGPRINTF("All good?");
     return (PyObject *)steps;
 
  fail:
@@ -1042,14 +402,16 @@ DateTimeArray_steps(DateTimeArrayObject *self){
 }
 
 
+
 static int
-DateTimeArray_check_status(DateTimeArrayObject *self)
+DatetimeArray_check_status(DatetimeArrayObject *self)
 {
     PyArrayIterObject *self_iter;
     npy_int64 timestep, diff;
     int is_chrono = 1, has_dups=0, has_missing=0;
 
-    timestep = self->timestep;
+//    timestep = PyInt_FromLong(DatetimeArray_timestep(self));
+    timestep = get_metadata_from_array(self)->timestep;
     self_iter = (PyArrayIterObject *)PyArray_IterNew((PyObject *)self);
     if (self_iter == NULL) {
         return -1;
@@ -1084,80 +446,443 @@ DateTimeArray_check_status(DateTimeArrayObject *self)
     return 0;
 }
 static PyObject *
-DateTimeArray_has_dups(DateTimeArrayObject *self)
+DatetimeArray_has_dups(DatetimeArrayObject *self)
 {
     if (self->status.has_dups == -1)
-        if (DateTimeArray_check_status(self) < 0)
+        if (DatetimeArray_check_status(self) < 0)
             return NULL;
     if (self->status.has_dups == 0)
         Py_RETURN_FALSE;
     Py_RETURN_TRUE;
 }
 static PyObject *
-DateTimeArray_has_missing(DateTimeArrayObject *self)
+DatetimeArray_has_missing(DatetimeArrayObject *self)
 {
     if (self->status.has_missing == -1)
-        if (DateTimeArray_check_status(self) < 0)
+        if (DatetimeArray_check_status(self) < 0)
             return NULL;
     if (self->status.has_missing == 0)
         Py_RETURN_FALSE;
     Py_RETURN_TRUE;
 }
 static PyObject *
-DateTimeArray_is_chrono(DateTimeArrayObject *self)
+DatetimeArray_is_chrono(DatetimeArrayObject *self)
 {
     if (self->status.is_chrono == -1)
-        if (DateTimeArray_check_status(self) < 0)
+        if (DatetimeArray_check_status(self) < 0)
             return NULL;
     if (self->status.is_chrono == 0)
         Py_RETURN_FALSE;
     Py_RETURN_TRUE;
 }
+static PyObject *
+DatetimeArray_is_full(DatetimeArrayObject *self)
+{
+    if (self->status.has_dups == -1)
+        if (DatetimeArray_check_status(self) < 0)
+            return NULL;
+    if (self->status.has_dups)
+        Py_RETURN_FALSE;
+    if (self->status.has_missing)
+        Py_RETURN_FALSE;
+    Py_RETURN_TRUE;
+}
+static PyObject *
+DatetimeArray_is_valid(DatetimeArrayObject *self)
+{
+    ts_timestatus status = self->status;
+    if (status.has_dups == -1)
+        if (DatetimeArray_check_status(self) < 0)
+            return NULL;
+    if (status.has_missing)
+        Py_RETURN_FALSE;
+    if (status.has_dups)
+        Py_RETURN_FALSE;
+    if (! status.is_chrono)
+        Py_RETURN_FALSE;
+    Py_RETURN_TRUE;
+}
 
-static PyMemberDef DateTimeArray_members[] = {
-    {"unit", T_INT, offsetof(DateTimeArrayObject, unit), 0,
-     "frequency"},
-    {"timestep", T_INT, offsetof(DateTimeArrayObject, timestep), 0,
-     "frequency"},
+static PyMemberDef DatetimeArray_members[] = {
 //     {"cached_vals", T_OBJECT_EX, offsetof(DateTimeArray, cached_vals), 0,
 //      "cached_values"},
-//    {"freq", T_INT, offsetof(DateObject, freq), 0,
-//     "frequency"},
-//    {"value", T_INT, offsetof(DateObject, value), 0,
-//     "integer representation of the Date"},
     {NULL}  /* Sentinel */
 };
 
+
+static char *
+DEBUGGETTYPE(PyObject *obj){
+    char *type_str;
+    PyObject *type_repr, *obj_type;
+    obj_type = PyObject_Type(obj);
+    type_repr = PyObject_Repr(obj_type);
+    type_str = PyString_AsString(type_repr);
+//    DEBUGPRINTF("get_tsdatetime_from_object got %s [%i]", type_str, meta->unit);
+    Py_DECREF(obj_type);
+    Py_DECREF(type_repr);
+    return type_str;
+}
+
+
+static ts_datetime
+get_tsdatetime_from_object(ts_metadata *meta, PyObject *date){
+    ts_datetime value;
+    DEBUGPRINTF("get_tsdatetime_from_object type %s", DEBUGGETTYPE(date));
+    //
+    if (PyString_Check(date)) {
+        value = PyString_to_tsdatetime(meta, date);
+        DEBUGPRINTF("get_tsdatetime_from_object.from string: %ld", value);
+    }
+    else if (PyDateTime_Check(date) || PyDate_Check(date)) {
+        value = PyDatetime_to_tsdatetime(meta, date);
+        DEBUGPRINTF("get_tsdatetime_from_object.from datetime.datetime: %ld", value);
+    }
+    else if (DatetimeObject_Check(date)) {
+        value = ((DatetimeObject *)date)->obval;
+        DEBUGPRINTF("get_tsdatetime_from_object.from tsdatetime: %ld", value);
+    }
+    else if (PyInt_Check(date) || PyLong_Check(date) || PyFloat_Check(date)) {
+        value = (ts_datetime)PyInt_AsLong(date);
+        DEBUGPRINTF("get_tsdatetime_from_object.from number: %ld", value);
+    }
+    else {
+        value = -1;
+    }
+    return value;
+}
+
+
+
 //static PyObject *
-//DateTimeArray_date_to_index(DateTimeArrayObject *self, DateObject *date){
-//    return NULL;
-//}
+//DatetimeArray_single_date_to_index(DatetimeArrayObject *self, PyObject *date){
+//    ts_datetime value;
+//    Py_ssize_t i;
+//    int nd = ((PyArrayObject *)self)->nd;
 //
 //
-//static PyObject *
-//DateTimeArray_getitem(DateTimeArray *self, PyObject *indx) {
-//    int reset_full=1, keep_chrono=0;
-//    DEBUGPRINTF("in __getitem__");
+//    ts_metadata *meta = get_metadata_from_array(self);
+//    ts_timestatus status = self->status;
+//    int is_valid = ((! status.has_missing) && (! status.has_dups) && (status.is_chrono));
 //
-//    if (DateObject_Check(indx)) {
-//        DEBUGPRINTF("index is Date");
-//        indx = DateTimeArray_date_to_index(self, (DateObject *)indx);
-//    }
-//
-//    PyObject *r, *result;
-//    r = PyArray_GETITEM(self, indx);
-//    if (PyInt_Check(r)) {
-//        DEBUGPRINTF("index is integer");
-//        result = (PyObject *)DateObject_FromFreqAndValue(self->unit, PyInt_AsLong(r));
+//    if (is_valid) {
+//        npy_intp size = PyArray_SIZE(self);
+//        float timestep = (float)(meta->timestep);
+//        void *zero = PyArray_GETPTR1(self, 0);
+//        PyObject *pyfirst = PyArray_GETITEM((PyObject *)self, zero);
+//        if (pyfirst == NULL)
+//            DEBUGPRINTF("Dang...");
+//        ts_datetime first = PyInt_AsLong(pyfirst);
+//        Py_DECREF(pyfirst);
+//        value = get_tsdatetime_from_object(meta, date);
+//        DEBUGPRINTF("got value: %ld [%ld] [%ld]", value, first, timestep * size + first);
+//        if ((value < first) || (value > timestep * size + first)) {
+//            return NULL;
+//        }
+//        else {
+//            DEBUGPRINTF("got: %ld", (value - first) / timestep);
+//            return PyInt_FromLong((value - first) / timestep);
+//        }
 //    }
 //    else {
-//        DEBUGPRINTF("index is whatever else");
-//        result = r;
-////        DEBUGPRINTF("chrono? %i - dups? %i - missing? %i", ((DateObject *)result)->status.is_chrono, ((DateObject *)result)->status.has_dups, ((DateObject *)result->status).has_missing);
-//    }
-//    Py_DECREF(r);
-//    return result;
+//        PyArrayIterObject *itr = NULL;
+//        PyObject *indexlist = PyList_New(0);
+//        npy_int k;
+//        ts_datetime current;
+//
+//        value = get_tsdatetime_from_object(meta, date);
+//        DEBUGPRINTF("DatetimeArray_single_date_to_index invalid got value: %ld", value);
+//
+//        itr = (PyArrayIterObject *)PyArray_IterNew((PyObject *)self);
+//        if (itr == NULL)
+//            return NULL;
+//        k = 0;
+//        //
+//        if (nd == 1) {
+//            while (itr->index < itr->size) {
+//                current = (ts_datetime)PyInt_AsLong(PyArray_GETITEM(self, itr->dataptr));
+//                if (current == value) {
+//                    DEBUGPRINTF("DatetimeArray_single_date_to_index invalid got one at %ld", k);
+//                    PyList_Append(indexlist, PyInt_FromLong(k));
+//                }
+//                k++;
+//                PyArray_ITER_NEXT(itr);
+//            }
+//            Py_DECREF(itr);
+//        }
+//        else {
+//            while (itr->index < itr->size) {
+//                current = (ts_datetime)PyInt_AsLong(PyArray_GETITEM(self, itr->dataptr));
+//                if (current == value) {
+//                    DEBUGPRINTF("DatetimeArray_single_date_to_index invalid got many");
+//                    PyList_Append(indexlist, PyArray_IntTupleFromIntp(nd, itr->coordinates));
+//                }
+//                PyArray_ITER_NEXT(itr);
+//            }
+//            Py_DECREF(itr);
+//        }
+//        if (PyList_Size(indexlist) == 0) {
+//            Py_DECREF(indexlist);
+//            return NULL;
+//        }
+//        return indexlist;
+//    };
+//    return NULL;
 //}
+
+static PyObject *
+DatetimeArray_single_date_to_index(DatetimeArrayObject *self, PyObject *date){
+    ts_datetime value, current;
+    intp count=0, i, size;
+    int nd = ((PyArrayObject *)self)->nd, j;
+
+    PyArrayIterObject *itr = NULL;
+    PyObject *result = NULL, *item;
+    intp *dptr[MAX_DIMS];
+
+    itr = (PyArrayIterObject *)PyArray_IterNew((PyObject *)self);
+    if (itr == NULL)
+        return NULL;
+
+    /*Count the valid elements*/
+    ts_metadata *meta = get_metadata_from_array(self);
+    value = get_tsdatetime_from_object(meta, date);
+    DEBUGPRINTF("DatetimeArray_single_date_to_index invalid got value: %ld", value);
+
+    size = itr->size;
+    for (i = 0; i < size; i++) {
+        current = (ts_datetime)PyInt_AsLong(PyArray_GETITEM(self, itr->dataptr));
+        if (current == value) {
+            DEBUGPRINTF("DatetimeArray_single_date_to_index invalid got one at %ld", &count);
+            count++;
+        }
+        PyArray_ITER_NEXT(itr);
+    }
+
+    PyArray_ITER_RESET(itr);
+    result = PyTuple_New(nd);
+    if (result == NULL)
+        goto fail;
+    for (j = 0; j < nd; j++) {
+        item = PyArray_New(Py_TYPE(self), 1, &count,
+                           PyArray_INTP, NULL, NULL, 0, 0,
+                           (PyObject *)self);
+        if (item == NULL) {
+            goto fail;
+        }
+        PyTuple_SET_ITEM(result, j, item);
+        dptr[j] = (intp *)PyArray_DATA(item);
+    }
+    if (nd == 1) {
+        for (i = 0; i < size; i++){
+            current = (ts_datetime)PyInt_AsLong(PyArray_GETITEM(self, itr->dataptr));
+            if (current == value)
+                *(dptr[0])++ = i;
+            PyArray_ITER_NEXT(itr);
+        }
+    }
+    else {
+        itr->contiguous = 0;
+        for (i = 0; i < size; i++){
+            current = (ts_datetime)PyInt_AsLong(PyArray_GETITEM(self, itr->dataptr));
+            if (current == value) {
+                for (j = 0; j < nd; j++)
+                    *(dptr[j])++ = itr->coordinates[j];
+            }
+            PyArray_ITER_NEXT(itr);
+        }
+    }
+    Py_DECREF(itr);
+    return result;
+ fail:
+    Py_XDECREF(result);
+    Py_XDECREF(itr);
+    return NULL;
+}
+
+
+
+static PyObject *
+DatetimeArray_date_to_index(DatetimeArrayObject *self, PyObject *dateargs){
+    PyObject *result=NULL, *date;
+    ts_datetime value;
+    Py_ssize_t i;
+    int nd = ((PyArrayObject *)self)->nd;
+
+    /* Make sure we have at least 1 argument */
+    Py_ssize_t nbargs = PyObject_Length(dateargs);
+    if (nbargs < 1) {
+        DEBUGPRINTF("At least one argument");
+        return NULL;
+    }
+
+    ts_metadata *meta = get_metadata_from_array(self);
+    ts_timestatus status = self->status;
+    int is_valid = ((! status.has_missing) && (! status.has_dups) && (status.is_chrono));
+
+    result = PyList_New(0);
+
+    if (is_valid) {
+        npy_intp size = PyArray_SIZE(self);
+        float timestep = (float)(meta->timestep);
+        void *zero = PyArray_GETPTR1(self, 0);
+        PyObject *pyfirst = PyArray_GETITEM((PyObject *)self, zero);
+        if (pyfirst == NULL) {
+            DEBUGPRINTF("Dang...");
+            return NULL;
+        }
+        ts_datetime first = PyInt_AsLong(pyfirst);
+        PyObject *index = NULL;
+        for (i=0; i < nbargs; i++){
+            date = PyTuple_GetItem(dateargs, i);
+            value = get_tsdatetime_from_object(meta, date);
+            DEBUGPRINTF("got value: %ld [%ld] [%ld]", value, first, timestep * size + first);
+            if ((value < first) || (value > timestep * size + first)) {
+                index = Py_None;
+                DEBUGPRINTF("missed");
+            }
+            else {
+                DEBUGPRINTF("got: %ld", (value - first) / timestep);
+                index = PyInt_FromLong((value - first) / timestep);
+            }
+            PyList_Append(result, index);
+        }
+        DEBUGPRINTF("DatetimeArray_date_to_index done");
+        Py_DECREF(index);
+        Py_DECREF(pyfirst);
+    }
+    else {
+        PyArrayIterObject *itr = NULL;
+        PyObject *tmp = NULL;
+        long k;
+        int empty;
+        ts_datetime current;
+        for (i=0; i < nbargs; i++){
+            date = PyTuple_GetItem(dateargs, i);
+            value = get_tsdatetime_from_object(meta, date);
+            DEBUGPRINTF("got value: %ld", value);
+
+            tmp = PyList_New(0);
+            itr = (PyArrayIterObject *)PyArray_IterNew((PyObject *)self);
+            if (itr == NULL)
+                return NULL;
+            k = 0;
+            empty = 1;
+            int nd = ((PyArrayObject *)self)->nd;
+            while (itr->index < itr->size) {
+                current = (ts_datetime)PyInt_AsLong(PyArray_GETITEM(self, itr->dataptr));
+                if (current == value) {
+//                    PyList_Append(tmp, PyInt_FromLong(k));
+                    PyObject *coords = PyObject_GetAttrString(itr, "coords");
+//                    PyList_Append(tmp, PyArray_IntTupleFromIntp(nd, itr->coordinates));
+                    PyList_Append(tmp, coords);
+                    empty = 0;
+                }
+                k++;
+                PyArray_ITER_NEXT(itr);
+            }
+            if (empty)
+                tmp = Py_None;
+            PyList_Append(result, tmp);
+        };
+        Py_DECREF(itr);
+        Py_DECREF(tmp);
+    };
+    if (nbargs == 1)
+        return PyList_GetItem(result, 0);
+    return result;
+}
+//
+//
+
+//def date_to_index(self, dates):
+//    """
+//Returns the index corresponding to one given date, as an integer.
+//    """
+//    values = self.__array__()
+//    # Transform a string into a Date
+//    if isinstance(dates, basestring):
+//        dates = Date(self._unit, dates)
+//    # Just one date ?
+//    if isinstance(dates, Date):
+//        _val = dates.value
+//        if _val not in values:
+//            raise IndexError("Date '%s' is out of bounds" % dates)
+//        if self.is_valid():
+//            return (_val - values[0]) / self._timestep
+//        else:
+//            return np.where(values == _val)[0][0]
+//    #
+//    _dates = date_array(dates, freq=self.freq).__array__()
+//    if self.is_valid():
+//        indx = (_dates - values[0]) / self._timestep
+//        err_cond = (indx < 0) | (indx > self.size)
+//        if err_cond.any():
+//            err_indx = np.compress(err_cond, _dates)[0]
+//            err_msg = "Date '%s' is out of bounds '%s' <= date <= '%s'"
+//            raise IndexError(err_msg % (err_indx, self[0], self[-1]))
+//        return indx
+//    vals = values.tolist()
+//    indx = np.array([vals.index(d) for d in _dates])
+//    #
+//    return indx
+
+
+
+static PyObject *
+DatetimeArray_getitem(DatetimeArrayObject *self, PyObject *op)
+{
+//    int reset_full=1, keep_chrono=0;
+//    DEBUGPRINTF("in __getitem__ w %s", DEBUGGETTYPE(op));
+    PyObject *idx;
+
+    if (DatetimeObject_Check(op) || PyString_Check(op) || PyDateTime_Check(op)) {
+        if (DatetimeObject_Check(op)) {
+            DEBUGPRINTF("index is Date");
+        }
+        else if (PyString_Check(op)) {
+            DEBUGPRINTF("index is string");
+        }
+        else if (PyDateTime_Check(op)) {
+            DEBUGPRINTF("index is datetime");
+        };
+//        PyObject *dateargs = PyTuple_New(1);
+//        Py_INCREF(op);
+//        PyTuple_SetItem(dateargs, 0, op);
+        idx = DatetimeArray_single_date_to_index(self, op);
+        if (idx == NULL) {
+            PyErr_SetString(PyExc_IndexError, "date out of bounds");
+            return NULL;
+        }
+    }
+    else {
+        idx = op;
+    }
+
+    PyObject *r, *result;
+//    r = PyArray_GETITEM(self, indx);
+    r = ((PyArrayObject *)self)->ob_type->tp_base->tp_as_mapping->mp_subscript((PyObject *)self, idx);
+    if (r == NULL) {
+        return NULL;
+    }
+//    DEBUGPRINTF("r is %s", DEBUGGETTYPE(r));
+    ts_datetime obval;
+    if (PyArray_IsScalar(r, Integer)) {
+        int unit = _get_unit_from_descr(get_descr(self));
+
+        obval = (ts_datetime)(PyInt_AsLong(r));
+//        DEBUGPRINTF("index is integer, unit is %i, value is %i", unit, obval);
+        result = (PyObject *)DatetimeObject_FromFreqAndValue(unit, PyInt_AsLong(r));
+        Py_DECREF(r);
+    }
+    else {
+//        DEBUGPRINTF("index is %s", DEBUGGETTYPE(r));
+        result = r;
+//        ts_timestatus S=((DatetimeArrayObject *)result)->status;
+//        DEBUGPRINTF("chrono? %i - dups? %i - missing? %i", S.is_chrono, S.has_dups, S.has_missing);
+    }
+    Py_DECREF(idx);
+    return result;
+}
 
 
 /*
@@ -1209,6 +934,25 @@ def __getitem__(self, indx):
         return r
 */
 
+//#include "arrayobject.h"
+
+//PyMappingMethods *PyArray_as_mapping = (PyArray_Type).tp_as_mapping;
+NPY_NO_EXPORT PyMappingMethods DatetimeArray_as_mapping = {
+    NULL,              /*mp_length*/
+    &DatetimeArray_getitem,        /*mp_subscript*/
+    NULL, /*mp_ass_subscript*/
+};
+
+//NPY_NO_EXPORT PyMappingMethods array_as_mapping = {
+//#if PY_VERSION_HEX >= 0x02050000
+//    (lenfunc)array_length,              /*mp_length*/
+//#else
+//    (inquiry)array_length,              /*mp_length*/
+//#endif
+//    (binaryfunc)array_subscript_nice,       /*mp_subscript*/
+//    (objobjargproc)array_ass_sub,       /*mp_ass_subscript*/
+//};
+
 
 
 /*
@@ -1216,15 +960,19 @@ def __getitem__(self, indx):
  */
 
 static int
-DateTimeArray_ReadOnlyErr(DateTimeArrayObject *self, PyObject *value, void *closure) {
+DatetimeArray_ReadOnlyErr(DatetimeArrayObject *self, PyObject *value, void *closure) {
    PyErr_SetString(PyExc_AttributeError, "Cannot set read-only property");
    return -1;
 };
 
-static PyGetSetDef DateTimeArray_getseters[] = {
-    {"freqstr", (getter)DateTimeArray_freqstr, (setter)DateTimeArray_ReadOnlyErr,
+static PyGetSetDef DatetimeArray_getseters[] = {
+    {"unit", (getter)DatetimeArray_unit, (setter)DatetimeArray_ReadOnlyErr,
+     "Returns the frequency.", NULL},
+    {"timestep", (getter)DatetimeArray_timestep, (setter)DatetimeArray_ReadOnlyErr,
+     "", NULL},
+    {"freqstr", (getter)DatetimeArray_freqstr, (setter)DatetimeArray_ReadOnlyErr,
      "Returns the string representation of frequency.", NULL},
-    {"steps", (getter)DateTimeArray_steps, (setter)DateTimeArray_ReadOnlyErr,
+    {"steps", (getter)DatetimeArray_steps, (setter)DatetimeArray_ReadOnlyErr,
      "time steps", NULL},
     {NULL, NULL, NULL, NULL, NULL}  /* Sentinel */
 };
@@ -1233,24 +981,27 @@ static PyGetSetDef DateTimeArray_getseters[] = {
  * METHODS
  */
 
-static PyMethodDef DateTimeArray_methods[] = {
-    { "__array_finalize__", (PyCFunction)DateTimeArray_finalize, METH_VARARGS,
+static PyMethodDef DatetimeArray_methods[] = {
+    { "__array_finalize__", (PyCFunction)DatetimeArray_finalize, METH_VARARGS,
       ""},
-//    {"__getitem__", (PyCFunction)DateTimeArray_getitem, METH_VARARGS, ""},
-    {"has_dups", (PyCFunction)DateTimeArray_has_dups, METH_VARARGS, ""},
-    {"has_missing", (PyCFunction)DateTimeArray_has_missing, METH_VARARGS, ""},
-    {"is_chrono", (PyCFunction)DateTimeArray_is_chrono, METH_VARARGS, ""},
+//    {"__getitem__", (PyCFunction)DatetimeArray_getitem, METH_VARARGS, ""},
+    {"has_dups", (PyCFunction)DatetimeArray_has_dups, METH_VARARGS, ""},
+    {"has_missing", (PyCFunction)DatetimeArray_has_missing, METH_VARARGS, ""},
+    {"is_chrono", (PyCFunction)DatetimeArray_is_chrono, METH_VARARGS, ""},
+    {"is_full", (PyCFunction)DatetimeArray_is_full, METH_VARARGS, ""},
+    {"is_valid", (PyCFunction)DatetimeArray_is_valid, METH_VARARGS, ""},
+    {"date_to_index", (PyCFunction)DatetimeArray_date_to_index, METH_VARARGS, ""},
     {0}
 };
 
 
-static PyTypeObject DateTimeArray_Type = {
+static PyTypeObject DatetimeArray_Type = {
     PyObject_HEAD_INIT(NULL)
     0,                                        /* ob_size */
-    "timeseries.DateTimeArray",                      /* tp_name */
-    sizeof(DateTimeArrayObject),              /* tp_basicsize */
+    "timeseries.DatetimeArray",                      /* tp_name */
+    sizeof(DatetimeArrayObject),              /* tp_basicsize */
     0,                                        /* tp_itemsize */
-    (destructor)DateTimeArray_dealloc,          /* tp_dealloc */
+    (destructor)DatetimeArray_dealloc,          /* tp_dealloc */
     0,                                        /* tp_print */
     0,                                        /* tp_getattr */
     0,                                        /* tp_setattr */
@@ -1258,7 +1009,8 @@ static PyTypeObject DateTimeArray_Type = {
     0,                                        /* tp_repr */
     0,                                        /* tp_as_number */
     0,                                        /* tp_as_sequence */
-    0,                                        /* tp_as_mapping */
+//    0,                 /* tp_as_mapping */
+    &DatetimeArray_as_mapping,                 /* tp_as_mapping */
     0,                                        /* tp_hash */
     0,                                        /* tp_call */
     0,                                        /* tp_str */
@@ -1266,16 +1018,16 @@ static PyTypeObject DateTimeArray_Type = {
     0,                                        /* tp_setattro */
     0,                                        /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
-    "DateTimeArray",                          /* tp_doc */
+    "DatetimeArray",                          /* tp_doc */
     0,                                        /* tp_traverse */
     0,                                        /* tp_clear */
     0,     /* tp_richcompare */
     0,                                        /* tp_weaklistoffset */
     0,                                        /* tp_iter */
     0,                                        /* tp_iternext */
-    DateTimeArray_methods,                    /* tp_methods */
-    DateTimeArray_members,                    /* tp_members */
-    DateTimeArray_getseters,                  /* tp_getset */
+    DatetimeArray_methods,                    /* tp_methods */
+    DatetimeArray_members,                    /* tp_members */
+    DatetimeArray_getseters,                  /* tp_getset */
     0,                            /* tp_base */
     0,                                        /* tp_dict */
     0,                                        /* tp_descr_get */
@@ -1283,7 +1035,7 @@ static PyTypeObject DateTimeArray_Type = {
     0,                                        /* tp_dictoffset */
     0,                                        /* tp_init */
     0,                                        /* tp_alloc */
-    DateTimeArray_new,                        /* tp_new */
+    DatetimeArray_new,                        /* tp_new */
 };
 
 
@@ -1299,27 +1051,21 @@ void import_c_datearray(PyObject *m)
     import_array();
     PyDateTime_IMPORT;
 
-    DateTimeArray_Type.tp_base = &PyArray_Type;
-    if (PyType_Ready(&DateTimeArray_Type) < 0)
+    DatetimeArray_Type.tp_base = &PyArray_Type;
+    if (PyType_Ready(&DatetimeArray_Type) < 0)
         return;
-    Py_INCREF(&DateTimeArray_Type);
-    PyModule_AddObject(m, "DateTimeArray", (PyObject *)(&DateTimeArray_Type));
+    Py_INCREF(&DatetimeArray_Type);
+    PyModule_AddObject(m, "DatetimeArray", (PyObject *)(&DatetimeArray_Type));
     
-    DEBUGPRINTF("numtypes:%i", NPY_NUMUSERTYPES);
-    DEBUGPRINTF("udesctypes:%i", PyArray_USERDEF);
-    PyArray_TS_DATETIME = PyArray_RegisterDataType(&TS_DATETIME_Descr);
-    if (PyArray_TS_DATETIME < 0) {
-        DEBUGPRINTF("Could not import the TS_DATETIME description.");
-        return;
-    };
-    DEBUGPRINTF("datetime initialize %i", PyArray_TS_DATETIME);
+//    PyArray_TS_DATETIME = PyArray_RegisterDataType(&TS_DATETIME_Descr);
+//    if (PyArray_TS_DATETIME < 0) {
+//        DEBUGPRINTF("Could not import the TS_DATETIME description.");
+//        return;
+//    };
+//    TS_DATETIME_Descr.ob_type = &PyArrayDescr_Type;
 //    Py_INCREF(&TS_DATETIME_Descr);
 
-    DEBUGPRINTF("type    : %s", &TS_DATETIME_Descr.type);
-    DEBUGPRINTF("type_num: %i", (&TS_DATETIME_Descr)->type_num);
-    DEBUGPRINTF("flags   : %i", (&TS_DATETIME_Descr)->flags);
-    // PyModule_AddObject(m, "DateTime", (PyObject *)(&TS_DATETIME_Descr));
-    DEBUGPRINTF("c_datearray imported fine...");
+    // PyModule_AddObject(m, "Datetime", (PyObject *)(&TS_DATETIME_Descr));
 
 }
 

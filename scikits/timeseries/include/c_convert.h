@@ -2,7 +2,7 @@
 #define C_CONVERT_H
 
 #include "c_lib.h"
-#include "dtypes.h"
+#include "c_types.h"
 
 
 #define GREGORIAN_CALENDAR 0
@@ -26,6 +26,8 @@ void set_datetimestruct_from_days_and_secs(ts_datetimestruct*, npy_int64, npy_in
 
 
 npy_int64 highunits_per_day(int);
+npy_int64 secs_per_highunits(int, npy_int64);
+
 int day_of_week(npy_int64);
 int is_leapyear(long, int);
 npy_int64 year_offset(npy_int64, int);
@@ -35,30 +37,35 @@ npy_int64 days_from_ymdc(int, int, int, int);
 #define days_from_ymd(year, month, day) (days_from_ymdc((year), (month), (day), GREGORIAN_CALENDAR))
 double secs_from_ranged_hms(int, int, double);
 
-int ending_day(int);
-int ending_month(int);
+int ending_day(ts_metadata *);
+int ending_month(ts_metadata *);
 
-typedef struct {
-	int ending_day; //day the week ends
-    int ending_month; //month the year ends
-	npy_int64 periods_per_day; // nb of periods (hh/mm/ss...) per day
-	npy_int64 secs_per_period; // nb of seconds in a period
-	int result_starts;
-} conversion_info;
+// typedef struct {
+// //    int ending_day; //day the week ends
+// //    int ending_month; //month the year ends
+//     int period_end_at;
+//     npy_int64 periods_per_day; // nb of periods (hh/mm/ss...) per day
+//     npy_int64 secs_per_period; // nb of seconds in a period
+//     int convert_to_start;
+// } conversion_info;
 
-typedef npy_int64(*conversion_function)(npy_int64, conversion_info*);
+typedef npy_int64(*conversion_function)(npy_int64, ts_metadata*);
 
 conversion_function get_converter_from_days(int, int);
 conversion_function get_converter_to_days(int, int);
 conversion_function convert_to_mediator(int, int, int);
 conversion_function convert_from_mediator(int, int, int);
 
-npy_int64 _days_from_highfreq(npy_int64, conversion_info*);
-npy_int64 _secs_from_highfreq(npy_int64, conversion_info*);
-npy_int64 _secs_to_highfreq(npy_int64, conversion_info*);
+// npy_int64 _days_from_highfreq(npy_int64, conversion_info*);
+// npy_int64 _secs_from_highfreq(npy_int64, conversion_info*);
+// npy_int64 _secs_to_highfreq(npy_int64, conversion_info*);
+npy_int64 _days_from_highfreq(npy_int64, ts_metadata*);
+npy_int64 _secs_from_highfreq(npy_int64, ts_metadata*);
+npy_int64 _secs_to_highfreq(npy_int64, ts_metadata*);
 npy_int64 _secs_from_midnight(npy_int64, int);
 
-void set_conversion_info(int, char, conversion_info*);
+// void set_conversion_info(int, char, conversion_info*);
+void set_conversion_info(int, char, ts_metadata*);
 
 void normalize_ts_timedeltastruct(ts_timedeltastruct*);
 void normalize_days_secs(npy_int64*, npy_int64*);

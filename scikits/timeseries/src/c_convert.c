@@ -1,5 +1,5 @@
 #include "c_lib.h"
-#include "dtypes.h"
+#include "c_types.h"
 #include "c_freqs.h"
 #include "c_convert.h"
 
@@ -398,8 +398,8 @@ void set_datetimestruct_from_secs(ts_datetimestruct *info, npy_int64 secs)
 }
 
 void set_datetimestruct_from_days_and_secs(ts_datetimestruct *info,
-                                 npy_int64 days,
-                                 npy_int64 secs)
+                                           npy_int64 days,
+                                           npy_int64 secs)
 {
     set_datetimestruct_from_days(info, days);
     set_datetimestruct_from_secs(info, secs);
@@ -434,36 +434,38 @@ static long _days_to_bus_weekend_to_friday(long absdate, int day_of_week)
 /* --- Conversion routines                                                  */
 
 static npy_int64
-missing_convert(npy_int64 indate, conversion_info *info) { return -1;}
+missing_convert(npy_int64 indate, ts_metadata *meta) { return -1;}
 
 static npy_int64
-no_convert(npy_int64 indate, conversion_info *info) { return indate;}
+no_convert(npy_int64 indate, ts_metadata *meta) { return indate;}
 
 
 /* From days to other units ................................................*/
 
 /* Returns the month ending the current annual/quarterly freq */
-int ending_month(int unit)
+int ending_month(ts_metadata *meta)
 {
-    int end = (unit % 1000) % 12;
+    int end = ((meta->unit < FR_MTH) * (meta->period_end_at)) % 12;
     return (end == 0 ? 12: end);
 }
 /* Returns the day ending the current weekly freq */
-int ending_day(int unit) { return unit % 1000; }
+int ending_day(ts_metadata *meta) {
+    return (meta->unit == FR_WK) * (meta->period_end_at);
+}
 
 static npy_int64
-_days_to_years(npy_int64 indate, conversion_info *info)
+_days_to_years(npy_int64 indate, ts_metadata *meta)
 {
     ymdstruct ymd = days_to_ymdstruct(indate, GREGORIAN_CALENDAR);
-    int end_month = info->ending_month;
+    int end_month = ending_month(meta);
     return (ymd.month > end_month ? ymd.year + 1: ymd.year);
 }
 
 static npy_int64
-_days_to_quarters(npy_int64 indate, conversion_info *info)
+_days_to_quarters(npy_int64 indate, ts_metadata *meta)
 {
     ymdstruct ymd = days_to_ymdstruct(indate, GREGORIAN_CALENDAR);
-    int end_month = info->ending_month;
+    int end_month = ending_month(meta);
     int year = ymd.year;
     int month = ymd.month;
     if (end_month != 12){
@@ -478,37 +480,37 @@ _days_to_quarters(npy_int64 indate, conversion_info *info)
 }
 
 static npy_int64
-_days_to_months(npy_int64 indate, conversion_info *info)
+_days_to_months(npy_int64 indate, ts_metadata *meta)
 {
     ymdstruct ymd = days_to_ymdstruct(indate, GREGORIAN_CALENDAR);
     return (ymd.year - 1) * 12 + ymd.month;
 }
 
 static npy_int64
-_days_to_weeks(npy_int64 indate, conversion_info *info)
+_days_to_weeks(npy_int64 indate, ts_metadata *meta)
 {
 //    ymdstruct ymd = days_to_ymdstruct(indate, GREGORIAN_CALENDAR);
-    int weekend = info->ending_day;
+    int weekend = ending_day(meta);
     return (indate - (1 + weekend))/7 + 1;
 }
 
 static npy_int64
-_days_to_bus(npy_int64 indate, conversion_info *info)
+_days_to_bus(npy_int64 indate, ts_metadata *meta)
 {
     int dayofweek = day_of_week(indate);
-    if (info->result_starts)
+    if (meta->convert_to_start)
         return _days_to_bus_weekend_to_friday(indate, dayofweek);
     else
         return _days_to_bus_weekend_to_monday(indate, dayofweek);
 }
 
 static npy_int64
-_days_to_bus_batch(npy_int64 indate, conversion_info *info)
+_days_to_bus_batch(npy_int64 indate, ts_metadata *meta)
 {
     int dayofweek = day_of_week(indate);
     if (dayofweek > 4)
         return -1;
-    else if (info->result_starts)
+    else if (meta->convert_to_start)
         return _days_to_bus_weekend_to_friday(indate, dayofweek);
     else
         return _days_to_bus_weekend_to_monday(indate, dayofweek);
@@ -516,16 +518,16 @@ _days_to_bus_batch(npy_int64 indate, conversion_info *info)
 
 
 static npy_int64
-_days_to_days(npy_int64 indate, conversion_info *info)
+_days_to_days(npy_int64 indate, ts_metadata *meta)
 {
     return indate;
 }
 
 static npy_int64
-_days_to_highfreq(npy_int64 indate, conversion_info *info)
+_days_to_highfreq(npy_int64 indate, ts_metadata *meta)
 {
-npy_int64 periods_per_day = info->periods_per_day;
-    if (info->result_starts)
+npy_int64 periods_per_day = meta->periods_per_day;
+    if (meta->convert_to_start)
         return (indate - HIGHFREQ_ORIG) * periods_per_day;
     else
         return (indate - HIGHFREQ_ORIG + 1) * periods_per_day - 1;
@@ -559,20 +561,20 @@ conversion_function get_converter_from_days(int fromunit, int inbatch)
 
 
 static npy_int64
-_days_from_years(npy_int64 indate, conversion_info *info)
+_days_from_years(npy_int64 indate, ts_metadata *meta)
 {
     npy_int64 absdate, year;
     int final_adj;
-    int endmonth = info->ending_month;
-    int month = endmonth % 12;
+    int end_month = ending_month(meta);
+    int month = end_month % 12;
     month = (month == 0 ? 1 : month+1);
 
-    if (info->result_starts){
-        year = (endmonth == 12 ? indate: indate-1);
+    if (meta->convert_to_start){
+        year = (end_month == 12 ? indate: indate-1);
         final_adj = 0;
     }
     else {
-        year = (endmonth == 12 ? indate+1: indate);
+        year = (end_month == 12 ? indate+1: indate);
         final_adj = -1;
     }
     absdate = days_from_ymd(year, month, 1);
@@ -581,13 +583,13 @@ _days_from_years(npy_int64 indate, conversion_info *info)
 }
 
 static npy_int64
-_days_from_quarters(npy_int64 indate, conversion_info *info)
+_days_from_quarters(npy_int64 indate, ts_metadata *meta)
 {
     npy_int64 absdate;
     int year, month, final_adj;
-    int end_month = info->ending_month;
+    int end_month = ending_month(meta);
 
-    if (info->result_starts) {
+    if (meta->convert_to_start) {
         year = (indate - 1)/4 + 1;
         month = (indate + 4)*3 - 12*year -2;
         final_adj = 0;
@@ -610,12 +612,12 @@ _days_from_quarters(npy_int64 indate, conversion_info *info)
 }
 
 static npy_int64
-_days_from_months(npy_int64 indate, conversion_info *info)
+_days_from_months(npy_int64 indate, ts_metadata *meta)
 {
     npy_int64 absdate;
     int year, month, final_adj;
 
-    if (info->result_starts){
+    if (meta->convert_to_start){
         year = (indate - 1)/12 + 1;
         month = indate - 12*year - 1;
         final_adj = 0;
@@ -632,25 +634,25 @@ _days_from_months(npy_int64 indate, conversion_info *info)
 
 
 static npy_int64
-_days_from_weeks(npy_int64 indate, conversion_info *info)
+_days_from_weeks(npy_int64 indate, ts_metadata *meta)
 {
-    int weekend = info->ending_day;
-    if (info->result_starts)
+    int weekend = meta->period_end_at;
+    if (meta->convert_to_start)
         return indate*7 - 6 + weekend;
     else
         return indate*7 + weekend;
 }
 
 static npy_int64
-_days_from_busdays(npy_int64 indate, conversion_info *info)
+_days_from_busdays(npy_int64 indate, ts_metadata *meta)
 {
     return ((indate-1)/5)*7 + (indate-1)%5 + 1;
 }
 
 npy_int64
-_days_from_highfreq(npy_int64 indate, conversion_info *info)
+_days_from_highfreq(npy_int64 indate, ts_metadata *meta)
 {
-    npy_int64 periods_per_day = info->periods_per_day;
+    npy_int64 periods_per_day = meta->periods_per_day;
     if (indate < 0)
         return (indate + 1)/periods_per_day + HIGHFREQ_ORIG - 1;
     else
@@ -659,21 +661,20 @@ _days_from_highfreq(npy_int64 indate, conversion_info *info)
 
 conversion_function get_converter_to_days(int fromunit, int inbatch)
 {
-    int ubase = get_base_unit(fromunit);
-    
-    if (ubase == FR_ANN)
+//    int ubase = get_base_unit(fromunit);
+    if (fromunit == FR_ANN)
         return &_days_from_years;
-    else if (ubase == FR_QTR)
+    else if (fromunit == FR_QTR)
         return &_days_from_quarters;
-    else if (ubase == FR_MTH)
+    else if (fromunit == FR_MTH)
         return &_days_from_months;
-    else if (ubase == FR_WK)
+    else if (fromunit == FR_WK)
         return &_days_from_weeks;
-    else if (ubase == FR_BUS)
+    else if (fromunit == FR_BUS)
         return &_days_from_busdays;
-    else if ((ubase == FR_DAY) || (ubase == FR_UND))
+    else if ((fromunit == FR_DAY) || (fromunit == FR_UND))
         return &no_convert;
-    else if (ubase > FR_DAY)
+    else if (fromunit > FR_DAY)
         return &_days_from_highfreq;
     return &missing_convert;
 }
@@ -684,10 +685,10 @@ conversion_function get_converter_to_days(int fromunit, int inbatch)
 /* From seconds */
 
 npy_int64
-_secs_from_highfreq(npy_int64 indate, conversion_info *info)
+_secs_from_highfreq(npy_int64 indate, ts_metadata *meta)
 {
-    npy_int64 secs_per_period = info->secs_per_period;
-    if (info->result_starts)
+    npy_int64 secs_per_period = meta->secs_per_period;
+    if (meta->convert_to_start)
         return indate*secs_per_period;
     else
         return (indate + 1)*secs_per_period - 1;
@@ -696,18 +697,22 @@ _secs_from_highfreq(npy_int64 indate, conversion_info *info)
 npy_int64
 _secs_from_midnight(npy_int64 indate, int unit)
 {
-    conversion_info info;
-    set_conversion_info(unit, 'S', &info);
-    npy_int64 secs=_secs_from_highfreq(indate, &info) % 86400;
+    npy_int64 secs, secs_per_period;
+    unit = (unit/1000)*1000;
+    if (unit > FR_DAY)
+        secs_per_period = secs_per_highunits(unit, 1);
+    else
+        secs_per_period = 0;
+    secs=(indate * secs_per_period) % 86400;
     if (secs < 0)
         secs += 86400;
     return secs;
 }
 
 npy_int64
-_secs_to_highfreq(npy_int64 indate, conversion_info *info)
+_secs_to_highfreq(npy_int64 indate, ts_metadata *meta)
 {
-    npy_int64 secs_per_period = info->secs_per_period;
+    npy_int64 secs_per_period = meta->secs_per_period;
     if (indate < 0)
         return (indate + 1)/secs_per_period - 1;
     else
@@ -737,22 +742,6 @@ conversion_function convert_from_mediator(int fromunit, int tounit, int inbatch)
         return *get_converter_from_days(tounit, 0);
 }
 
-void
-set_conversion_info(int unit, char relation, conversion_info *info){
-    int base = get_base_unit(unit);
-    if ((base == FR_ANN) || (base == FR_QTR))
-        info->ending_month = ending_month(unit);
-    else if (base == FR_WK)
-        info->ending_day = ending_day(unit);
-    else if (base > FR_DAY) {
-        info->periods_per_day = highunits_per_day(unit);
-        info->secs_per_period = secs_per_highunits(unit, 1);
-    };
-    if (relation == 'S')
-        info->result_starts = 1;
-    else
-        info->result_starts = 0;
-}
 
 
 void normalize_days_secs(npy_int64 *d, npy_int64 *s)

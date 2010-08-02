@@ -1,9 +1,14 @@
 #include "c_dates.h"
 #include "c_freqs.h"
 #include "c_convert.h"
+#include "c_types.h"
 
 #include <datetime.h>
 #include <time.h>
+
+
+
+#define INIT_ERR(errortype, errmsg) PyErr_SetString(errortype,errmsg);return -1
 
 
 /*********************************************************
@@ -21,38 +26,6 @@ PyObject *
 set_callback_DateTimeFromString(PyObject *dummy, PyObject *args) {
     return set_callback(args, &DateTimeFromString);
 }
-
-
-//DERIVED FROM mx.DateTime
-/*
-    Functions in the following section are borrowed from mx.DateTime version
-    2.0.6, and hence this code is subject to the terms of the egenix public
-    license version 1.0.0
-*/
-
-// #define Py_AssertWithArg(x,errortype,errorstr,a1) {if (!(x)) {PyErr_Format(errortype,errorstr,a1);goto onError;}}
-// #define Py_Error(errortype,errorstr) {PyErr_SetString(errortype,errorstr);goto onError;}
-
-//  /* Error Exception objects */
-// static PyObject *DateCalc_Error;
-// static PyObject *DateCalc_RangeError;
-
-// #define GREGORIAN_CALENDAR 0
-// #define JULIAN_CALENDAR 1
-// 
-// #define SECONDS_PER_DAY ((double) 86400.0)
-//
-/* Table with day offsets for each month (0-based, without and with leap) */
-// static int month_offset[2][13] = {
-//    { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
-//    { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }
-// };
-//
-///* Table of number of days in a month (0-based, without and with leap) */
-//static int days_in_month[2][12] = {
-//    { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-//    { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
-//};
 
 
 
@@ -74,15 +47,34 @@ set_callback_DateTimeFromString(PyObject *dummy, PyObject *args) {
 ====================================================
 */
 
-// NPY_NO_EXPORT 
+void
+init_metadata_from_unit(ts_metadata *meta, int unit) {
+    meta->unit = (unit/1000)*1000;
+    if (unit > FR_DAY) {
+        meta->periods_per_day = highunits_per_day(unit);
+        meta->secs_per_period = secs_per_highunits(unit, 1);
+        meta->period_end_at = -1;
+    }
+    else {
+        meta->periods_per_day = -1;
+        meta->secs_per_period = -1;
+        meta->period_end_at = unit - meta->unit;
+    }
+    meta->convert_to_start = 0;
+    meta->timestep = 1;
+}
+
+
+
+// NPY_NO_EXPORT
 ts_datetime
-datetimestruct_to_tsdatetime(int unit, ts_datetimestruct *d)
+datetimestruct_to_tsdatetime(ts_metadata *meta, ts_datetimestruct *d)
 {
     ts_datetime val;
     npy_int64 days=0;
 
-
-    int ugroup = get_base_unit(unit);
+    int unit = meta->unit;
+    int period_end_at = meta->period_end_at;
 
     if ((unit > FR_MTH) || (unit == FR_UND)) {
         days = days_from_ymd(d->year, d->month, d->day);
@@ -90,12 +82,12 @@ datetimestruct_to_tsdatetime(int unit, ts_datetimestruct *d)
             days -= HIGHFREQ_ORIG;
         };
     };
-    if (ugroup == FR_ANN) {
+    if (unit == FR_ANN) {
         val = d->year;
     }
-    else if (ugroup == FR_QTR) {
-        npy_int64 quarter = ((d->month -1 )/3) + 1;
-        if ((unit - ugroup) > 12) {
+    else if (unit == FR_QTR) {
+        npy_int64 quarter = ((d->month - 1)/3) + 1;
+        if (period_end_at > 12) {
             // quarterly frequency with year determined by ending period
             val = d->year*4 + quarter;
         }
@@ -108,9 +100,9 @@ datetimestruct_to_tsdatetime(int unit, ts_datetimestruct *d)
     else if (unit == FR_MTH) {
         val = (d->year-1)*12 + d->month;
     }
-    else if (ugroup == FR_WK) {
-        npy_int64 end_week_day, adj_day;
-        end_week_day = (7 - (unit-FR_WK)) % 7;
+    else if (unit == FR_WK) {
+        ts_datetime end_week_day, adj_day;
+        end_week_day = (7 - period_end_at) % 7;
         adj_day = days + ((7 - end_week_day) - days % 7) % 7;
         val = adj_day / 7;
     }
@@ -152,9 +144,9 @@ datetimestruct_to_tsdatetime(int unit, ts_datetimestruct *d)
 
 
 
-// NPY_NO_EXPORT 
+// NPY_NO_EXPORT
 ts_datetime
-PyDatetime_to_tsdatetime(int unit, PyObject *datetime)
+PyDatetime_to_tsdatetime(ts_metadata *meta, PyObject *datetime)
 {
     ts_datetimestruct dinfo;
     ts_datetime val;
@@ -177,16 +169,16 @@ PyDatetime_to_tsdatetime(int unit, PyObject *datetime)
         dinfo.min = (int)PyDateTime_DATE_GET_MINUTE(datetime);
         dinfo.sec = (int)PyDateTime_DATE_GET_SECOND(datetime);
         //
-        val = datetimestruct_to_tsdatetime(unit, &dinfo);
+        val = datetimestruct_to_tsdatetime(meta, &dinfo);
     }
     return val;
 }
 
 
 
-// NPY_NO_EXPORT 
+// NPY_NO_EXPORT
 ts_datetime
-string_to_tsdatetime(int unit, PyObject *string)
+PyString_to_tsdatetime(ts_metadata *meta, PyObject *string)
 {
     ts_datetime val;
     PyObject *pydatetime;
@@ -194,13 +186,13 @@ string_to_tsdatetime(int unit, PyObject *string)
 
     PyTuple_SET_ITEM(string_arg, 0, string);
     Py_INCREF(string);
-    if (unit > FR_DAY) {
+    if (meta->unit > FR_DAY) {
         pydatetime = PyEval_CallObject(DateTimeFromString, string_arg);
     } else {
         pydatetime = PyEval_CallObject(DateFromString, string_arg);
     };
     Py_DECREF(string_arg);
-    val = PyDatetime_to_tsdatetime(unit, pydatetime);
+    val = PyDatetime_to_tsdatetime(meta, pydatetime);
     Py_DECREF(pydatetime);
     return val;
 }
@@ -208,18 +200,19 @@ string_to_tsdatetime(int unit, PyObject *string)
 
 
 PyObject *
-PyDateTime_FromFreqAndValue(ts_datetime val, int unit)
+PyDateTime_FromFreqAndValue(ts_datetime val, ts_metadata *meta)
 {
     PyObject *pydatetime;
     npy_int64 absdate, abstime=0;
     int hour=0, minute=0, second=0;
     ts_datetimestruct dinfo;
 
+    int unit = meta->unit;
 
     conversion_function todays = get_converter_to_days(unit, 0);
-    conversion_info cvinfo;
-    set_conversion_info(unit, 'E', &cvinfo);
-    absdate = todays(val, &cvinfo);
+    meta->convert_to_start = 0;
+
+    absdate = todays(val, meta);
     if (unit > FR_DAY)
         abstime = _secs_from_midnight(val, unit);
     set_datetimestruct_from_days_and_secs(&dinfo, absdate, abstime);
@@ -251,6 +244,164 @@ PyDateTime_FromFreqAndValue(ts_datetime val, int unit)
 ** Date type definition
 ************************************************************/
 
+static void
+DatetimeObject_dealloc(DatetimeObject* self) {
+    self->ob_type->tp_free((PyObject*)self);
+}
+
+
+static PyObject *
+DatetimeObject_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+    DatetimeObject *self;
+    self = (DatetimeObject*)type->tp_alloc(type, 0);
+
+    // Initialize the metadata
+    ts_metadata meta = {FR_UND, 1, 0, -1, -1, 0};
+
+    if (self != NULL) {
+        // initialize attributes that need initializing in here
+        self->obval = -1;
+        self->obmeta = meta;
+    }
+    return (PyObject *)self;
+}
+
+
+/* for use in C code */
+static DatetimeObject *
+DatetimeObject_New(void) {
+    PyObject *dummy=NULL;
+    return (DatetimeObject*)DatetimeObject_new(&DatetimeObject_Type, dummy, dummy);
+}
+
+
+
+static int
+DatetimeObject_init(DatetimeObject *self, PyObject *args, PyObject *kwds) {
+
+    PyObject *freq=NULL, *value=NULL, *datetime=NULL, *string=NULL;
+    char *INSUFFICIENT_MSG = "insufficient parameters to initialize Date";
+
+    int def_info=INT_ERR_CODE;
+
+    int year=def_info, month=def_info, day=def_info, quarter=def_info,
+        hour=def_info, minute=def_info, second=def_info;
+    int unit;
+
+    static char *kwlist[] = {"freq", "value", "string",
+                             "year", "month", "day", "quarter",
+                             "hour", "minute", "second",
+                             "datetime", NULL};
+
+    if (! PyArg_ParseTupleAndKeywords(args, kwds, "O|OOiiiiiiiO", kwlist,
+                                      &freq, &value, &string,
+                                      &year, &month, &day, &quarter,
+                                      &hour, &minute, &second,
+                                      &datetime)) {
+        return -1;
+    }
+
+    if (PyObject_HasAttrString(freq, "unit")) {
+        PyObject *freq_attr = PyObject_GetAttrString(freq, "unit");
+        unit = PyInt_AS_LONG(freq_attr);
+        Py_DECREF(freq_attr);
+    } else {
+        if((unit = check_freq(freq)) == INT_ERR_CODE) return -1;
+    }
+    init_metadata_from_unit(&self->obmeta, unit);
+    unit = self->obmeta.unit;
+
+    // The input value is a date string...
+    if ((value && PyString_Check(value)) || string) {
+        if (!string)
+            string = value;
+        self->obval = PyString_to_tsdatetime(&(self->obmeta), string);
+    }
+    // The input is a datetime.date(time) object:
+    else if ((value && (PyDateTime_Check(value) || PyDate_Check(value))) ||
+             datetime) {
+        if (!datetime)
+            datetime = value;
+        self->obval = PyDatetime_to_tsdatetime(&(self->obmeta), datetime);
+    }
+    // The input is a value
+    else if (value) {
+        self->obval = PyInt_AsLong(value);
+    }
+    // The input is a list of arguments
+    else {
+        // We always must have a year defined
+        if (year == def_info) {
+            INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
+        };
+        // For weekly to daily (undefined) units, we need month and day
+        if (unit == FR_BUS || unit == FR_DAY || unit == FR_WK || unit == FR_UND) {
+            if (month == def_info || day == def_info) {
+                INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
+            };
+                // if FR_BUS, check for week day
+        }
+        // Need a month for monthly
+        else if (unit == FR_MTH) {
+            if (month == def_info) {
+                INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
+            }
+        }
+        else if (unit == FR_QTR) {
+            if (quarter == def_info) {
+                INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
+            }
+            month = (quarter-1) * 3 + 1;
+        }
+        else if (unit == FR_SEC) {
+            if (month == def_info || day == def_info || second == def_info) {
+                INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
+            }
+            if (hour == def_info) {
+                hour = second/3600;
+                minute = (second % 3600)/60;
+                second = second % 60;
+            }
+            else if (minute == def_info) {
+                INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
+            }
+        }
+        else if (unit == FR_MIN) {
+            if (month == def_info || day == def_info || minute == def_info) {
+                INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
+            }
+            if (hour == def_info) {
+                hour = minute/60;
+                minute = minute % 60;
+            }
+        }
+        else if (unit == FR_HR) {
+            if (month == def_info || day == def_info || hour == def_info) {
+                INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
+            }
+        };
+        /*Fill the structure from the input, and get the corresponding datetime*/
+        ts_datetimestruct dinfo;
+        dinfo.year = year;
+        dinfo.month = month;
+        dinfo.day = day;
+        dinfo.hour = hour;
+        dinfo.min = minute;
+        dinfo.sec = second;
+        self->obval = datetimestruct_to_tsdatetime(&(self->obmeta), &dinfo);
+    }
+    return 0;
+}
+
+
+static PyMemberDef DatetimeObject_members[] = {
+    {"value", T_INT, offsetof(DatetimeObject, obval), 0,
+     "integer representation of the Date"},
+    {NULL}  /* Sentinel */
+};
+
+
+
 typedef struct {
     PyObject_HEAD;
     int unit; /* frequency of date */
@@ -267,28 +418,11 @@ static PyTypeObject TimeDeltaType;
 #define TimeDelta_Check(op) PyObject_TypeCheck(op, &TimeDeltaType)
 
 static void
-DatetimeObject_dealloc(DatetimeObject* self) {
-//    Py_XDECREF(self->cached_vals);
-    self->ob_type->tp_free((PyObject*)self);
-}
-static void
 TimeDeltaObject_dealloc(TimeDeltaObject* self) {
 //    Py_XDECREF(self->cached_vals);
     self->ob_type->tp_free((PyObject*)self);
 }
 
-static PyObject *
-DatetimeObject_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
-    DatetimeObject *self;
-    self = (DatetimeObject*)type->tp_alloc(type, 0);
-    if (self != NULL) {
-        // initialize attributes that need initializing in here
-        self->unit = FR_UND;
-        self->value = -1;
-        self->freq = self->unit;
-    }
-    return (PyObject *)self;
-}
 
 static PyObject *
 TimeDeltaObject_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
@@ -306,14 +440,6 @@ TimeDeltaObject_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 }
 
 
-
-/* for use in C code */
-static DatetimeObject *
-DatetimeObject_New(void) {
-    PyObject *dummy=NULL;
-    return (DatetimeObject*)DatetimeObject_new(&DatetimeObject_Type, dummy, dummy);
-}
-
 static TimeDeltaObject *
 TimeDeltaObject_New(void) {
     PyObject *dummy=NULL;
@@ -326,126 +452,6 @@ TimeDeltaObject_New(void) {
 #define get_timedelta_months(o)  (((TimeDeltaObject *)(o))->months)
 #define get_timedelta_days(o)    (((TimeDeltaObject *)(o))->days)
 #define get_timedelta_seconds(o) (((TimeDeltaObject *)(o))->seconds)
-
-
-
-static int
-DatetimeObject_init(DatetimeObject *self, PyObject *args, PyObject *kwds) {
-
-    PyObject *freq=NULL, *value=NULL, *datetime=NULL, *string=NULL;
-    char *INSUFFICIENT_MSG = "insufficient parameters to initialize Date";
-
-    int def_info=INT_ERR_CODE;
-
-    int year=def_info, month=def_info, day=def_info, quarter=def_info,
-        hour=def_info, minute=def_info, second=def_info;
-
-
-    static char *kwlist[] = {"freq", "value", "string",
-                             "year", "month", "day", "quarter",
-                             "hour", "minute", "second",
-                             "datetime", NULL};
-
-    if (! PyArg_ParseTupleAndKeywords(args, kwds, "O|OOiiiiiiiO", kwlist,
-                                      &freq, &value, &string,
-                                      &year, &month, &day, &quarter,
-                                      &hour, &minute, &second,
-                                      &datetime)) {
-        return -1;
-    }
-
-    if (PyObject_HasAttrString(freq, "freq")) {
-        PyObject *freq_attr = PyObject_GetAttrString(freq, "freq");
-        self->freq = PyInt_AS_LONG(freq_attr);
-        Py_DECREF(freq_attr);
-    } else {
-        if((self->freq = check_freq(freq)) == INT_ERR_CODE) return -1;
-    }
-
-    // The input value is a date string...
-    if ((value && PyString_Check(value)) || string) {
-        if (!string)
-            string = value;
-        self->value = string_to_tsdatetime(self->freq, string);
-    }
-    // The input is a datetime.date(time) object:
-    else if ((value && (PyDateTime_Check(value) || PyDate_Check(value))) ||
-             datetime) {
-        if (!datetime)
-            datetime = value;
-        self->value = PyDatetime_to_tsdatetime(self->freq, datetime);
-    }
-    // The input is a value
-    else if (value) {
-        self->value = PyInt_AsLong(value);
-    }
-    // The input is a list of arguments
-    else {
-        int freq_group = get_base_unit(self->freq);
-        // We always must have a year defined
-        if (year == def_info) {
-            INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
-        };
-        // For weekly to daily (undefined) units, we need month and day
-        if (self->freq == FR_BUS || self->freq == FR_DAY || self->freq == FR_WK ||
-            self->freq == FR_UND) {
-            if (month == def_info || day == def_info) {
-                INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
-            };
-                // if FR_BUS, check for week day
-        }
-        // Need a month for monthly
-        else if (self->freq == FR_MTH) {
-            if (month == def_info) {
-                INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
-            }
-        }
-        else if (freq_group == FR_QTR) {
-            if (quarter == def_info) {
-                INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
-            }
-            month = (quarter-1) * 3 + 1;
-        }
-        else if (self->freq == FR_SEC) {
-            if (month == def_info || day == def_info || second == def_info) {
-                INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
-            }
-            if (hour == def_info) {
-                hour = second/3600;
-                minute = (second % 3600)/60;
-                second = second % 60;
-            }
-            else if (minute == def_info) {
-                INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
-            }
-        }
-        else if (self->freq == FR_MIN) {
-            if (month == def_info || day == def_info || minute == def_info) {
-                INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
-            }
-            if (hour == def_info) {
-                hour = minute/60;
-                minute = minute % 60;
-            }
-        }
-        else if (self->freq == FR_HR) {
-            if (month == def_info || day == def_info || hour == def_info) {
-                INIT_ERR(PyExc_ValueError, INSUFFICIENT_MSG);
-            }
-        };
-
-        ts_datetimestruct dinfo;
-        dinfo.year = year;
-        dinfo.month = month;
-        dinfo.day = day;
-        dinfo.hour = hour;
-        dinfo.min = minute;
-        dinfo.sec = second;
-        self->value = datetimestruct_to_tsdatetime(self->freq, &dinfo);
-    }	
-    self->obval = self->value;
-    return 0;
-}
 
 
 
@@ -584,16 +590,6 @@ TimeDeltaObject_init(TimeDeltaObject *self, PyObject *args, PyObject *kwds) {
 
 
 
-static PyMemberDef DatetimeObject_members[] = {
-    {"unit", T_INT, offsetof(DatetimeObject, unit), 0,
-     "frequency"},
-    {"freq", T_INT, offsetof(DatetimeObject, freq), 0,
-     "frequency"},
-    {"value", T_INT, offsetof(DatetimeObject, value), 0,
-     "integer representation of the Date"},
-    {NULL}  /* Sentinel */
-};
-
 static PyMemberDef TimeDeltaObject_members[] = {
     {"unit", T_INT, offsetof(TimeDeltaObject, unit), 0,
      "frequency"},
@@ -626,12 +622,10 @@ static char DatetimeObject_toordinal_doc[] =
 "   730850\n"
 "   >>> # Note that 730850 = 730486 + 365 - 1\n";
 static PyObject *
-DatetimeObject_toordinal(DatetimeObject* self)
+DatetimeObject_toordinal(DatetimeObject *self)
 {
-    conversion_function converter = get_converter_to_days(self->freq, 0);
-    conversion_info info;
-    set_conversion_info(self->freq, 'E', &info);
-    return PyInt_FromLong(converter(self->value, &info));
+    conversion_function todays = get_converter_to_days(self->obmeta.unit, 0);
+    return PyInt_FromLong(todays(self->obval, &(self->obmeta)));
 };
 
 
@@ -679,11 +673,9 @@ DatetimeObject_convert(DatetimeObject *self, PyObject *args, PyObject *kwds)
     char *relation_raw=NULL;
     char *relation_uc;
     conversion_function tomediator, frommediator;
-    conversion_info infofrom, infoto;
     char relation;
     int invalid_relation=0;
     int tofreq;
-    DatetimeObject *result = DatetimeObject_New();
 
     static char *kwlist[] = {"freq", "relation", NULL};
 
@@ -720,25 +712,32 @@ DatetimeObject_convert(DatetimeObject *self, PyObject *args, PyObject *kwds)
         relation = 'E';
     }
 
-    if ((tofreq = check_freq(freq)) == INT_ERR_CODE) return NULL;
+    if (relation == 'S')
+        self->obmeta.convert_to_start = 1;
+    else
+        self->obmeta.convert_to_start = 0;
 
-    result->freq = tofreq;
+    if ((tofreq = check_freq(freq)) == INT_ERR_CODE)
+        return NULL;
 
-    if (tofreq == self->freq) {
-        result->value = self->value;
+    DatetimeObject *result = DatetimeObject_New();
+
+    init_metadata_from_unit(&result->obmeta, tofreq);
+    result->obmeta.convert_to_start = self->obmeta.convert_to_start;
+
+    int fromfreq = self->obmeta.unit;
+    if (tofreq == fromfreq) {
+        result->obval = self->obval;
         return (PyObject*)result;
     }
 
-    tomediator = convert_to_mediator(self->freq, tofreq, 1);
-    set_conversion_info(self->freq, relation, &infoto);
-    frommediator = convert_from_mediator(self->freq, tofreq, 1);
-    set_conversion_info(tofreq, relation, &infofrom);
-    
     /* Correction for business days */
-    if ((tofreq == FR_BUS) && (self->freq < FR_DAY))
-        infofrom.result_starts = 1;
+    if ((tofreq == FR_BUS) && (fromfreq < FR_DAY))
+        result->obmeta.convert_to_start = 1;
 
-    result->value = frommediator(tomediator(self->value, &infoto), &infofrom);
+    tomediator = convert_to_mediator(fromfreq, tofreq, 1);
+    frommediator = convert_from_mediator(fromfreq, tofreq, 1);
+    result->obval = frommediator(tomediator(self->obval, &(self->obmeta)), &(result->obmeta));
     return (PyObject *)result;
 }
 
@@ -887,7 +886,6 @@ static char DatetimeObject_strftime_doc[] =
 static PyObject *
 DatetimeObject_strftime(DatetimeObject *self, PyObject *args)
 {
-
     char *orig_fmt_str, *fmt_str;
     char *result;
 
@@ -903,22 +901,20 @@ DatetimeObject_strftime(DatetimeObject *self, PyObject *args)
     npy_int64 absdate;
     double abstime;
     int i, result_len;
-    conversion_info info;
     PyObject *py_result;
 
+    ts_metadata meta = self->obmeta;
 
     if (!PyArg_ParseTuple(args, "s:strftime(fmt)", &orig_fmt_str))
         return NULL;
 
+    conversion_function convert_to_days = get_converter_to_days(meta.unit, 0);
+    meta.convert_to_start = 0;
 
-    conversion_function convert_to_days = get_converter_to_days(self->freq, 0);
-    set_conversion_info(self->freq, 'E', &info);
-
-    absdate = convert_to_days(self->value, &info);
+    absdate = convert_to_days(self->obval, &meta);
     ymd = days_to_ymdstruct(absdate, GREGORIAN_CALENDAR);
-    abstime = _secs_from_midnight(self->value, self->freq);
+    abstime = _secs_from_midnight(self->obval, meta.unit);
     hms = seconds_to_hmsstruct(abstime);
-
 
     /* Populate standard C date struct with info from our date_info struct */
     c_date.tm_sec = hms.sec;
@@ -932,7 +928,7 @@ DatetimeObject_strftime(DatetimeObject *self, PyObject *args)
     c_date.tm_isdst = -1;
 
     result_len = strlen(orig_fmt_str) + 50;
-    if ((result = PyArray_malloc(result_len * sizeof(char))) == NULL) 
+    if ((result = PyArray_malloc(result_len * sizeof(char))) == NULL)
         return PyErr_NoMemory();
 
     fmt_str = orig_fmt_str;
@@ -971,16 +967,19 @@ DatetimeObject_strftime(DatetimeObject *self, PyObject *args)
                 strcmp(extra_fmts[i][0], "%f") == 0 ||
                 strcmp(extra_fmts[i][0], "%F") == 0) {
 
-                int qtr_freq, year, quarter, qvals, year_len;
-
-                if (get_base_unit(self->freq) == FR_QTR)
-                    qtr_freq = self->freq;
+                ts_metadata meta_qtr;
+                if (self->obmeta.unit == FR_QTR)
+                    meta_qtr = self->obmeta;
                 else
-                    qtr_freq = FR_QTR;
-                conversion_info qtr_info;
-                set_conversion_info(qtr_freq, 'E', &qtr_info);
+                    init_metadata_from_unit(&meta_qtr, FR_QTR);
 
-                qvals = (*get_converter_from_days(qtr_freq, 0))(absdate, &qtr_info);
+                int year, quarter, qvals, year_len;
+                meta_qtr.convert_to_start = 0;
+//                conversion_info qtr_info;
+//                metadata_to_conversioninfo(&meta_qtr, &qtr_info);
+//                set_conversion_info(qtr_freq, 'E', &qtr_info);
+
+                qvals = (*get_converter_from_days(meta_qtr.unit, 0))(absdate, &meta_qtr);
                 quarter = qvals % 4;
                 quarter = (quarter == 0 ? 4 : quarter);
                 year = (qvals - quarter)/4 + 1;
@@ -992,14 +991,14 @@ DatetimeObject_strftime(DatetimeObject *self, PyObject *args)
                     }
                     sprintf(extra_str, "%i", quarter);
                 } else {
-                    if ((qtr_freq % 1000) > 12)
+                    if (meta_qtr.period_end_at > 12)
                         year -= 1;
 
                     if (strcmp(extra_fmts[i][0], "%f") == 0) {
                         year_len = 2;
                         year = year % 100;
-                    } 
-                    else 
+                    }
+                    else
                         year_len = 4;
 
                     if ((extra_str = PyArray_malloc((year_len+1) * sizeof(char))) == NULL) {
@@ -1009,10 +1008,10 @@ DatetimeObject_strftime(DatetimeObject *self, PyObject *args)
 
                     if (year_len == 2 && year < 10)
                         sprintf(extra_str, "0%i", year);
-                    else 
-                        sprintf(extra_str, "%i", year); 
+                    else
+                        sprintf(extra_str, "%i", year);
                 }
-            } 
+            }
             else {
                 PyErr_SetString(PyExc_RuntimeError,"Unrecognized format string");
                 return NULL;
@@ -1033,23 +1032,23 @@ DatetimeObject_strftime(DatetimeObject *self, PyObject *args)
 static PyObject *
 DatetimeObject___str__(DatetimeObject* self)
 {
-    int freq_group = get_base_unit(self->freq);
+    int unit = self->obmeta.unit;
     PyObject *string_arg, *retval;
 
     string_arg = NULL;
-    if (freq_group == FR_UND) {
-        retval = PyString_FromFormat("%ld", self->value);
+    if (unit == FR_UND) {
+        retval = PyString_FromFormat("%ld", (long)(self->obval));
         return retval;
         }
-    else if (freq_group == FR_ANN) { string_arg = Py_BuildValue("(s)", "%Y"); }
-    else if (freq_group == FR_QTR) { string_arg = Py_BuildValue("(s)", "%FQ%q"); }
-    else if (freq_group == FR_MTH) { string_arg = Py_BuildValue("(s)", "%b-%Y"); }
-    else if (freq_group == FR_DAY ||
-             freq_group == FR_BUS ||
-             freq_group == FR_WK) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y"); }
-    else if (freq_group == FR_HR) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y %H:00"); }
-    else if (freq_group == FR_MIN) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y %H:%M"); }
-    else if (freq_group == FR_SEC) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y %H:%M:%S"); }
+    else if (unit == FR_ANN) { string_arg = Py_BuildValue("(s)", "%Y"); }
+    else if (unit == FR_QTR) { string_arg = Py_BuildValue("(s)", "%FQ%q"); }
+    else if (unit == FR_MTH) { string_arg = Py_BuildValue("(s)", "%b-%Y"); }
+    else if (unit == FR_DAY ||
+             unit == FR_BUS ||
+             unit == FR_WK) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y"); }
+    else if (unit == FR_HR) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y %H:00"); }
+    else if (unit == FR_MIN) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y %H:%M"); }
+    else if (unit == FR_SEC) { string_arg = Py_BuildValue("(s)", "%d-%b-%Y %H:%M:%S"); }
 
     if (string_arg == NULL) { return NULL; }
     retval = DatetimeObject_strftime(self, string_arg);
@@ -1073,7 +1072,7 @@ timedelta___str__(TimeDeltaObject* self)
 
 static PyObject *
 DatetimeObject_freqstr(DatetimeObject *self, void *closure) {
-    PyObject *key = PyInt_FromLong(self->freq);
+    PyObject *key = PyInt_FromLong(self->obmeta.unit);
     PyObject *freq_aliases = PyDict_GetItem(freq_dict, key);
     PyObject *main_alias = PyTuple_GET_ITEM(freq_aliases, 0);
     Py_DECREF(key);
@@ -1171,9 +1170,8 @@ isvalid(self):
 DatetimeObject *
 DatetimeObject_FromFreqAndValue(int freq, npy_int64 value) {
     DatetimeObject *result = DatetimeObject_New();
-    result->freq = freq;
-    result->value = value;
-    result->unit = result->freq;
+    init_metadata_from_unit(&result->obmeta, freq);
+    result->obval = value;
     return result;
 }
 
@@ -1199,8 +1197,10 @@ DatetimeObject_date_plus_int(PyObject *date, PyObject *pyint) {
     if (!PyInt_Check(pyint) && !PyObject_HasAttrString(pyint, "__int__")) {
         return Py_NotImplemented;
     }
-    return (PyObject*)DatetimeObject_FromFreqAndValue(
-            dateobj->freq, PyInt_AsLong(pyint) + dateobj->value);
+    DatetimeObject *result = DatetimeObject_New();
+    result->obmeta = dateobj->obmeta;
+    result->obval = dateobj->obval + PyInt_AsLong(pyint);
+    return (PyObject*)result;
 }
 
 
@@ -1208,6 +1208,7 @@ static PyObject *
 date_plus_timedelta(PyObject *datearg, PyObject *deltaarg){
     DatetimeObject *date = (DatetimeObject*)datearg;
     TimeDeltaObject *delta = (TimeDeltaObject*)deltaarg;
+    DatetimeObject *result;
 
     ts_datetimestruct dtinfo;
     npy_int64 seconds, days, months, years=0, absdate, abstime=0;
@@ -1216,8 +1217,8 @@ date_plus_timedelta(PyObject *datearg, PyObject *deltaarg){
     days = delta->days;
     months = delta->months;
 
-    if (date->freq > FR_DAY) {
-        abstime = _secs_from_midnight(date->value, date->freq);
+    if (date->obmeta.unit > FR_DAY) {
+        abstime = _secs_from_midnight(date->obval, date->obmeta.unit);
         // Update the days and secs from the seconds since midnight
         seconds += abstime;
     }
@@ -1226,10 +1227,9 @@ date_plus_timedelta(PyObject *datearg, PyObject *deltaarg){
     set_datetimestruct_from_secs(&dtinfo, seconds);
 
     // Convert the current date to days and set the datetimestruct
-    conversion_function todays = get_converter_to_days(date->freq, 0);
-    conversion_info cvinfo;
-    set_conversion_info(date->freq, 'S', &cvinfo);
-    absdate = todays(date->value, &cvinfo);
+    conversion_function todays = get_converter_to_days(date->obmeta.unit, 0);
+    date->obmeta.convert_to_start = 1;
+    absdate = todays(date->obval, &(date->obmeta));
     set_datetimestruct_from_days(&dtinfo, absdate + days);
 
     // Update the datetime info with the months and normalize the months
@@ -1242,9 +1242,10 @@ date_plus_timedelta(PyObject *datearg, PyObject *deltaarg){
     dtinfo.month = months;
 
     // Convert to datetime
-    npy_int64 value = datetimestruct_to_tsdatetime(date->freq, &dtinfo);
-
-    return (PyObject*)DatetimeObject_FromFreqAndValue(date->freq, value);
+    result = DatetimeObject_New();
+    result->obmeta = date->obmeta;
+    result->obval = datetimestruct_to_tsdatetime(&(date->obmeta), &dtinfo);
+    return (PyObject*)result;
 
 };
 
@@ -1253,7 +1254,7 @@ date_plus_delta(PyObject *datearg, PyObject *deltaarg){
     DatetimeObject *date = (DatetimeObject*)datearg;
     PyDateTime_Delta *delta = (PyDateTime_Delta*)deltaarg;
     PyObject *timedelta=NULL;
-    timedelta = (PyObject*)timedelta_fromMDS(date->unit,
+    timedelta = (PyObject*)timedelta_fromMDS(date->obmeta.unit,
                                              0, delta->days, delta->seconds);
     PyObject *result=NULL;
     result = (PyObject *)date_plus_timedelta(datearg, timedelta);
@@ -1306,17 +1307,17 @@ DatetimeObject___subtract__(PyObject *left, PyObject *right)
     dleft = (DatetimeObject*)left;
     if (DatetimeObject_Check(right)) {
         DatetimeObject *dright = (DatetimeObject*)right;
-        if (dleft->freq != dright->freq) {
+        if (dleft->obmeta.unit != dright->obmeta.unit) {
             PyErr_SetString(PyExc_ValueError, "Cannot subtract Date objects with different frequencies.");
             result = NULL;
         }
-        result = PyInt_FromLong(dleft->value - dright->value);
-//        return PyLong_FromLong(result);
-    } else if (PyDate_Check(right) || PyDateTime_Check(right)) {
+        result = PyInt_FromLong(dleft->obval - dright->obval);
+    }
+    else if (PyDate_Check(right) || PyDateTime_Check(right)) {
         DatetimeObject *dright=DatetimeObject_New();
         PyObject *args = PyTuple_New(0);
         PyObject *kw = PyDict_New();
-        PyObject *py_unit = PyInt_FromLong(dleft->unit);
+        PyObject *py_unit = PyInt_FromLong(dleft->obmeta.unit);
         PyDict_SetItemString(kw, "freq", py_unit);
         PyDict_SetItemString(kw, "datetime", right);
         Py_DECREF(py_unit);
@@ -1324,9 +1325,10 @@ DatetimeObject___subtract__(PyObject *left, PyObject *right)
         DatetimeObject_init(dright, args, kw);
         Py_DECREF(args);
         Py_DECREF(kw);
-        result = PyInt_FromLong(dleft->value - dright->value);
+        result = PyInt_FromLong(dleft->obval - dright->obval);
         Py_DECREF(dright);
-    } else if (TimeDelta_Check(right)){
+    }
+    else if (TimeDelta_Check(right)){
         PyObject *minus_right = PyNumber_Negative(right);
         if (minus_right){
             result = date_plus_timedelta(left, minus_right);
@@ -1334,9 +1336,12 @@ DatetimeObject___subtract__(PyObject *left, PyObject *right)
         } else {
             result = NULL;
         }
-    } else {
-        long value = dleft->value - PyLong_AsLong(right);
-        result = (PyObject*)DatetimeObject_FromFreqAndValue(dleft->freq, value);
+    }
+    else {
+        DatetimeObject *dtresult = DatetimeObject_New();
+        dtresult->obmeta = dleft->obmeta;
+        dtresult->obval = dleft->obval - PyLong_AsLong(right);
+        result = (PyObject *)dtresult;
     }
 
     if (result == Py_NotImplemented)
@@ -1543,14 +1548,14 @@ timedelta_multiply(PyObject *left, PyObject *right) {
 static int
 DatetimeObject___compare__(DatetimeObject * obj1, DatetimeObject * obj2)
 {
-    if (obj1->freq != obj2->freq) {
+    if (obj1->obmeta.unit != obj2->obmeta.unit) {
         PyErr_SetString(PyExc_ValueError,
                         "Cannot compare Date objects with different frequencies.");
         return -1;
     }
-    if (obj1->value < obj2->value) return -1;
-    if (obj1->value > obj2->value) return 1;
-    if (obj1->value == obj2->value) return 0;
+    if (obj1->obval < obj2->obval) return -1;
+    if (obj1->obval > obj2->obval) return 1;
+    if (obj1->obval == obj2->obval) return 0;
     return -1;
 }
 
@@ -1574,16 +1579,15 @@ TimeDeltaObject___compare__(TimeDeltaObject * obj1, TimeDeltaObject * obj2)
 static long
 DatetimeObject___hash__(DatetimeObject *self)
 {
-    register int freq_group = get_base_unit(self->freq);
     /* within a given frequency, hash values are guaranteed to be unique
        for different dates. For different frequencies, we make a reasonable
        effort to ensure hash values will be unique, but it is not guaranteed */
-    if (freq_group == FR_BUS) {
-        return self->value + 10000000;
-    } else if (freq_group == FR_WK) {
-        return self->value + 100000000;
+    if (self->obmeta.unit == FR_BUS) {
+        return self->obval + 10000000;
+    } else if (self->obmeta.unit == FR_WK) {
+        return self->obval + 100000000;
     } else {
-        return self->value;
+        return self->obval;
     };
 }
 static long
@@ -1605,18 +1609,18 @@ TimeDeltaObject___hash__(TimeDeltaObject *self)
 
 
 static PyObject *
-DatetimeObject___int__(DatetimeObject *self) {
-    return PyInt_FromLong(self->value);
+DatetimeObject_toint(DatetimeObject *self) {
+    return PyInt_FromLong(self->obval);
 }
 
 static PyObject *
-DatetimeObject___float__(DatetimeObject *self) {
-    return PyFloat_FromDouble((double)(self->value));
+DatetimeObject_tofloat(DatetimeObject *self) {
+    return PyFloat_FromDouble((double)(self->obval));
 }
 
 static PyObject *
-DatetimeObject___long__(DatetimeObject *self) {
-    return PyLong_FromLong(self->value);
+DatetimeObject_tolong(DatetimeObject *self) {
+    return PyLong_FromLong(self->obval);
 }
 
 
@@ -1625,13 +1629,26 @@ DatetimeObject___long__(DatetimeObject *self) {
            ====== Date Properties ======
 ****************************************************/
 
+static PyObject *
+DatetimeObject_unit(DatetimeObject *self) {
+    int unit = self->obmeta.unit;
+    int period_end_at = self->obmeta.period_end_at;
+    if (period_end_at > 0)
+        return PyInt_FromLong(unit + period_end_at);
+    return PyInt_FromLong(unit);
+}
+static PyObject *
+DatetimeObject_timestep(DatetimeObject *self) {
+    return PyInt_FromLong(self->obmeta.timestep);
+}
+
+
 // helper function for date property funcs
 static int
 DatetimeObject_set_datestruct(DatetimeObject *self, ts_datetimestruct *dinfo) {
-    conversion_function todays = get_converter_to_days(self->freq, 0);
-    conversion_info info;
-    set_conversion_info(self->freq, 'E', &info);
-    npy_int64 days = todays(self->value, &info);
+    conversion_function todays = get_converter_to_days(self->obmeta.unit, 0);
+    self->obmeta.convert_to_start = 0;
+    npy_int64 days = todays(self->obval, &(self->obmeta));
     set_datetimestruct_from_days(dinfo, days);
     return 0;
 }
@@ -1639,11 +1656,10 @@ DatetimeObject_set_datestruct(DatetimeObject *self, ts_datetimestruct *dinfo) {
 // helper function for date property funcs
 static int
 DatetimeObject_set_datetimestruct(DatetimeObject *self, ts_datetimestruct *dinfo) {
-    conversion_function todays = get_converter_to_days(self->freq, 0);
-    conversion_info info;
-    set_conversion_info(self->freq, 'E', &info);
-    npy_int64 absdate = todays(self->value, &info);
-    npy_int64 abstime = _secs_from_midnight(self->value, self->freq);
+    conversion_function todays = get_converter_to_days(self->obmeta.unit, 0);
+    self->obmeta.convert_to_start = 0;
+    npy_int64 absdate = todays(self->obval, &(self->obmeta));
+    npy_int64 abstime = _secs_from_midnight(self->obval, self->obmeta.unit);
     set_datetimestruct_from_days_and_secs(dinfo, absdate, abstime);
     return 0;
 }
@@ -1653,15 +1669,14 @@ static PyObject *
 DatetimeObject_year(DatetimeObject *self, void *closure) {
     ts_datetimestruct dinfo;
     DatetimeObject_set_datestruct(self, &dinfo);
-//    if(DatetimeObject_set_datestruct(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong(dinfo.year);
 }
 static PyObject *
 _loop_get_year(npy_int64 value, int unit,
-               conversion_function todays, conversion_info *cvinfo,
+               conversion_function todays, ts_metadata *meta,
                ts_datetimestruct *dinfo)
 {
-    npy_int64 absdate = (*todays)(value, cvinfo);
+    npy_int64 absdate = (*todays)(value, meta);
     set_datetimestruct_from_days(dinfo, absdate);
     return PyInt_FromLong(dinfo->year);
 }
@@ -1671,29 +1686,41 @@ static PyObject *
 DatetimeObject_qyear(DatetimeObject *self, void *closure) {
     ts_datetimestruct dinfo;
     DatetimeObject_set_datestruct(self, &dinfo);
+    int year = dinfo.year;
 
-    if (get_base_unit(self->freq) == FR_QTR)
-        if (dinfo.month > ending_month(self->freq))
-            return PyInt_FromLong(dinfo.year+1);
-    return PyInt_FromLong(dinfo.year);
+    if (self->obmeta.unit == FR_QTR) {
+        int end_month = self->obmeta.period_end_at;
+        if (end_month == 0)
+            end_month = 12;
+        else if (end_month > 12) {
+            end_month -= 12;
+            year -= 1;
+        }
+        if (dinfo.month > end_month)
+            year += 1;
+    }
+    return PyInt_FromLong(year);
 }
 static PyObject *
 _loop_get_qyear(npy_int64 value, int unit,
-                conversion_function todays, conversion_info *cvinfo,
+                conversion_function todays, ts_metadata *meta,
                 ts_datetimestruct *dinfo)
 {
-    npy_int64 absdate = (*todays)(value, cvinfo);
+    npy_int64 absdate = (*todays)(value, meta);
     set_datetimestruct_from_days(dinfo, absdate);
     return PyInt_FromLong(dinfo->year);
 }
 static PyObject *
 _loop_get_qyear_from_qtr(npy_int64 value, int unit,
-                         conversion_function todays, conversion_info *cvinfo,
+                         conversion_function todays, ts_metadata *meta,
                          ts_datetimestruct *dinfo)
 {
-    npy_int64 absdate = (*todays)(value, cvinfo);
+    int ending_month = meta->period_end_at;
+    if (ending_month == 0)
+        ending_month = 12;
+    npy_int64 absdate = (*todays)(value, meta);
     set_datetimestruct_from_days(dinfo, absdate);
-    if (dinfo->month > cvinfo->ending_month)
+    if (dinfo->month > ending_month)
         return PyInt_FromLong(dinfo->year+1);
     return PyInt_FromLong(dinfo->year);
 }
@@ -1704,30 +1731,31 @@ DatetimeObject_quarter(DatetimeObject *self, void *closure) {
     ts_datetimestruct dinfo;
     DatetimeObject_set_datestruct(self, &dinfo);
     int month = dinfo.month;
+    int end_month = ending_month(&(self->obmeta));
 
-    if (get_base_unit(self->freq) == FR_QTR)
-        month = dinfo.month - ending_month(self->freq);
+    if (self->obmeta.unit == FR_QTR)
+        month = dinfo.month - end_month;
         if (month <= 0)
             month += 12;
     return PyInt_FromLong(month_to_quarter(month));
 }
 static PyObject *
 _loop_get_quarter(npy_int64 value, int unit,
-                  conversion_function todays, conversion_info *cvinfo,
+                  conversion_function todays, ts_metadata *meta,
                   ts_datetimestruct *dinfo)
 {
-    npy_int64 absdate = (*todays)(value, cvinfo);
+    npy_int64 absdate = (*todays)(value, meta);
     set_datetimestruct_from_days(dinfo, absdate);
     return PyInt_FromLong(month_to_quarter(dinfo->month));
 }
 static PyObject *
 _loop_get_quarter_from_qtr(npy_int64 value, int unit,
-                           conversion_function todays, conversion_info *cvinfo,
+                           conversion_function todays, ts_metadata *meta,
                            ts_datetimestruct *dinfo)
 {
-    npy_int64 absdate = (*todays)(value, cvinfo);
+    npy_int64 absdate = (*todays)(value, meta);
     set_datetimestruct_from_days(dinfo, absdate);
-    int month = dinfo->month - cvinfo->ending_month;
+    int month = dinfo->month - ending_month(meta);
     if (month <= 0)
         month += 12;
     return PyInt_FromLong(month_to_quarter(month));
@@ -1742,10 +1770,10 @@ DatetimeObject_month(DatetimeObject *self, void *closure) {
 }
 static PyObject *
 _loop_get_month(npy_int64 value, int unit,
-                conversion_function todays, conversion_info *cvinfo,
+                conversion_function todays, ts_metadata *meta,
                 ts_datetimestruct *dinfo)
 {
-    npy_int64 absdate = (*todays)(value, cvinfo);
+    npy_int64 absdate = (*todays)(value, meta);
     set_datetimestruct_from_days(dinfo, absdate);
     return PyInt_FromLong(dinfo->month);
 }
@@ -1758,10 +1786,10 @@ DatetimeObject_day(DatetimeObject *self, void *closure) {
 }
 static PyObject *
 _loop_get_day(npy_int64 value, int unit,
-              conversion_function todays, conversion_info *cvinfo,
+              conversion_function todays, ts_metadata *meta,
               ts_datetimestruct *dinfo)
 {
-    npy_int64 absdate = (*todays)(value, cvinfo);
+    npy_int64 absdate = (*todays)(value, meta);
     set_datetimestruct_from_days(dinfo, absdate);
     return PyInt_FromLong(dinfo->day);
 }
@@ -1781,10 +1809,10 @@ DatetimeObject_weekday(DatetimeObject *self, void *closure) {
 }
 static PyObject *
 _loop_get_day_of_week(npy_int64 value, int unit,
-                      conversion_function todays, conversion_info *cvinfo,
+                      conversion_function todays, ts_metadata *meta,
                       ts_datetimestruct *dinfo)
 {
-    npy_int64 absdate = (*todays)(value, cvinfo);
+    npy_int64 absdate = (*todays)(value, meta);
     return PyInt_FromLong(day_of_week(absdate));
 }
 
@@ -1792,15 +1820,16 @@ _loop_get_day_of_week(npy_int64 value, int unit,
 static PyObject *
 DatetimeObject_day_of_year(DatetimeObject *self, void *closure) {
     ts_datetimestruct dinfo;
-    if(DatetimeObject_set_datestruct(self, &dinfo) == -1) return NULL;
+    if(DatetimeObject_set_datestruct(self, &dinfo) == -1)
+        return NULL;
     return PyInt_FromLong(dinfo.day_of_year);
 }
 static PyObject *
 _loop_get_day_of_year(npy_int64 value, int unit,
-                      conversion_function todays, conversion_info *cvinfo,
+                      conversion_function todays, ts_metadata *meta,
                       ts_datetimestruct *dinfo)
 {
-    npy_int64 absdate = (*todays)(value, cvinfo);
+    npy_int64 absdate = (*todays)(value, meta);
     set_datetimestruct_from_days(dinfo, absdate);
     return PyInt_FromLong(dinfo->day_of_year);
 }
@@ -1815,10 +1844,10 @@ DatetimeObject_week(DatetimeObject *self, void *closure) {
 }
 static PyObject *
 _loop_get_week(npy_int64 value, int unit,
-               conversion_function todays, conversion_info *cvinfo,
+               conversion_function todays, ts_metadata *meta,
                ts_datetimestruct *dinfo)
 {
-    npy_int64 absdate = (*todays)(value, cvinfo);
+    npy_int64 absdate = (*todays)(value, meta);
     set_datetimestruct_from_days(dinfo, absdate);
     return PyInt_FromLong(isoweek_from_datetimestruct(dinfo));
 }
@@ -1833,11 +1862,11 @@ DatetimeObject_hour(DatetimeObject *self, void *closure) {
 }
 static PyObject *
 _loop_get_hour(npy_int64 value, int unit,
-               conversion_function todays, conversion_info *cvinfo,
+               conversion_function todays, ts_metadata *meta,
                ts_datetimestruct *dinfo)
 {
-    npy_int64 absdate = (*todays)(value, cvinfo);
-    npy_int64 abstime = _secs_from_highfreq(value, cvinfo) % 86400;
+    npy_int64 absdate = (*todays)(value, meta);
+    npy_int64 abstime = _secs_from_highfreq(value, meta) % 86400;
     set_datetimestruct_from_days_and_secs(dinfo, absdate, abstime);
     return PyInt_FromLong(dinfo->hour);
 }
@@ -1852,11 +1881,11 @@ DatetimeObject_minute(DatetimeObject *self, void *closure) {
 }
 static PyObject *
 _loop_get_minute(npy_int64 value, int unit,
-                 conversion_function todays, conversion_info *cvinfo,
+                 conversion_function todays, ts_metadata *meta,
                  ts_datetimestruct *dinfo)
 {
-    npy_int64 absdate = (*todays)(value, cvinfo);
-    npy_int64 abstime = _secs_from_highfreq(value, cvinfo) % 86400;
+    npy_int64 absdate = (*todays)(value, meta);
+    npy_int64 abstime = _secs_from_highfreq(value, meta) % 86400;
     set_datetimestruct_from_days_and_secs(dinfo, absdate, abstime);
     return PyInt_FromLong(dinfo->min);
 }
@@ -1870,26 +1899,26 @@ DatetimeObject_second(DatetimeObject *self, void *closure) {
 }
 static PyObject *
 _loop_get_second(npy_int64 value, int unit,
-                 conversion_function todays, conversion_info *cvinfo,
+                 conversion_function todays, ts_metadata *meta,
                  ts_datetimestruct *dinfo)
 {
-    npy_int64 absdate = (*todays)(value, cvinfo);
-    npy_int64 abstime = _secs_from_highfreq(value, cvinfo) % 86400;
+    npy_int64 absdate = (*todays)(value, meta);
+    npy_int64 abstime = _secs_from_highfreq(value, meta) % 86400;
     set_datetimestruct_from_days_and_secs(dinfo, absdate, abstime);
     return PyInt_FromLong(dinfo->sec);
 }
 
 
-static PyObject *
-DatetimeObject_ordinal(DatetimeObject *self, void *closure){
-    return PyInt_FromLong((long)DatetimeObject_toordinal(self));
-}
+//static PyObject *
+//DatetimeObject_ordinal(DatetimeObject *self, void *closure){
+//    return PyInt_FromLong((long)DatetimeObject_toordinal(self));
+//}
 static PyObject *
 _loop_get_ordinal(npy_int64 value, int unit,
-                  conversion_function todays, conversion_info *cvinfo,
+                  conversion_function todays, ts_metadata *meta,
                   ts_datetimestruct *dinfo)
 {
-    npy_int64 absdate = (*todays)(value, cvinfo);
+    npy_int64 absdate = (*todays)(value, meta);
     return PyInt_FromLong(absdate);
 }
 
@@ -1898,13 +1927,13 @@ static PyObject *
 DatetimeObject_datetime(DatetimeObject *self, void *closure) {
     PyObject *datetime;
     int hour=0, minute=0, second=0;
-    int freq_group;
+    int unit;
     ts_datetimestruct dinfo;
 
     if(DatetimeObject_set_datetimestruct(self, &dinfo) == -1) return NULL;
-    freq_group = get_base_unit(self->freq);
+    unit = self->obmeta.unit;
 
-    switch(freq_group) {
+    switch(unit) {
         case FR_HR:
             hour = dinfo.hour;
             break;
@@ -1924,10 +1953,10 @@ DatetimeObject_datetime(DatetimeObject *self, void *closure) {
 }
 static PyObject *
 _loop_get_datetime(npy_int64 value, int unit,
-                   conversion_function todays, conversion_info *cvinfo,
+                   conversion_function todays, ts_metadata *meta,
                    ts_datetimestruct *dinfo)
 {
-    npy_int64 absdate = (*todays)(value, cvinfo);
+    npy_int64 absdate = (*todays)(value, meta);
     npy_int64 abstime = 0;
     if (unit > FR_DAY)
         abstime = _secs_from_midnight(value, unit);
@@ -1962,6 +1991,12 @@ TimeDeltaObject_ReadOnlyErr(TimeDeltaObject *self, PyObject *value, void *closur
 }
 
 static PyGetSetDef DatetimeObject_getseters[] = {
+    {"unit", (getter)DatetimeObject_unit, (setter)DatetimeObject_ReadOnlyErr,
+            "Returns the unit.", NULL},
+    {"freq", (getter)DatetimeObject_unit, (setter)DatetimeObject_ReadOnlyErr,
+            "Returns the unit.", NULL},
+    {"timestep", (getter)DatetimeObject_timestep, (setter)DatetimeObject_ReadOnlyErr,
+            "Returns the timestep.", NULL},
     {"year", (getter)DatetimeObject_year, (setter)DatetimeObject_ReadOnlyErr,
             "Returns the year.", NULL},
     {"qyear", (getter)DatetimeObject_qyear, (setter)DatetimeObject_ReadOnlyErr,
@@ -2042,9 +2077,9 @@ static PyNumberMethods DatetimeObject_as_number = {
     0,                                   /* nb_xor */
     0,                                   /* nb_or */
     0,                                   /* nb_coerce */
-    (unaryfunc)DatetimeObject___int__,       /* nb_int */
-    (unaryfunc)DatetimeObject___long__,      /* nb_long */
-    (unaryfunc)DatetimeObject___float__,     /* nb_float */
+    (unaryfunc)DatetimeObject_toint,       /* nb_int */
+    (unaryfunc)DatetimeObject_tolong,      /* nb_long */
+    (unaryfunc)DatetimeObject_tofloat,     /* nb_float */
     (unaryfunc)0,                        /* nb_oct */
     (unaryfunc)0,                        /* nb_hex */
 };
@@ -2215,7 +2250,7 @@ c_dates_now(PyObject *self, PyObject *args) {
     ts_datetimestruct dinfo;
     int freq_val;
     DatetimeObject *date;
-    
+
 
 #ifdef WIN32
     __time64_t rawtime;
@@ -2248,10 +2283,11 @@ c_dates_now(PyObject *self, PyObject *args) {
     dinfo.sec = timeinfo->tm_sec;
 
     date = DatetimeObject_New();
-    date->freq = freq_val;
-    date->value = datetimestruct_to_tsdatetime(freq_val, &dinfo);
+    init_metadata_from_unit(&date->obmeta, freq_val);
+    date->obval = datetimestruct_to_tsdatetime(&(date->obmeta), &dinfo);
     return (PyObject*)date;
 }
+
 
 
 PyObject *
@@ -2263,16 +2299,18 @@ DateArray_asfreq(PyObject *self, PyObject *args)
     char *relation;
     char relation_from, relation_to;
     conversion_function converterfrom, converterto;
-    conversion_info infofrom, infoto;
-    int fromFreq, toFreq;
+//    conversion_info infofrom, infoto;
+    int fromfreq, tofreq;
     npy_int64 fromDate, toDate, tmpDate;
+
+    ts_metadata input_meta, output_meta;
 
     if (!PyArg_ParseTuple(args,
                 "Oiis:asfreq(fromDates, fromfreq, tofreq, relation)",
-                &fromDates, &fromFreq, &toFreq, &relation)) return NULL;
+                &fromDates, &fromfreq, &tofreq, &relation)) return NULL;
 
     relation_from = relation[0];
-    if ((toFreq == FR_BUS) && (fromFreq < FR_DAY))
+    if ((tofreq == FR_BUS) && (fromfreq < FR_DAY))
         relation_to = 'S';
     else
         relation_to = relation_from;
@@ -2280,22 +2318,32 @@ DateArray_asfreq(PyObject *self, PyObject *args)
     toDates = (PyArrayObject *)PyArray_Copy(fromDates);
 
     iterFrom = (PyArrayIterObject *)PyArray_IterNew((PyObject *)fromDates);
-    if (iterFrom == NULL) return NULL;
+    if (iterFrom == NULL)
+        return NULL;
 
     iterTo = (PyArrayIterObject *)PyArray_IterNew((PyObject *)toDates);
-    if (iterTo == NULL) return NULL;
+    if (iterTo == NULL)
+        return NULL;
 
-    converterfrom = convert_to_mediator(fromFreq, toFreq, 0);
-    set_conversion_info(fromFreq, relation_from, &infofrom);
-    converterto = convert_from_mediator(fromFreq, toFreq, 0);
-    set_conversion_info(toFreq, relation_to, &infoto);
+    init_metadata_from_unit(&input_meta, fromfreq);
+    if (relation_from == 'S')
+        input_meta.convert_to_start = 1;
+    fromfreq = input_meta.unit;
+    converterfrom = convert_to_mediator(fromfreq, tofreq, 0);
+
+    init_metadata_from_unit(&output_meta, tofreq);
+    if (relation_to == 'S')
+        output_meta.convert_to_start = 1;
+    tofreq = output_meta.unit;
+    converterto = convert_from_mediator(fromfreq, tofreq, 0);
+
 
     while (iterFrom->index < iterFrom->size) {
 
         fromDateObj = PyArray_GETITEM(fromDates, iterFrom->dataptr);
         fromDate = PyInt_AsLong(fromDateObj);
-        tmpDate = converterfrom(fromDate, &infofrom);
-        toDate = converterto(tmpDate, &infoto);
+        tmpDate = converterfrom(fromDate, &input_meta);
+        toDate = converterto(tmpDate, &output_meta);
         // ERR_CHECK(toDate = asfreq_main(fromDate, relation[0], &af_info));
         toDateObj = PyInt_FromLong(toDate);
 
@@ -2306,7 +2354,6 @@ DateArray_asfreq(PyObject *self, PyObject *args)
         PyArray_ITER_NEXT(iterFrom);
         PyArray_ITER_NEXT(iterTo);
     }
-
     Py_DECREF(iterFrom);
     Py_DECREF(iterTo);
 
@@ -2446,13 +2493,15 @@ DateArray_getdateinfo(PyObject *self, PyObject *args)
     int freq, is_full, skip_periods, counter=1, val_changed=0;
     char *infochar;
 
+    ts_metadata meta;
+
     PyObject *prev_val=NULL;
     PyArrayObject *input, *output;
     PyArrayIterObject *iterin, *iterout;
 
 //    PyObject* (*getdateparam)(DatetimeObject*, void*) = NULL;
     PyObject* (*getdateparam)(npy_int64, int,
-                              conversion_function, conversion_info*,
+                              conversion_function, ts_metadata*,
                               ts_datetimestruct*) = NULL;
 
     if (!PyArg_ParseTuple(args,
@@ -2467,8 +2516,8 @@ DateArray_getdateinfo(PyObject *self, PyObject *args)
     };
 
     conversion_function todays = get_converter_to_days(freq, 1);
-    conversion_info cvinfo;
-    set_conversion_info(freq, 'E', &cvinfo);
+    init_metadata_from_unit(&meta, freq);
+    meta.convert_to_start = 0;
     ts_datetimestruct dinfo;
 
 
@@ -2493,51 +2542,41 @@ DateArray_getdateinfo(PyObject *self, PyObject *args)
                 getdateparam = &_loop_get_quarter_from_qtr;
             else
                 getdateparam = &_loop_get_quarter;
-//            getdateparam = &DatetimeObject_quarter;
             skip_periods = __skip_periods_quarter(freq);
             break;
         case 'M': //month
-//            getdateparam = &DatetimeObject_month;
             getdateparam = &_loop_get_month;
             skip_periods = __skip_periods_month(freq);
             break;
         case 'D': //day
-//            getdateparam = &DatetimeObject_day;
             getdateparam = &_loop_get_day;
             skip_periods = __skip_periods_day(freq);
             break;
         case 'R': //day of year
-//            getdateparam = &DatetimeObject_day_of_year;
             getdateparam = &_loop_get_day_of_year;
             skip_periods = __skip_periods_day(freq);
             break;
         case 'W': //day of week
-//            getdateparam = &DatetimeObject_day_of_week;
             getdateparam = &_loop_get_day_of_week;
             skip_periods = __skip_periods_day(freq);
             break;
         case 'I': //week of year
-//            getdateparam = &DatetimeObject_week;
             getdateparam = &_loop_get_week;
             skip_periods = __skip_periods_week(freq);
             break;
         case 'H': //hour
-//            getdateparam = &DatetimeObject_hour;
             getdateparam = &_loop_get_hour;
             skip_periods = __skip_periods_hour(freq);
             break;
         case 'T': //minute
-//            getdateparam = &DatetimeObject_minute;
             getdateparam = &_loop_get_minute;
             skip_periods = __skip_periods_minute(freq);
             break;
         case 'S': //second
-//            getdateparam = &DatetimeObject_second;
             getdateparam = &_loop_get_second;
             skip_periods = 1;
             break;
         case 'O': //toordinal
-//            getdateparam = &DatetimeObject_ordinal;
             getdateparam = &_loop_get_ordinal;
             skip_periods = __skip_periods_day(freq);
             break;
@@ -2555,8 +2594,8 @@ DateArray_getdateinfo(PyObject *self, PyObject *args)
                 (counter >= skip_periods)) {
 
                    val = PyArray_GETITEM(input, iterin->dataptr);
-                   result = getdateparam(PyInt_AsLong(val), freq, 
-                                         todays, &cvinfo, &dinfo);
+                   result = getdateparam(PyInt_AsLong(val), freq,
+                                         todays, &meta, &dinfo);
 
                    if ((prev_val != NULL) &&
                        (PyLong_AsLong(prev_val) != PyLong_AsLong(result))) {
@@ -2602,10 +2641,9 @@ DateArray_getdatetime(PyObject *self, PyObject *args)
     output = (PyArrayObject *)PyArray_SimpleNew(input->nd, input->dimensions, NPY_OBJECT);
 
     conversion_function todays = get_converter_to_days(freq, 1);
-    conversion_info cvinfo;
-    set_conversion_info(freq, 'E', &cvinfo);
+    ts_metadata meta = ((DatetimeObject *)self)->obmeta;
+    meta.convert_to_start = 1;
     ts_datetimestruct dinfo;
-
 
     iterin = (PyArrayIterObject *)PyArray_IterNew((PyObject *)input);
     iterout = (PyArrayIterObject *)PyArray_IterNew((PyObject *)output);
@@ -2615,7 +2653,7 @@ DateArray_getdatetime(PyObject *self, PyObject *args)
     while (iterin->index < iterin->size) {
         val = PyArray_GETITEM(input, iterin->dataptr);
         result = _loop_get_datetime(PyInt_AsLong(val), freq,
-                                    todays, &cvinfo, &dinfo);
+                                    todays, &meta, &dinfo);
         PyArray_SETITEM(output, iterout->dataptr, result);
         PyArray_ITER_NEXT(iterin);
         PyArray_ITER_NEXT(iterout);
@@ -2636,7 +2674,7 @@ void import_c_dates(PyObject *m)
     if (PyType_Ready(&TimeDeltaType) < 0) return;
 
     DateCalc_Error = PyErr_NewException("c_dates.DateCalc_Error", NULL, NULL);
-    DateCalc_RangeError = PyErr_NewException("c_dates.DateCalc_RangeError", 
+    DateCalc_RangeError = PyErr_NewException("c_dates.DateCalc_RangeError",
                                              NULL, NULL);
 
     import_array();
