@@ -578,7 +578,8 @@ _days_from_years(npy_int64 indate, ts_metadata *meta)
         final_adj = -1;
     }
     absdate = days_from_ymd(year, month, 1);
-    if (absdate  == INT_ERR_CODE) return INT_ERR_CODE;
+    if (absdate  == INT_ERR_CODE)
+        return INT_ERR_CODE;
     return absdate + final_adj;
 }
 

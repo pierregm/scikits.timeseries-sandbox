@@ -1671,7 +1671,7 @@ DatetimeObject_year(DatetimeObject *self, void *closure) {
     DatetimeObject_set_datestruct(self, &dinfo);
     return PyInt_FromLong(dinfo.year);
 }
-static PyObject *
+PyObject *
 _loop_get_year(npy_int64 value, int unit,
                conversion_function todays, ts_metadata *meta,
                ts_datetimestruct *dinfo)
@@ -1701,7 +1701,7 @@ DatetimeObject_qyear(DatetimeObject *self, void *closure) {
     }
     return PyInt_FromLong(year);
 }
-static PyObject *
+PyObject *
 _loop_get_qyear(npy_int64 value, int unit,
                 conversion_function todays, ts_metadata *meta,
                 ts_datetimestruct *dinfo)
@@ -1710,7 +1710,7 @@ _loop_get_qyear(npy_int64 value, int unit,
     set_datetimestruct_from_days(dinfo, absdate);
     return PyInt_FromLong(dinfo->year);
 }
-static PyObject *
+PyObject *
 _loop_get_qyear_from_qtr(npy_int64 value, int unit,
                          conversion_function todays, ts_metadata *meta,
                          ts_datetimestruct *dinfo)
@@ -1739,7 +1739,7 @@ DatetimeObject_quarter(DatetimeObject *self, void *closure) {
             month += 12;
     return PyInt_FromLong(month_to_quarter(month));
 }
-static PyObject *
+PyObject *
 _loop_get_quarter(npy_int64 value, int unit,
                   conversion_function todays, ts_metadata *meta,
                   ts_datetimestruct *dinfo)
@@ -1748,7 +1748,7 @@ _loop_get_quarter(npy_int64 value, int unit,
     set_datetimestruct_from_days(dinfo, absdate);
     return PyInt_FromLong(month_to_quarter(dinfo->month));
 }
-static PyObject *
+PyObject *
 _loop_get_quarter_from_qtr(npy_int64 value, int unit,
                            conversion_function todays, ts_metadata *meta,
                            ts_datetimestruct *dinfo)
@@ -1768,7 +1768,7 @@ DatetimeObject_month(DatetimeObject *self, void *closure) {
     if(DatetimeObject_set_datestruct(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong(dinfo.month);
 }
-static PyObject *
+PyObject *
 _loop_get_month(npy_int64 value, int unit,
                 conversion_function todays, ts_metadata *meta,
                 ts_datetimestruct *dinfo)
@@ -1784,7 +1784,7 @@ DatetimeObject_day(DatetimeObject *self, void *closure) {
     if(DatetimeObject_set_datestruct(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong(dinfo.day);
 }
-static PyObject *
+PyObject *
 _loop_get_day(npy_int64 value, int unit,
               conversion_function todays, ts_metadata *meta,
               ts_datetimestruct *dinfo)
@@ -1807,7 +1807,7 @@ static PyObject *
 DatetimeObject_weekday(DatetimeObject *self, void *closure) {
     return DatetimeObject_day_of_week(self, closure);
 }
-static PyObject *
+PyObject *
 _loop_get_day_of_week(npy_int64 value, int unit,
                       conversion_function todays, ts_metadata *meta,
                       ts_datetimestruct *dinfo)
@@ -1824,7 +1824,7 @@ DatetimeObject_day_of_year(DatetimeObject *self, void *closure) {
         return NULL;
     return PyInt_FromLong(dinfo.day_of_year);
 }
-static PyObject *
+PyObject *
 _loop_get_day_of_year(npy_int64 value, int unit,
                       conversion_function todays, ts_metadata *meta,
                       ts_datetimestruct *dinfo)
@@ -1842,7 +1842,7 @@ DatetimeObject_week(DatetimeObject *self, void *closure) {
         return NULL;
     return PyInt_FromLong(isoweek_from_datetimestruct(&dinfo));
 }
-static PyObject *
+PyObject *
 _loop_get_week(npy_int64 value, int unit,
                conversion_function todays, ts_metadata *meta,
                ts_datetimestruct *dinfo)
@@ -1860,7 +1860,7 @@ DatetimeObject_hour(DatetimeObject *self, void *closure) {
         return NULL;
     return PyInt_FromLong(dinfo.hour);
 }
-static PyObject *
+PyObject *
 _loop_get_hour(npy_int64 value, int unit,
                conversion_function todays, ts_metadata *meta,
                ts_datetimestruct *dinfo)
@@ -1879,7 +1879,7 @@ DatetimeObject_minute(DatetimeObject *self, void *closure) {
         return NULL;
     return PyInt_FromLong(dinfo.min);
 }
-static PyObject *
+PyObject *
 _loop_get_minute(npy_int64 value, int unit,
                  conversion_function todays, ts_metadata *meta,
                  ts_datetimestruct *dinfo)
@@ -1897,7 +1897,7 @@ DatetimeObject_second(DatetimeObject *self, void *closure) {
     if(DatetimeObject_set_datetimestruct(self, &dinfo) == -1) return NULL;
     return PyInt_FromLong(dinfo.sec);
 }
-static PyObject *
+PyObject *
 _loop_get_second(npy_int64 value, int unit,
                  conversion_function todays, ts_metadata *meta,
                  ts_datetimestruct *dinfo)
@@ -1913,7 +1913,7 @@ _loop_get_second(npy_int64 value, int unit,
 //DatetimeObject_ordinal(DatetimeObject *self, void *closure){
 //    return PyInt_FromLong((long)DatetimeObject_toordinal(self));
 //}
-static PyObject *
+PyObject *
 _loop_get_ordinal(npy_int64 value, int unit,
                   conversion_function todays, ts_metadata *meta,
                   ts_datetimestruct *dinfo)
@@ -1951,7 +1951,7 @@ DatetimeObject_datetime(DatetimeObject *self, void *closure) {
                 dinfo.year, dinfo.month, dinfo.day, hour, minute, second, 0);
     return datetime;
 }
-static PyObject *
+PyObject *
 _loop_get_datetime(npy_int64 value, int unit,
                    conversion_function todays, ts_metadata *meta,
                    ts_datetimestruct *dinfo)
@@ -2368,7 +2368,7 @@ DateArray_asfreq(PyObject *self, PyObject *args)
 **************************************************************/
 
 // also used for qyear
-static int __skip_periods_year(int freq) {
+int __skip_periods_year(int freq) {
     int freq_group = get_base_unit(freq);
     switch(freq_group)
     {
@@ -2392,7 +2392,7 @@ static int __skip_periods_year(int freq) {
             return 1;
     }
 }
-static int __skip_periods_quarter(int freq) {
+int __skip_periods_quarter(int freq) {
     int freq_group = get_base_unit(freq);
     switch(freq_group)
     {
@@ -2414,7 +2414,7 @@ static int __skip_periods_quarter(int freq) {
             return 1;
     }
 }
-static int __skip_periods_month(int freq) {
+int __skip_periods_month(int freq) {
     int freq_group = get_base_unit(freq);
     switch(freq_group)
     {
@@ -2435,7 +2435,7 @@ static int __skip_periods_month(int freq) {
     }
 }
 // also used for day_of_year, day_of_week
-static int __skip_periods_day(int freq) {
+int __skip_periods_day(int freq) {
     switch(freq)
     {
         case FR_HR:
@@ -2448,7 +2448,7 @@ static int __skip_periods_day(int freq) {
             return 1;
     }
 }
-static int __skip_periods_week(int freq) {
+int __skip_periods_week(int freq) {
     switch(freq)
     {
         case FR_BUS:
@@ -2465,7 +2465,7 @@ static int __skip_periods_week(int freq) {
             return 1;
     }
 }
-static int __skip_periods_hour(int freq) {
+int __skip_periods_hour(int freq) {
     switch(freq)
     {
         case FR_MIN:
@@ -2476,7 +2476,7 @@ static int __skip_periods_hour(int freq) {
             return 1;
     }
 }
-static int __skip_periods_minute(int freq) {
+int __skip_periods_minute(int freq) {
     switch(freq)
     {
         case FR_SEC:

@@ -6,7 +6,9 @@
 
 
 typedef struct {
-    int has_dups, has_missing, is_chrono;
+    int has_dups;
+    int has_missing;
+    int is_chrono;
 } ts_timestatus;
 
 typedef struct {
